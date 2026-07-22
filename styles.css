@@ -460,7 +460,10 @@ button {
    ------------------------------------------------------------------ */
 .media {
   position: relative;
-  background: var(--superficie2);
+  /* Blanco puro: las fotos de producto ya vienen con fondo blanco, así
+     que con object-fit:contain la unión entre foto y marco desaparece
+     en vez de notarse como una franja vacía oscura. */
+  background: #FFFFFF;
   border: 1px solid var(--borde);
   border-radius: var(--radio-sm);
   aspect-ratio: 4 / 3;
@@ -488,7 +491,10 @@ button {
   place-items: center;
   text-align: center;
   padding: 16px;
-  color: var(--texto-suave);
+  /* --texto-suave (#79838E) se pensó para fondo oscuro; sobre el marco
+     blanco nuevo casi no se lee. Este gris sí tiene contraste sobre
+     blanco y mantiene el mismo tono neutro del resto de la paleta. */
+  color: #5B6472;
   font-size: 0.88rem;
   font-weight: 500;
   letter-spacing: 0.02em;
@@ -849,9 +855,13 @@ button {
   top: 8px;
   right: 8px;
   z-index: 1;
+  /* fondo propio, casi opaco: se lee igual sobre el marco blanco nuevo
+     que sobre el placeholder oscuro de imagen faltante */
   background: rgba(18, 22, 26, 0.9);
   border: 1px solid var(--borde);
-  color: var(--texto-suave);
+  /* --texto-suave daba ~3.6:1 contra este fondo (insuficiente, AA pide
+     4.5:1). --texto sube a ~9.8:1. */
+  color: var(--texto);
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.06em;
