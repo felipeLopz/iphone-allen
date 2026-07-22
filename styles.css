@@ -5,15 +5,22 @@
 
 /* ----------------------------- TOKENS ----------------------------- */
 :root {
-  --fondo:        #12161A;
-  --superficie:   #181D23;
-  --superficie2:  #1F252C;
-  --borde:        #232A31;
-  --acento:       #5DCAA5;
+  --fondo:        #F7F8F9;
+  --superficie:   #FFFFFF;
+  --superficie2:  #EFF1F3;
+  --borde:        #DFE3E7;
+  --borde-fuerte: #C5CCD3;
+  /* IMPORTANTE: --acento (#0F7A58, jade oscuro) es para TEXTO, bordes y
+     resaltados sobre claro — llega a 4.5:1. --acento-fuerte (#1D9E75) es
+     sólo para FONDOS de botón/indicador, con texto o ícono blanco encima. */
+  --acento:       #0F7A58;
   --acento-fuerte:#1D9E75;
-  --texto:        #D5DAE0;
-  --texto-suave:  #79838E;
-  --rojo-suave:   #E28275;
+  --acento-suave: #E8F5F0;
+  --texto:        #1A1F24;
+  --texto-suave:  #5A646E;
+  --texto-tenue:  #8A939C;
+  --rojo-suave:   #C0392B;
+  --error-suave:  #FDEDEA;
 
   --display: 'Clash Display', 'General Sans', system-ui, sans-serif;
   --cuerpo:  'General Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -46,20 +53,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Dos manchas de luz jade en diagonal sobre el fondo plano.
-   position:fixed + z-index:-1 lo saca del flujo y lo manda detrás de
-   todo: NO es ancestro de .card ni de .media, así que no puede
-   reabrir el bug del scroll trabado sobre las imágenes. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 22% 28%, rgba(93, 202, 165, .13), transparent 42%),
-    radial-gradient(circle at 78% 72%, rgba(93, 202, 165, .09), transparent 46%);
-}
+/* Fondo plano #F7F8F9 (lo pone `body { background }` arriba).
+   Sobre tema claro, incluso manchas jade muy tenues tienden a leerse como
+   un tinte verdoso sucio en las esquinas, que es justo lo que se quería
+   evitar; el plano es limpio y sin riesgo. Si se prefiere el efecto,
+   basta con volver a poner un body::before con dos radial-gradient muy
+   suaves: rgba(29,158,117,.05) y rgba(29,158,117,.03). */
 
 h1, h2, h3 {
   font-family: var(--display);
@@ -118,8 +117,8 @@ button {
   position: absolute;
   left: 12px; top: -60px;
   z-index: 100;
-  background: var(--acento);
-  color: #0C1013;
+  background: var(--acento-fuerte);
+  color: #FFFFFF;
   padding: 10px 16px;
   border-radius: var(--radio-sm);
   font-weight: 600;
@@ -152,7 +151,7 @@ button {
 .btn {
   display: inline-flex;
   align-items: center;
-  border: 1px solid #2A313A;
+  border: 1px solid var(--borde);
   border-radius: 6px;
   overflow: hidden;
   background: none;
@@ -172,7 +171,7 @@ button {
   flex: 0 0 auto;
   padding: 9px 11px;
   background: var(--acento-fuerte);
-  color: #04342C;               /* el trazo del svg usa currentColor */
+  color: #FFFFFF;               /* trazo blanco sobre el bloque jade */
   transition: background var(--transicion);
 }
 .btn__ico .ico { width: 16px; height: 16px; }
@@ -180,7 +179,7 @@ button {
 .btn__txt {
   padding: 9px 14px;
   color: var(--texto);
-  background: #171B21;
+  background: var(--superficie);
   transition: background var(--transicion);
 }
 .btn:hover .btn__txt { background: var(--superficie2); }
@@ -193,8 +192,8 @@ button {
 }
 
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn:disabled:hover { border-color: #2A313A; }
-.btn:disabled:hover .btn__txt { background: #171B21; }
+.btn:disabled:hover { border-color: var(--borde); }
+.btn:disabled:hover .btn__txt { background: var(--superficie); }
 
 /* A ancho completo el texto ocupa el resto de la fila */
 .btn--bloque { width: 100%; }
@@ -235,8 +234,9 @@ button {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px 14px;
-  background: #171B21;
+  background: var(--superficie);
   border: 1px solid var(--borde);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
   /* mobile: los links caen a una 2da fila; la de arriba mantiene el
      redondeo de píldora y abajo se corta para no hacer un arco enorme */
   border-radius: 99px 99px 22px 22px;
@@ -303,7 +303,7 @@ button {
   border: 0;
   border-radius: 99px;
   background: var(--acento-fuerte);
-  color: #04342C;              /* el trazo del ícono usa currentColor */
+  color: #FFFFFF;              /* ícono y contador en blanco sobre la pastilla */
   font-size: 0.85rem;
   font-weight: 600;
   transition: background var(--transicion);
@@ -317,8 +317,8 @@ button {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: rgba(4, 52, 44, 0.22);
-  color: #04342C;
+  background: rgba(4, 52, 44, 0.28);
+  color: #FFFFFF;
   font-size: 0.76rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -326,7 +326,7 @@ button {
 }
 .cart-btn[data-lleno="true"] .cart-btn__count {
   background: #04342C;
-  color: var(--acento);
+  color: #FFFFFF;
 }
 
 /* ------------------------------ HERO ------------------------------
@@ -426,8 +426,8 @@ button {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--acento);
-  background: rgba(93, 202, 165, 0.09);
-  border: 1px solid rgba(93, 202, 165, 0.22);
+  background: var(--acento-suave);
+  border: 1px solid rgba(29, 158, 117, 0.35);
   border-radius: 999px;
   padding: 6px 12px;
 }
@@ -491,10 +491,10 @@ button {
   place-items: center;
   text-align: center;
   padding: 16px;
-  /* --texto-suave (#79838E) se pensó para fondo oscuro; sobre el marco
-     blanco nuevo casi no se lee. Este gris sí tiene contraste sobre
-     blanco y mantiene el mismo tono neutro del resto de la paleta. */
-  color: #5B6472;
+  /* sobre marco blanco: fondo gris claro y texto tenue, coherente con
+     la paleta clara. */
+  background: var(--superficie2);
+  color: var(--texto-tenue);
   font-size: 0.88rem;
   font-weight: 500;
   letter-spacing: 0.02em;
@@ -642,19 +642,19 @@ button {
   margin-top: 24px;
 }
 
-/* [11] activa en acento, inactivas en #2A313A, 300ms */
+/* [11] activa en jade, inactivas en borde-fuerte, 300ms */
 .barra {
   width: 42px;
   height: 4px;
   border-radius: 999px;
-  background: #2A313A;
+  background: var(--borde-fuerte);
   border: 0;
   padding: 0;
   transition: background 300ms ease, width 300ms ease;
 }
 .barra:hover { background: var(--texto-suave); }
 .barra[aria-selected="true"] {
-  background: var(--acento);
+  background: var(--acento-fuerte);
   width: 62px;
 }
 /* área táctil cómoda sin agrandar la barrita visible */
@@ -713,7 +713,7 @@ button {
 }
 .filtro:hover { color: var(--texto); border-color: var(--texto-suave); }
 .filtro[aria-pressed="true"] {
-  background: rgba(93, 202, 165, 0.10);
+  background: var(--acento-suave);
   border-color: var(--acento-fuerte);
   color: var(--acento);
 }
@@ -855,13 +855,10 @@ button {
   top: 8px;
   right: 8px;
   z-index: 1;
-  /* fondo propio, casi opaco: se lee igual sobre el marco blanco nuevo
-     que sobre el placeholder oscuro de imagen faltante */
-  background: rgba(18, 22, 26, 0.9);
+  /* chip claro: se lee sobre el marco blanco y sobre el placeholder gris */
+  background: var(--superficie2);
   border: 1px solid var(--borde);
-  /* --texto-suave daba ~3.6:1 contra este fondo (insuficiente, AA pide
-     4.5:1). --texto sube a ~9.8:1. */
-  color: var(--texto);
+  color: var(--texto-suave);
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -894,11 +891,12 @@ button {
 .card__precios .precio { font-size: 1.2rem; }
 
 /* ------------------------- TARJETA PRINCIPAL -----------------------
-   Un producto por categoría con el doble de espacio. Borde un tono más
-   claro que las normales para distinguirla sin agregarle color.
+   Un producto por categoría con el doble de espacio. Sobre fondo claro
+   el borde solo no alcanza: se distingue con borde más fuerte + sombra.
    ------------------------------------------------------------------ */
 .card--principal {
-  border-color: #2A313A;
+  border-color: var(--borde-fuerte);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
 }
 .card--principal .card__nombre { font-size: 1.32rem; }
 .card--principal .card__precios .precio { font-size: 1.62rem; }
@@ -992,7 +990,7 @@ button {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: rgba(8, 11, 13, 0.6);
+  background: rgba(26, 31, 36, 0.4);
   backdrop-filter: blur(2px);
   opacity: 0;
   transition: opacity var(--transicion);
@@ -1008,6 +1006,7 @@ button {
   width: min(420px, 100%);
   background: var(--superficie);
   border-left: 1px solid var(--borde);
+  box-shadow: -12px 0 40px rgba(26, 31, 36, 0.16);
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
@@ -1063,7 +1062,7 @@ button {
 .paso__barra {
   height: 2px;
   border-radius: 2px;
-  background: #2A313A;
+  background: var(--borde-fuerte);
   transition: background 300ms ease;
 }
 
@@ -1075,7 +1074,7 @@ button {
   transition: color 300ms ease;
 }
 
-.paso[data-activo="true"] .paso__barra { background: var(--acento); }
+.paso[data-activo="true"] .paso__barra { background: var(--acento-fuerte); }
 .paso[data-activo="true"] .paso__label { color: var(--acento); }
 
 /* --------------------------- LISTA DEL CARRITO ---------------------
@@ -1122,7 +1121,7 @@ button {
   grid-template-columns: 44px 1fr;
   gap: 10px;
   padding: 8px;
-  background: #171B21;
+  background: var(--superficie);
   border: 1px solid var(--borde);
   border-radius: 5px;
 }
@@ -1196,7 +1195,8 @@ button {
 .drawer__anclado {
   display: grid;
   gap: 9px;
-  background: #171B21;
+  background: var(--fondo);
+  border-top: 1px solid var(--borde);
   border-radius: 5px;
   padding: 9px;
 }
@@ -1286,9 +1286,9 @@ button {
 body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 
 @keyframes pulso {
-  0%   { box-shadow: 0 0 0 0 rgba(93, 202, 165, 0.4); }
-  70%  { box-shadow: 0 0 0 9px rgba(93, 202, 165, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(93, 202, 165, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(29, 158, 117, 0.4); }
+  70%  { box-shadow: 0 0 0 9px rgba(29, 158, 117, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(29, 158, 117, 0); }
 }
 
 /* ------------------- BARRA DEL CATÁLOGO + BUSCADOR ----------------- */
@@ -1348,8 +1348,8 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 /* [35] campo con foco: borde en acento, también por teclado */
 .buscador__campo:focus-visible {
   outline: none;
-  border-color: var(--acento);
-  box-shadow: 0 0 0 3px rgba(93, 202, 165, 0.16);
+  border-color: var(--acento-fuerte);
+  box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.16);
 }
 .buscador__campo::-webkit-search-cancel-button { filter: grayscale(1); }
 
@@ -1372,7 +1372,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 
 .skel {
   border-radius: var(--radio-sm);
-  background: linear-gradient(90deg, var(--superficie2) 25%, #2E3741 50%, var(--superficie2) 75%);
+  background: linear-gradient(90deg, var(--superficie2) 25%, var(--borde) 50%, var(--superficie2) 75%);
   background-size: 200% 100%;
   animation: brillo 1.5s linear infinite;
 }
@@ -1403,7 +1403,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   padding: 58px 20px;
   animation: aparecer 250ms ease backwards;
 }
-.estado-vacio .ico { color: var(--texto-suave); }
+.estado-vacio .ico { color: var(--borde-fuerte); }
 .estado-vacio__titulo {
   font-family: var(--display);
   font-size: 1.15rem;
@@ -1429,7 +1429,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   color: var(--texto-suave);
 }
 .carrito-vacio .ico {
-  color: var(--texto-suave);
+  color: var(--borde-fuerte);
   animation: latido 3.2s ease-in-out infinite;
 }
 .carrito-vacio__texto { font-size: 0.95rem; }
@@ -1580,11 +1580,11 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 .input::placeholder { color: var(--texto-suave); }
 .input:focus-visible {
   outline: none;
-  border-color: var(--acento);
-  box-shadow: 0 0 0 3px rgba(93, 202, 165, 0.16);
+  border-color: var(--acento-fuerte);
+  box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.16);
 }
-.input[aria-invalid="true"] { border-color: var(--rojo-suave); }
-.input[aria-invalid="true"]:focus-visible { box-shadow: 0 0 0 3px rgba(226, 130, 117, 0.18); }
+.input[aria-invalid="true"] { border-color: var(--rojo-suave); background: var(--error-suave); }
+.input[aria-invalid="true"]:focus-visible { box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.18); }
 
 /* --------------------- OPCIONES TIPO BOTÓN (radio) ------------------
    input real, oculto visualmente pero enfocable (nada de display:none,
@@ -1621,8 +1621,8 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   opacity: 0;
 }
 .opcion:has(input:checked) {
-  border-color: var(--acento);
-  background: rgba(93, 202, 165, 0.1);
+  border-color: var(--acento-fuerte);
+  background: var(--acento-suave);
   color: var(--acento);
 }
 .opcion:has(input:focus-visible) {
@@ -1673,8 +1673,8 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 }
 .select:focus-visible {
   outline: none;
-  border-color: var(--acento);
-  box-shadow: 0 0 0 3px rgba(93, 202, 165, 0.16);
+  border-color: var(--acento-fuerte);
+  box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.16);
 }
 
 .comparador__vs {
@@ -1713,20 +1713,22 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 .comparador__tabla tbody tr:last-child th,
 .comparador__tabla tbody tr:last-child td { border-bottom: 0; }
 
+.comparador__tabla { background: var(--superficie); }
 .comparador__tabla thead th {
-  background: var(--superficie);
+  background: var(--superficie2);
   border-bottom: 1px solid var(--borde);
 }
 
-/* fila donde el valor difiere entre los dos productos: fondo sutil */
-.comparador__fila--difiere th,
-.comparador__fila--difiere td { background: var(--superficie2); }
+/* Filas alternas para facilitar la lectura: la zebra va en la <tr> (no en
+   las celdas), así la celda ganadora puede pintar su propio fondo opaco
+   por encima sin pelear especificidad con nth-child. */
+.comparador__tabla tbody tr:nth-child(even) { background: var(--fondo); }
 
-/* Celda ganadora. Va después de la regla de "difiere" para ganarle el
-   fondo. El color no es la única señal: comparadorCeldaValor() agrega
-   "(mejor valor)" en texto sólo para lectores de pantalla. */
+/* Celda ganadora: pinta su propio fondo opaco (gana a la zebra). El color
+   no es la única señal: comparadorCeldaValor() agrega "(mejor valor)" en
+   texto sólo para lectores de pantalla. */
 .comparador__tabla td.comparador__gana {
-  background: #1A2A26;
+  background: var(--acento-suave);
   color: var(--acento);
   font-weight: 600;
 }
@@ -1814,13 +1816,13 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 }
 
 /* Ícono en bloque jade a la izquierda, nombre a la derecha. Sin borde:
-   la tarjeta se apoya sólo en el fondo. */
+   la tarjeta se apoya sólo en su fondo blanco sobre el gris de la página. */
 .pago-card {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 8px;
-  background: #171B21;
+  background: var(--superficie);
   border: 0;
   border-radius: 5px;
 }
@@ -1833,7 +1835,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   height: 40px;
   border-radius: 4px;
   background: var(--acento-fuerte);
-  color: #04342C;              /* el trazo del svg usa currentColor */
+  color: #FFFFFF;              /* trazo blanco sobre el bloque jade */
 }
 .pago-card__ico .ico { width: 19px; height: 19px; }
 
@@ -1855,7 +1857,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   transition: border-left-color 300ms ease;
 }
 .faq__item:first-child { border-top: 1px solid var(--borde); }
-.faq__item[open] { border-left-color: var(--acento); }
+.faq__item[open] { border-left-color: var(--acento-fuerte); background: var(--fondo); }
 
 .faq__pregunta {
   display: flex;
@@ -1902,6 +1904,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   background: var(--superficie);
   border: 1px solid var(--borde);
   border-radius: var(--radio);
+  box-shadow: 0 24px 60px rgba(26, 31, 36, 0.22);
   transform: translate(-50%, -50%) scale(0.97);
   opacity: 0;
   transition: opacity 220ms ease, transform 220ms cubic-bezier(.4, .1, .2, 1);
@@ -1922,7 +1925,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   place-items: center;
   border-radius: 999px;
   border: 1px solid var(--borde);
-  background: rgba(18, 22, 26, 0.86);
+  background: var(--superficie2);
   color: var(--texto-suave);
   transition: color var(--transicion), border-color var(--transicion);
 }
@@ -1995,33 +1998,6 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   display: grid;
   gap: 10px;
   margin-top: 22px;
-}
-
-/* =====================================================================
-   RESPLANDOR QUE SIGUE AL CURSOR
-   Fixed detrás de todo (z-index -1) y pointer-events:none: no es un
-   ancestro de .card/.media ni les agrega ningún transform, así que no
-   puede reabrir el bug del scroll trabado sobre las imágenes. La
-   posición la actualiza app.js con requestAnimationFrame, escribiendo
-   sólo --mx/--my (nunca el style completo).
-   Oculto por defecto: sólo se muestra con mouse real (hover:hover);
-   con prefers-reduced-motion queda tapado más abajo, junto con el
-   resto de las excepciones de movimiento.
-   ===================================================================== */
-.resplandor {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  display: none;
-  /* bajado a la mitad (era .06) para convivir con las manchas fijas del
-     fondo (body::before) sin que la suma quede lavada */
-  background: radial-gradient(480px circle at var(--mx, 50%) var(--my, 50%),
-              rgba(93, 202, 165, 0.03), transparent 70%);
-}
-
-@media (hover: hover) {
-  .resplandor { display: block; }
 }
 
 /* =========================== RESPONSIVE ============================ */
@@ -2121,7 +2097,4 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   .toast[data-visible="true"] { transform: translate(-50%, 0) scale(1); }
   .link-sub:hover::after,
   .link-sub:focus-visible::after { transform: scaleX(1); }
-
-  /* si está activo, directamente no se renderiza */
-  .resplandor { display: none; }
 }

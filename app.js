@@ -1707,40 +1707,4 @@
     $('#instaContacto').innerHTML = insta;
   }
 
-  /* -------------------- RESPLANDOR QUE SIGUE AL CURSOR ----------------
-     Sólo en dispositivos con mouse real y sin prefers-reduced-motion (el
-     CSS ya lo oculta en esos casos; acá además evitamos atar el listener
-     de mousemove en vano). Un único listener guarda la última posición;
-     un rAF por frame la escribe en --mx/--my, nunca más seguido que eso,
-     y nunca reescribiendo el style completo.
-     El elemento es fixed, pointer-events:none y z-index:-1: no es
-     ancestro de .card ni de .media, así que no puede reabrir el bug del
-     scroll trabado sobre las imágenes del catálogo.
-     ------------------------------------------------------------------ */
-  (function () {
-    if (sinMovimiento() || !window.matchMedia('(hover: hover)').matches) return;
-
-    var resplandor = $('#resplandor');
-    if (!resplandor) return;
-
-    var mx = 0;
-    var my = 0;
-    var actualizacionPendiente = false;
-
-    function volcarPosicion() {
-      actualizacionPendiente = false;
-      resplandor.style.setProperty('--mx', mx + 'px');
-      resplandor.style.setProperty('--my', my + 'px');
-    }
-
-    window.addEventListener('mousemove', function (e) {
-      mx = e.clientX;
-      my = e.clientY;
-      if (!actualizacionPendiente) {
-        actualizacionPendiente = true;
-        requestAnimationFrame(volcarPosicion);
-      }
-    }, { passive: true });
-  })();
-
 })();
