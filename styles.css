@@ -229,6 +229,7 @@ button {
 .header > .wrap { pointer-events: none; }
 
 .navbar {
+  position: relative;   /* ancla del panel del desplegable en mobile */
   pointer-events: auto;
   display: flex;
   flex-wrap: wrap;
@@ -277,22 +278,101 @@ button {
 
 .cart-btn { order: 2; }
 
+/* Con sólo tres entradas (Inicio · Productos · Contacto) entran en una
+   fila sin scroll horizontal, así que el nav puede tener overflow visible
+   y dejar que el panel del desplegable se salga. */
 .nav {
   order: 3;
   flex: 1 1 100%;
   display: flex;
-  gap: 20px;
-  overflow-x: auto;
-  scrollbar-width: none;       /* Firefox */
-  -webkit-overflow-scrolling: touch;
+  align-items: center;
+  gap: 18px;
   white-space: nowrap;
   font-size: 0.92rem;
   color: var(--texto-suave);
   padding-inline: 4px;
 }
-.nav::-webkit-scrollbar { display: none; }  /* Chrome, Safari, Edge */
-.nav a { flex: 0 0 auto; transition: color var(--transicion); }
-.nav a:hover { color: var(--texto); }
+.nav__link { flex: 0 0 auto; transition: color var(--transicion); }
+.nav__link:hover { color: var(--texto); }
+
+/* --------------------- DESPLEGABLE "PRODUCTOS" -------------------- */
+.nav-drop { position: relative; flex: 0 0 auto; }
+
+.nav-drop__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.nav-drop__chevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 200ms ease;
+}
+.nav-drop[data-abierto="true"] .nav-drop__chevron { transform: rotate(180deg); }
+
+.nav-drop__panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  min-width: 190px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(26, 31, 36, 0.14);
+  padding: 6px;
+  z-index: 50;
+}
+/* puente invisible que cubre el hueco de 10px entre botón y panel, para
+   que el hover no se corte al bajar del botón al panel */
+.nav-drop__panel::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -10px;
+  height: 10px;
+}
+
+.nav-drop[data-abierto="true"] > .nav-drop__panel { display: block; }
+
+.nav-drop__grupo { display: block; }
+.nav-drop__grupo-tit {
+  margin: 0;
+  padding: 8px 12px 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+
+.nav-drop__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-family: var(--cuerpo);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--texto);
+  transition: background 150ms ease, color 150ms ease;
+}
+.nav-drop__item--sub { padding-left: 22px; font-size: 0.86rem; }
+.nav-drop__item:hover,
+.nav-drop__item:focus-visible {
+  outline: none;
+  background: var(--acento-suave);
+  color: var(--acento);
+}
 
 /* pastilla jade */
 .cart-btn {
@@ -934,10 +1014,108 @@ button {
   border-radius: 5px;
 }
 
+/* ===================== PROMO BANCARIA (placeholder) ===============
+   Mientras es placeholder tiene borde punteado y un tag "Espacio para
+   promo" para que quede obvio que es un hueco a completar, no una promo
+   real. Al poner la promo de verdad se quita la clase promo--placeholder. */
+.promo {
+  border-radius: var(--radio);
+  padding: 26px 22px;
+  text-align: center;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+}
+.promo--placeholder {
+  border: 2px dashed var(--borde-fuerte);
+  background: var(--superficie2);
+  position: relative;
+}
+.promo__tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 999px;
+  padding: 3px 10px;
+  margin-bottom: 12px;
+}
+.promo__titulo {
+  font-family: var(--display);
+  font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+  font-weight: 600;
+  color: var(--texto-suave);
+}
+.promo__sub { margin-top: 6px; color: var(--texto-tenue); font-size: 0.9rem; }
+
+/* ------------------------- UBICACIÓN DEL LOCAL -------------------- */
+.ubicacion {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 22px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+}
+.ubicacion__ico {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--acento-suave);
+  color: var(--acento);
+}
+.ubicacion__ico svg { width: 24px; height: 24px; }
+.ubicacion__titulo { font-family: var(--display); font-size: 1.2rem; font-weight: 600; }
+.ubicacion__dir { margin-top: 4px; color: var(--texto-suave); font-size: 0.95rem; }
+.ubicacion__envios { margin-top: 2px; color: var(--texto-tenue); font-size: 0.9rem; }
+
 /* ---------------------------- CONTACTO ---------------------------- */
 .contacto { border-top: 1px solid var(--borde); }
-.contacto__inner { text-align: center; display: grid; justify-items: center; gap: 6px; }
-.contacto__inner .btn { margin-top: 18px; }
+
+.contacto__grid {
+  display: grid;
+  gap: 28px;
+}
+
+.contacto__redes-fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.contacto__ubic {
+  margin-top: 18px;
+  color: var(--texto-suave);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.contacto__form {
+  display: grid;
+  gap: 16px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 20px;
+}
+.contacto__textarea {
+  resize: vertical;
+  min-height: 96px;
+  font-family: var(--cuerpo);
+  line-height: 1.5;
+}
+
+@media (min-width: 820px) {
+  .contacto__grid { grid-template-columns: 1fr 1fr; align-items: start; gap: 40px; }
+}
 
 /* Agrupa un enlace de WhatsApp de "contacto general" (hero, FAQ,
    sección de contacto) con el ícono de Instagram al lado, para que se
@@ -2031,7 +2209,6 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   .nav {
     order: 0;
     flex: 0 1 auto;
-    overflow-x: visible;
     white-space: normal;
     padding-inline: 0;
   }
@@ -2041,6 +2218,19 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
      entra en las dos columnas de la derecha. */
   .grilla { grid-template-columns: 1.5fr 1fr 1fr; }
   .card--principal { grid-column: 1; grid-row: span 2; }
+}
+
+/* Mobile (<720px): el panel no es un flotante chico sino un bloque de
+   ancho completo que cae debajo de la cápsula, como acordeón. Se ancla a
+   .navbar (position:relative) para no quedar recortado por nada. */
+@media (max-width: 719px) {
+  .nav-drop { position: static; }
+  .nav-drop__panel {
+    left: 6px;
+    right: 6px;
+    min-width: 0;
+    top: calc(100% + 6px);
+  }
 }
 
 @media (min-width: 900px) {

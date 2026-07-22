@@ -44,12 +44,24 @@
       <span class="navbar__sep" aria-hidden="true"></span>
 
       <nav class="nav" aria-label="Principal">
-        <a class="link-sub" href="#destacados">Destacados</a>
-        <a class="link-sub" href="#catalogo">Catálogo</a>
-        <a class="link-sub" href="#comparar">Comparar</a>
-        <a class="link-sub" href="#pagos">Pagos</a>
-        <a class="link-sub" href="#preguntas">Preguntas</a>
-        <a class="link-sub" href="#contacto">Contacto</a>
+        <a class="link-sub nav__link" href="#top" data-scroll>Inicio</a>
+
+        <!-- Productos: clic directo baja al catálogo; hover/foco abre el
+             menú de categorías. En mobile el clic expande el acordeón.
+             El contenido del menú (categorías + subcategorías) lo arma
+             app.js leyendo productos.json. -->
+        <div class="nav-drop" id="navProductos">
+          <button class="link-sub nav__link nav-drop__btn" type="button" id="btnProductos"
+                  aria-haspopup="true" aria-expanded="false" aria-controls="menuProductos">
+            Productos
+            <svg class="nav-drop__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 9l6 6l6 -6"></path>
+            </svg>
+          </button>
+          <div class="nav-drop__panel" id="menuProductos" role="menu" aria-label="Categorías de productos"></div>
+        </div>
+
+        <a class="link-sub nav__link" href="#contacto" data-scroll>Contacto</a>
       </nav>
 
       <button class="cart-btn" type="button" id="abrirCarrito" aria-haspopup="dialog" aria-controls="carrito">
@@ -134,6 +146,64 @@
 
         <div class="carrusel__barras" id="carruselBarras" role="tablist" aria-label="Elegir producto destacado"></div>
       </div>
+    </div>
+  </section>
+
+  <!-- ===================== PROMO BANCARIA (placeholder) ============
+       ESPACIO A COMPLETAR — no es una promo real todavía.
+       Cuando exista una promoción, reemplazá el contenido de
+       .promo__cuerpo por el flyer (una <img>) o por el texto real, y
+       quitá la clase "promo--placeholder" del <section> para que deje
+       de verse como un hueco a completar. -->
+  <section class="seccion" id="promo" aria-label="Promoción bancaria">
+    <div class="wrap">
+      <div class="promo promo--placeholder">
+        <span class="promo__tag">Espacio para promo</span>
+        <div class="promo__cuerpo">
+          <p class="promo__titulo">[PROMO BANCARIA — reemplazar]</p>
+          <p class="promo__sub">Ej: 6 cuotas sin interés con bancos seleccionados</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== UBICACIÓN DEL LOCAL ===================== -->
+  <section class="seccion" id="ubicacion">
+    <div class="wrap">
+      <div class="ubicacion">
+        <span class="ubicacion__ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"></path>
+            <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z"></path>
+          </svg>
+        </span>
+        <div>
+          <h2 class="ubicacion__titulo">Estamos en Allen, Río Negro</h2>
+          <!-- Sin dirección exacta confirmada: dejar el placeholder hasta tenerla -->
+          <p class="ubicacion__dir">[DIRECCIÓN — completar] · Allen, Río Negro</p>
+          <p class="ubicacion__envios">Local físico y envíos a ciudades vecinas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== PREGUNTAS FRECUENTES ==================
+       Parte de la zona de Inicio: va antes del catálogo. -->
+  <section class="seccion" id="preguntas">
+    <div class="wrap wrap--angosto">
+      <header class="seccion__head">
+        <h2 class="seccion__titulo">Preguntas frecuentes</h2>
+      </header>
+
+      <div class="acordeon" id="acordeonFaq"><!-- desde FAQ en app.js --></div>
+
+      <p class="faq__mas">
+        ¿Otra consulta?
+        <span class="contacto-redes">
+          <a class="link-sub" href="#contacto" data-scroll>Escribinos</a>
+          <span id="instaFaq"></span>
+        </span>
+      </p>
     </div>
   </section>
 
@@ -227,36 +297,66 @@
     </div>
   </section>
 
-  <!-- ======================== PREGUNTAS FRECUENTES ================== -->
-  <section class="seccion" id="preguntas">
-    <div class="wrap wrap--angosto">
-      <header class="seccion__head">
-        <h2 class="seccion__titulo">Preguntas frecuentes</h2>
-      </header>
-
-      <div class="acordeon" id="acordeonFaq"><!-- desde FAQ en app.js --></div>
-
-      <p class="faq__mas">
-        ¿Otra consulta?
-        <span class="contacto-redes">
-          <a class="link-sub" href="#" id="ctaWhatsappFaq" target="_blank" rel="noopener">Escribinos</a>
-          <span id="instaFaq"></span>
-        </span>
-      </p>
-    </div>
-  </section>
-
-  <!-- =========================== CONTACTO ========================= -->
+  <!-- =========================== CONTACTO =========================
+       Redes + formulario de consulta que arma un WhatsApp (no se envía a
+       ningún servidor, mismo patrón que el checkout). -->
   <section class="seccion contacto" id="contacto">
-    <div class="wrap contacto__inner">
-      <h2 class="seccion__titulo">¿Dudas antes de comprar?</h2>
-      <p class="seccion__sub">Escribinos y te respondemos con el stock y los precios del día.</p>
-      <span class="contacto-redes">
-        <a class="btn" href="#" id="ctaWhatsapp2" target="_blank" rel="noopener">
-          <span class="btn__ico" data-ico="whatsapp"></span><span class="btn__txt">Escribinos por WhatsApp</span>
-        </a>
-        <span id="instaContacto"></span>
-      </span>
+    <div class="wrap contacto__grid">
+
+      <div class="contacto__col">
+        <h2 class="seccion__titulo">Escribinos</h2>
+        <p class="seccion__sub">Te respondemos con el stock y los precios del día.</p>
+
+        <div class="contacto__redes-fila">
+          <a class="btn" href="#" id="ctaWhatsapp2" target="_blank" rel="noopener">
+            <span class="btn__ico" data-ico="whatsapp"></span><span class="btn__txt">Escribinos por WhatsApp</span>
+          </a>
+          <!-- Instagram / correo: los arma app.js desde CONTACTO. El
+               correo sólo aparece si dejó de ser placeholder. -->
+          <span class="contacto-redes" id="contactoRedes"></span>
+        </div>
+
+        <p class="contacto__ubic">
+          <span aria-hidden="true">📍</span>
+          Allen, Río Negro · Local físico y envíos a ciudades vecinas.
+          <a class="link-sub" href="#ubicacion" data-scroll>Ver ubicación</a>
+        </p>
+      </div>
+
+      <form class="contacto__form" id="formContacto" novalidate>
+        <div class="campo">
+          <label class="campo__label" for="contactoNombre">Nombre <span class="req" aria-hidden="true">*</span></label>
+          <input class="input" type="text" id="contactoNombre" name="nombre" placeholder="Ej: Juan Pérez" autocomplete="name">
+          <p class="campo__error" id="errorContactoNombre" hidden></p>
+        </div>
+
+        <div class="campo">
+          <label class="campo__label" for="contactoMedio">Correo o teléfono <span class="req" aria-hidden="true">*</span></label>
+          <input class="input" type="text" id="contactoMedio" name="medio" placeholder="Ej: tu@email.com o 2985551234" autocomplete="email">
+          <p class="campo__error" id="errorContactoMedio" hidden></p>
+        </div>
+
+        <div class="campo">
+          <label class="campo__label" for="contactoMensaje">Mensaje <span class="req" aria-hidden="true">*</span></label>
+          <textarea class="input contacto__textarea" id="contactoMensaje" name="mensaje" rows="4" placeholder="¿Qué equipo estás buscando?"></textarea>
+          <p class="campo__error" id="errorContactoMensaje" hidden></p>
+        </div>
+
+        <button class="btn btn--bloque" type="submit">
+          <span class="btn__ico" data-ico="whatsapp"></span><span class="btn__txt">Enviar consulta</span>
+        </button>
+
+        <!-- tilde que se traza tras abrir WhatsApp (mismo efecto [36]) -->
+        <p class="enviado" id="contactoEnviado" hidden>
+          <svg class="enviado__tilde" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12l5 5l10 -10"></path>
+          </svg>
+          <span>Te abrimos WhatsApp con la consulta</span>
+        </p>
+
+        <p class="form-entrega__privacidad">Tu consulta se envía sólo por WhatsApp, no se guarda en el sitio.</p>
+      </form>
+
     </div>
   </section>
 

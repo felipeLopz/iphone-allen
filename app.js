@@ -12,6 +12,7 @@
      "id":            "iphone-15-128",     // único, sin espacios ni acentos
      "nombre":        "iPhone 15 128 GB",  // se muestra tal cual
      "categoria":     "iPhone",            // iPhone | Mac | iPad | Accesorios
+     "subcategoria":  "Auriculares",       // SÓLO Accesorios. Ver nota abajo.
      "precio":        1749000,             // número, SIN puntos ni signo $
      "precioAnterior": 1899000,            // opcional: se muestra tachado
      "destacado":     true,                // true => aparece en el carrusel
@@ -42,6 +43,19 @@
    · Para que aparezca en el carrusel poné "destacado": true. Lo ideal 3 o 4.
    · Si agregás una categoría nueva, aparece sola en los filtros y como
      sección propia al final del catálogo.
+
+   SUBCATEGORÍAS (campo "subcategoria")
+   ------------------------------------
+   · Sólo se usa en los productos de "Accesorios". iPhone, Mac e iPad se
+     filtran por categoría a secas y NO llevan "subcategoria".
+   · Hoy hay tres: "Auriculares", "Relojes", "Cargadores".
+   · Para agregar una subcategoría nueva (por ejemplo "Fundas" o
+     "Cables") alcanza con ponerla en el campo "subcategoria" de un
+     producto de Accesorios. El desplegable "Productos" del menú lee las
+     subcategorías del JSON: la nueva aparece sola, sin tocar código.
+   · Una subcategoría sin ningún producto no se muestra en el menú.
+     (Nota: JSON no admite comentarios; por eso esta guía vive acá y no
+     dentro de productos.json.)
    ---------------------------------------------------------------------
 */
 
@@ -109,6 +123,7 @@
   var productos = [];
   var carrito = leerCarrito();       // [{ id, cantidad }]
   var categoriaActiva = 'Todos';
+  var subcategoriaActiva = null;     // sólo aplica dentro de Accesorios
   var busqueda = '';
   var slideActivo = 0;
   var destacados = [];
@@ -302,6 +317,7 @@
       pintarHero();
       pintarCarrusel();
       pintarFiltros();
+      construirMenuProductos();
       pintarCatalogo();
       pintarCarrito();
       pintarSelectsComparador();
@@ -518,14 +534,25 @@
     }).join('');
   }
 
+  // Punto único para cambiar el filtro: lo usan las pastillas del catálogo
+  // y el desplegable "Productos" del menú. Deja el estado coherente
+  // (categoría + subcategoría), sincroniza las pastillas y repinta.
+  function aplicarFiltro(categoria, subcategoria) {
+    categoriaActiva = categoria || 'Todos';
+    subcategoriaActiva = subcategoria || null;
+
+    Array.prototype.forEach.call($('#filtros').children, function (f) {
+      f.setAttribute('aria-pressed', f.dataset.cat === categoriaActiva ? 'true' : 'false');
+    });
+
+    pintarCatalogo(true); // [16] las secciones entran al cambiar de filtro
+  }
+
   $('#filtros').addEventListener('click', function (e) {
     var b = e.target.closest('[data-cat]');
     if (!b) return;
-    categoriaActiva = b.dataset.cat;
-    Array.prototype.forEach.call(this.children, function (f) {
-      f.setAttribute('aria-pressed', f.dataset.cat === categoriaActiva ? 'true' : 'false');
-    });
-    pintarCatalogo(true); // [16] las secciones entran al cambiar de filtro
+    // una pastilla siempre limpia cualquier subcategoría del menú
+    aplicarFiltro(b.dataset.cat, null);
   });
 
   // [32] buscador que se abre desde la lupa
@@ -623,6 +650,9 @@
   function productosDe(categoria) {
     return productos.filter(function (p) {
       if (p.categoria !== categoria) return false;
+      // subcategoría: sólo se setea junto a Accesorios, y sólo esos
+      // productos la tienen, así que este chequeo no afecta a las demás.
+      if (subcategoriaActiva && p.subcategoria !== subcategoriaActiva) return false;
       if (!busqueda) return true;
       return normalizar(p.nombre).indexOf(normalizar(busqueda)) !== -1;
     });
@@ -643,6 +673,10 @@
 
       var idTitulo = 'cat-' + c.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
+      // Con una subcategoría activa el título muestra la subcategoría
+      // (ej. "Auriculares") en vez de la categoría a secas.
+      var tituloSeccion = (subcategoriaActiva && c === 'Accesorios') ? subcategoriaActiva : c;
+
       // El principal va primero en el DOM y ocupa la columna ancha;
       // el resto entra en las dos columnas de la derecha.
       var principal = elegirPrincipal(lista, c);
@@ -650,7 +684,7 @@
 
       return '<section class="' + claseSeccion + '" aria-labelledby="' + idTitulo + '">' +
                '<header class="cat__head">' +
-                 '<h3 class="cat__titulo" id="' + idTitulo + '">' + esc(c) + '</h3>' +
+                 '<h3 class="cat__titulo" id="' + idTitulo + '">' + esc(tituloSeccion) + '</h3>' +
                  '<p class="cat__conteo">' + conteo(c, lista.length) + '</p>' +
                '</header>' +
                '<div class="grilla">' +
@@ -1355,7 +1389,6 @@
     var consulta = urlWhatsapp(MENSAJE_CONSULTA);
     $('#ctaWhatsapp').href = consulta;
     $('#ctaWhatsapp2').href = consulta;
-    $('#ctaWhatsappFaq').href = consulta;
   }
 
   var enviadoTimer = null;
@@ -1674,6 +1707,13 @@
            'target="_blank" rel="noopener" aria-label="Instagram de ' + esc(NEGOCIO) + '">' + icono('instagram') + '</a>';
   }
 
+  // Correo: sólo si dejó de ser placeholder.
+  function enlaceCorreo() {
+    if (esPlaceholder(CONTACTO.email)) return '';
+    return '<a class="red-link" href="mailto:' + esc(CONTACTO.email) + '" ' +
+           'aria-label="Enviar un correo a ' + esc(NEGOCIO) + '">' + icono('correo') + '</a>';
+  }
+
   function pintarRedes() {
     var enlaces = [];
 
@@ -1687,24 +1727,250 @@
     var insta = enlaceInstagram();
     if (insta) enlaces.push(insta);
 
-    if (!esPlaceholder(CONTACTO.email)) {
-      enlaces.push(
-        '<a class="red-link" href="mailto:' + esc(CONTACTO.email) + '" ' +
-        'aria-label="Enviar un correo a ' + esc(NEGOCIO) + '">' + icono('correo') + '</a>'
-      );
-    }
+    var correo = enlaceCorreo();
+    if (correo) enlaces.push(correo);
 
     $('#footerRedes').innerHTML = enlaces.join('');
   }
 
-  // Instagram al lado de los WhatsApp de "contacto general" (hero, FAQ,
-  // sección de contacto). Si Instagram está en placeholder, cada
-  // contenedor queda vacío y no se nota que falta nada.
+  // Instagram al lado de los WhatsApp de "contacto general". El hero y el
+  // FAQ muestran sólo Instagram; la sección de Contacto suma el correo si
+  // está definido. Si algo está en placeholder, ese contenedor queda
+  // vacío y no se nota que falta.
   function pintarRedesContacto() {
     var insta = enlaceInstagram();
     $('#instaHero').innerHTML = insta;
     $('#instaFaq').innerHTML = insta;
-    $('#instaContacto').innerHTML = insta;
+    $('#contactoRedes').innerHTML = insta + enlaceCorreo();
+  }
+
+  /* =====================================================================
+     DESPLEGABLE "PRODUCTOS" DEL MENÚ
+     El botón lleva al catálogo (desktop) o abre el acordeón (mobile). El
+     panel se arma leyendo el JSON: categorías + subcategorías reales.
+     ===================================================================== */
+
+  // Subcategorías presentes en una categoría, en orden de aparición.
+  // Una subcategoría sin productos no aparece (se deriva de los productos).
+  function subcategoriasDe(categoria) {
+    var subs = [];
+    productos.forEach(function (p) {
+      if (p.categoria === categoria && p.subcategoria && subs.indexOf(p.subcategoria) === -1) {
+        subs.push(p.subcategoria);
+      }
+    });
+    return subs;
+  }
+
+  var btnProductos = $('#btnProductos');
+  var menuProductos = $('#menuProductos');
+  var navDrop = $('#navProductos');
+  var mqMobile = window.matchMedia('(max-width: 719px)');
+
+  function construirMenuProductos() {
+    var html = '';
+
+    categoriasConProductos().forEach(function (c) {
+      var subs = subcategoriasDe(c);
+
+      if (!subs.length) {
+        // categoría sin subcategorías: un ítem que filtra por categoría
+        html += '<button class="nav-drop__item" type="button" role="menuitem" ' +
+                'data-cat="' + esc(c) + '">' + esc(c) + '</button>';
+      } else {
+        // categoría con subcategorías: encabezado de grupo + un ítem por sub
+        html += '<div class="nav-drop__grupo" role="group" aria-label="' + esc(c) + '">' +
+                  '<p class="nav-drop__grupo-tit">' + esc(c) + '</p>';
+        subs.forEach(function (sub) {
+          html += '<button class="nav-drop__item nav-drop__item--sub" type="button" role="menuitem" ' +
+                  'data-cat="' + esc(c) + '" data-sub="' + esc(sub) + '">' + esc(sub) + '</button>';
+        });
+        html += '</div>';
+      }
+    });
+
+    menuProductos.innerHTML = html;
+  }
+
+  function itemsMenu() {
+    return Array.prototype.slice.call(menuProductos.querySelectorAll('[role="menuitem"]'));
+  }
+
+  // La visibilidad real la decide el CSS (hover / focus-within en desktop,
+  // data-abierto en mobile). data-abierto + aria-expanded son el estado
+  // "explícito"; menuAbierto() mira el display efectivo para cubrir también
+  // el caso hover sin click.
+  function abrirMenu() {
+    navDrop.dataset.abierto = 'true';
+    btnProductos.setAttribute('aria-expanded', 'true');
+  }
+
+  function cerrarMenu(devolverFoco) {
+    navDrop.dataset.abierto = 'false';
+    btnProductos.setAttribute('aria-expanded', 'false');
+    if (devolverFoco) btnProductos.focus();
+  }
+
+  function menuAbierto() {
+    return navDrop.dataset.abierto === 'true';
+  }
+
+  // Tras Escape, el foco vuelve al botón; sin esta guarda, el focusin que
+  // dispara ese .focus() reabriría el panel de inmediato.
+  var reabrirBloqueado = false;
+
+  // Filtra el catálogo y baja hasta él. Núcleo compartido por el menú.
+  function irACatalogoFiltrado(categoria, subcategoria) {
+    aplicarFiltro(categoria || 'Todos', subcategoria || null);
+    // scroll suave hasta el catálogo (respeta scroll-padding-top del header)
+    $('#catalogo').scrollIntoView({ behavior: sinMovimiento() ? 'auto' : 'smooth', block: 'start' });
+  }
+
+  // Botón "Productos": en desktop baja al catálogo (sin filtro extra); en
+  // mobile funciona como acordeón (abre/cierra el panel).
+  btnProductos.addEventListener('click', function () {
+    if (mqMobile.matches) {
+      if (menuAbierto()) cerrarMenu();
+      else abrirMenu();
+      return;
+    }
+    cerrarMenu();
+    irACatalogoFiltrado('Todos', null);
+  });
+
+  // Elegir una categoría o subcategoría del panel.
+  menuProductos.addEventListener('click', function (e) {
+    var item = e.target.closest('[role="menuitem"]');
+    if (!item) return;
+    irACatalogoFiltrado(item.dataset.cat, item.dataset.sub || null);
+    cerrarMenu();
+  });
+
+  // Teclado del desplegable: flechas mueven entre ítems, Escape cierra y
+  // devuelve el foco al botón, Tab sigue el orden natural (no se atrapa).
+  navDrop.addEventListener('keydown', function (e) {
+    var items = itemsMenu();
+    var idx = items.indexOf(document.activeElement);
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!menuAbierto()) abrirMenu();
+      var sig = idx < 0 ? 0 : Math.min(idx + 1, items.length - 1);
+      items[sig].focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (idx <= 0) { btnProductos.focus(); }
+      else items[idx - 1].focus();
+    } else if (e.key === 'Escape') {
+      if (menuAbierto()) { e.preventDefault(); reabrirBloqueado = true; cerrarMenu(true); }
+    } else if (e.key === 'Home' && idx >= 0) {
+      e.preventDefault(); items[0].focus();
+    } else if (e.key === 'End' && idx >= 0) {
+      e.preventDefault(); items[items.length - 1].focus();
+    }
+  });
+
+  // Desktop: hover y foco abren el panel; salir de ambos lo cierra.
+  // (En mobile el toggle es por click, no por hover/foco.)
+  navDrop.addEventListener('focusin', function () {
+    if (mqMobile.matches) return;
+    if (reabrirBloqueado) { reabrirBloqueado = false; return; }
+    abrirMenu();
+  });
+  navDrop.addEventListener('focusout', function (e) {
+    if (mqMobile.matches) return;
+    if (!navDrop.contains(e.relatedTarget)) cerrarMenu();
+  });
+  navDrop.addEventListener('mouseenter', function () {
+    if (!mqMobile.matches) abrirMenu();
+  });
+  navDrop.addEventListener('mouseleave', function () {
+    if (mqMobile.matches) return;
+    if (!navDrop.contains(document.activeElement)) cerrarMenu();
+  });
+
+  // Click fuera cierra (sobre todo útil en mobile con el acordeón abierto).
+  document.addEventListener('click', function (e) {
+    if (menuAbierto() && !navDrop.contains(e.target)) cerrarMenu();
+  });
+
+  /* =====================================================================
+     FORMULARIO DE CONTACTO
+     Valida (sin alert) y arma un WhatsApp, igual que el checkout. No se
+     envía a ningún servidor.
+     ===================================================================== */
+
+  var formContacto = $('#formContacto');
+
+  var CAMPO_CONTACTO = {
+    nombre:  { input: $('#contactoNombre'),  error: $('#errorContactoNombre') },
+    medio:   { input: $('#contactoMedio'),   error: $('#errorContactoMedio') },
+    mensaje: { input: $('#contactoMensaje'), error: $('#errorContactoMensaje') }
+  };
+
+  function limpiarErroresContacto() {
+    Object.keys(CAMPO_CONTACTO).forEach(function (k) {
+      var c = CAMPO_CONTACTO[k];
+      c.input.removeAttribute('aria-invalid');
+      c.input.removeAttribute('aria-describedby');
+      c.error.hidden = true;
+      c.error.textContent = '';
+    });
+  }
+
+  function marcarErrorContacto(campo, mensaje) {
+    var c = CAMPO_CONTACTO[campo];
+    c.input.setAttribute('aria-invalid', 'true');
+    c.input.setAttribute('aria-describedby', c.error.id);
+    c.error.textContent = mensaje;
+    c.error.hidden = false;
+  }
+
+  // "medio" es válido si parece un correo o si tiene al menos 8 dígitos
+  // (un teléfono). Alcanza con uno de los dos.
+  function medioValido(v) {
+    var esCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    var esTel = /^[\d\s()+-]+$/.test(v) && v.replace(/\D/g, '').length >= 8;
+    return esCorreo || esTel;
+  }
+
+  formContacto.addEventListener('submit', function (e) {
+    e.preventDefault();
+    limpiarErroresContacto();
+
+    var nombre = $('#contactoNombre').value.trim();
+    var medio = $('#contactoMedio').value.trim();
+    var mensaje = $('#contactoMensaje').value.trim();
+
+    var errores = [];
+    if (!nombre) errores.push({ campo: 'nombre', mensaje: 'Falta tu nombre.' });
+    if (!medio) errores.push({ campo: 'medio', mensaje: 'Dejanos un correo o teléfono para responderte.' });
+    else if (!medioValido(medio)) errores.push({ campo: 'medio', mensaje: 'Poné un correo válido o un teléfono de al menos 8 dígitos.' });
+    if (!mensaje) errores.push({ campo: 'mensaje', mensaje: 'Escribí tu consulta.' });
+
+    if (errores.length) {
+      errores.forEach(function (err) { marcarErrorContacto(err.campo, err.mensaje); });
+      CAMPO_CONTACTO[errores[0].campo].input.focus();
+      return;
+    }
+
+    var texto = ['¡Hola ' + NEGOCIO + '! Tengo una consulta:', '',
+                 'Nombre: ' + nombre,
+                 'Contacto: ' + medio,
+                 '', mensaje].join('\n');
+    window.open(urlWhatsapp(texto), '_blank', 'noopener');
+    trazarEnviado($('#contactoEnviado'));
+  });
+
+  // [36] tilde que se traza tras abrir WhatsApp — versión reutilizable.
+  function trazarEnviado(el) {
+    var trazo = el.querySelector('path');
+    el.hidden = false;
+    trazo.style.animation = 'none';
+    void trazo.offsetWidth;
+    trazo.style.animation = '';
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.hidden = true; }, 5000);
   }
 
 })();
