@@ -465,6 +465,13 @@ button {
   border-radius: var(--radio-sm);
   aspect-ratio: 4 / 3;
   overflow: hidden;
+  /* con object-fit:contain (más abajo) la foto puede no llenar el marco;
+     este padding evita que toque el borde y hace que el aire alrededor
+     se vea intencional, no como un recorte fallado. box-sizing:border-box
+     (regla global) hace que el padding no altere el aspect-ratio de acá
+     arriba: el marco mantiene su proporción exacta, quien se ajusta es
+     el espacio interno para la imagen. */
+  padding: 10px;
   /* explícito a propósito: el recorte de la imagen no debe retener la
      rueda del mouse ni encadenarla de forma distinta al resto de la
      página. overscroll-behavior sólo debe existir en .modal__scroll
@@ -492,7 +499,10 @@ button {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  /* contain, no cover: la foto entra completa, sin recortar los bordes
+     del equipo. Si sobra espacio queda vacío (el padding de .media hace
+     que ese aire se vea a propósito). */
+  object-fit: contain;
 }
 
 /* ---------------------------- PRECIOS ----------------------------- */
@@ -1107,7 +1117,9 @@ button {
   border-radius: 5px;
 }
 
-.linea .media { aspect-ratio: 44 / 52; }
+/* la foto del carrito es de 44px de ancho: el padding base (10px por
+   lado) dejaría casi nada de imagen, así que acá va más chico */
+.linea .media { aspect-ratio: 44 / 52; padding: 4px; }
 .linea .media__ph { font-size: 0.58rem; padding: 4px; line-height: 1.15; }
 
 .linea__nombre { font-size: 0.88rem; font-weight: 500; line-height: 1.3; }
