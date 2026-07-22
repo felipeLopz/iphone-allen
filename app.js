@@ -177,14 +177,39 @@
   // Si un producto no declara "stock", se asume que hay.
   function hayStock(p) { return p.stock === undefined || p.stock === null || p.stock > 0; }
 
-  // Imagen: si el producto tiene "imagen" usa <img>, si no el placeholder CSS.
-  // Reemplazar placeholders por fotos = cargar la ruta en productos.json.
-  function media(p, clase, extra) {
-    var contenido = p.imagen
-      ? '<img class="media__img" src="' + esc(p.imagen) + '" alt="' + esc(p.nombre) + '" loading="lazy">'
-      : '<div class="media__ph">' + esc(p.nombre) + '</div>';
+  // Ruta de la foto: si el producto trae "imagen" en productos.json esa
+  // gana (para casos como compartir foto entre dos productos); si no,
+  // se arma sola por convención a partir del id: img/<id>.jpg.
+  // Para agregar la foto de un producto nuevo alcanza con guardarla en
+  // img/ con ese nombre, sin tocar el JSON.
+  function rutaImagen(p) {
+    return p.imagen || ('img/' + p.id + '.jpg');
+  }
+
+  // Siempre se intenta la foto real. Si el archivo no existe o no carga,
+  // el listener de "error" (más abajo, en captura) la reemplaza por el
+  // mismo placeholder .media__ph que ya se usaba antes.
+  // "eager" es true sólo para el hero y el carrusel de destacados: esas
+  // se ven de entrada, ahí NO conviene loading="lazy".
+  function media(p, clase, extra, eager) {
+    var contenido =
+      '<img class="media__img" src="' + esc(rutaImagen(p)) + '" alt="' + esc(p.nombre) + '"' +
+      (eager ? '' : ' loading="lazy"') + '>';
     return '<div class="media ' + (clase || '') + '">' + contenido + (extra || '') + '</div>';
   }
+
+  // El evento "error" de <img> no burbujea, por eso se escucha en fase
+  // de captura sobre todo el documento: un único listener alcanza para
+  // tarjetas, carrusel, modal y comparador, sin agregar "onerror" inline
+  // en cada <img> ni exponer nada global.
+  document.addEventListener('error', function (e) {
+    var img = e.target;
+    if (!img || img.tagName !== 'IMG' || !img.classList.contains('media__img')) return;
+    var ph = document.createElement('div');
+    ph.className = 'media__ph';
+    ph.textContent = img.alt;
+    img.replaceWith(ph);
+  }, true);
 
   function bloquePrecios(p) {
     var anterior = p.precioAnterior
@@ -280,7 +305,7 @@
     $('#heroProducto').innerHTML =
       '<article class="destacado-card">' +
         '<span class="destacado-card__cinta">Destacado</span>' +
-        media(p, '', badgeStock(p)) +
+        media(p, '', badgeStock(p), true) +
         '<div>' +
           '<h2 class="destacado-card__nombre">' + esc(p.nombre) + '</h2>' +
           '<p class="destacado-card__specs">' + esc((p.specs || []).join(' · ')) + '</p>' +
@@ -303,7 +328,7 @@
   function pintarCarrusel() {
     track.innerHTML = destacados.map(function (p, i) {
       return '<article class="carrusel__slide" id="slide-' + i + '">' +
-               media(p, '', badgeStock(p)) +
+               media(p, '', badgeStock(p), true) +
                '<div>' +
                  '<h3 class="carrusel__nombre">' +
                    '<button class="card__abrir" type="button" data-modal="' + esc(p.id) + '">' +

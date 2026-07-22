@@ -46,8 +46,8 @@ Esta lista es la posta: nada de lo que sigue está inventado, todo quedó marcad
 4. **El catálogo real.**
    Archivo `productos.json`. Hoy tiene 12 productos de ejemplo con precios y datos inventados. Hay que revisar, producto por producto: el nombre, el precio, si hay stock o no, las especificaciones cortas (`specs`) y la ficha técnica completa (`detalle`). Más abajo está la explicación completa de cómo se edita cada campo.
 
-5. **Las fotos de los productos.**
-   También en `productos.json`, el campo `"imagen"` de cada producto. Hoy todos están vacíos (`""`), así que en vez de una foto se ve un cuadro gris con el nombre del modelo escrito adentro — es el diseño previsto para mientras no hay fotos, no es un error. Para poner la foto real, se completa ese campo con la ruta al archivo (ver el ejemplo más abajo).
+5. **Las fotos de los productos que todavía no tienen.**
+   Once de los doce productos ya tienen su foto en la carpeta `img/`. El que falta se ve con un cuadro gris con el nombre del modelo escrito adentro — es el diseño previsto para cuando no hay foto, no es un error. Ver más abajo "Cómo agregar la foto de un producto" para completarlo.
 
 6. **Sacar el bloqueo para buscadores.**
    Archivo `index.html`, cerca del principio (dentro de `<head>`), hay esta línea:
@@ -77,7 +77,7 @@ Estos son todos los campos que puede tener un producto:
 | `stock` | No | Un número. Ver la nota especial más abajo. |
 | `specs` | Sí | Una lista corta de 2 a 4 datos, entre corchetes, para la tarjeta (ej: `["128 GB", "Negro"]`). |
 | `detalle` | Sí | La ficha técnica completa que se ve al abrir el producto (el modal). Ver el ejemplo abajo. |
-| `imagen` | No | La ruta a la foto del producto (ej: `"fotos/iphone-15.jpg"`). Si se deja vacío (`""`), se muestra el cuadro gris placeholder con el nombre. |
+| `imagen` | No | Casi nunca hace falta escribirlo. Ver la sección "Cómo agregar la foto de un producto" más abajo. |
 
 ### Ejemplo completo
 
@@ -100,12 +100,31 @@ Estos son todos los campos que puede tener un producto:
     "Color": "Negro",
     "Conector": "USB-C",
     "Estado": "Sellado, liberado de fábrica"
-  },
-  "imagen": ""
+  }
 }
 ```
 
 El objeto `detalle` puede tener las claves que hagan falta (no tienen que ser siempre las mismas): cada clave se muestra como una fila en la ficha del producto, en el mismo orden en que están escritas.
+
+Notá que este ejemplo no tiene el campo `"imagen"` — justamente porque no hace falta, como se explica a continuación.
+
+## Cómo agregar la foto de un producto
+
+Las fotos viven en la carpeta `img/`, y la página las encuentra sola por el nombre del archivo: **tiene que ser igual al `id` del producto, más `.jpg`**. No hay que tocar `productos.json` para nada.
+
+Por ejemplo, para el producto con `"id": "iphone-16e-128"`, la foto va a ser:
+
+```
+img/iphone-16e-128.jpg
+```
+
+En cuanto el archivo está ahí con ese nombre exacto, la foto aparece sola en la tarjeta, en el carrusel, en el detalle del producto y en el comparador. Si el archivo todavía no existe (o el nombre no coincide), se ve el cuadro gris con el nombre del producto — nunca el ícono roto típico de una imagen que no cargó.
+
+**Dos productos que comparten la misma foto** (por ejemplo, dos capacidades del mismo modelo): en vez de duplicar el archivo, se usa el campo `"imagen"` en el producto que NO tiene foto propia, apuntando a la ruta de la foto del otro. Ese campo, cuando está escrito, le gana a la convención automática. Ejemplo real ya aplicado en el catálogo: el "iPhone 15 128 GB" no tiene foto propia y usa la del "iPhone 15 Pro 256 GB":
+
+```json
+"imagen": "img/iphone-15-pro-256.jpg"
+```
 
 ### La nota importante sobre `stock`
 
