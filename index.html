@@ -40,31 +40,36 @@
 <a class="skip-link" href="#catalogo">Saltar al catálogo</a>
 
 <header class="header">
-  <div class="wrap header__inner">
-    <a class="brand" href="#top"><span class="logo">IPHONE ALLEN</span></a>
+  <div class="wrap">
+    <!-- Cápsula flotante. En mobile los links caen a una segunda fila con
+         scroll horizontal (sin hamburguesa: evita otro foco atrapado). -->
+    <div class="navbar">
+      <a class="brand" href="#top"><span class="logo">IPHONE ALLEN</span></a>
 
-    <!-- en mobile esta barra pasa a una segunda fila con scroll horizontal -->
-    <nav class="nav" aria-label="Principal">
-      <a class="link-sub" href="#destacados">Destacados</a>
-      <a class="link-sub" href="#catalogo">Catálogo</a>
-      <a class="link-sub" href="#comparar">Comparar</a>
-      <a class="link-sub" href="#pagos">Pagos</a>
-      <a class="link-sub" href="#preguntas">Preguntas</a>
-      <a class="link-sub" href="#contacto">Contacto</a>
-    </nav>
+      <span class="navbar__sep" aria-hidden="true"></span>
 
-    <button class="cart-btn" type="button" id="abrirCarrito" aria-haspopup="dialog" aria-controls="carrito">
-      <!-- ícono estilo Tabler (ti-shopping-cart) embebido: sin dependencias -->
-      <svg class="ico cart-btn__ico" id="iconoCarrito" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="6" cy="19" r="2"></circle>
-        <circle cx="17" cy="19" r="2"></circle>
-        <path d="M17 17h-11v-14h-2"></path>
-        <path d="M6 5l14 1l-1 7h-13"></path>
-      </svg>
-      Carrito
-      <span class="cart-btn__count" id="contadorCarrito" aria-hidden="true">0</span>
-      <span class="sr-only" id="contadorCarritoTexto">0 productos en el carrito</span>
-    </button>
+      <nav class="nav" aria-label="Principal">
+        <a class="link-sub" href="#destacados">Destacados</a>
+        <a class="link-sub" href="#catalogo">Catálogo</a>
+        <a class="link-sub" href="#comparar">Comparar</a>
+        <a class="link-sub" href="#pagos">Pagos</a>
+        <a class="link-sub" href="#preguntas">Preguntas</a>
+        <a class="link-sub" href="#contacto">Contacto</a>
+      </nav>
+
+      <button class="cart-btn" type="button" id="abrirCarrito" aria-haspopup="dialog" aria-controls="carrito">
+        <!-- ícono estilo Tabler (ti-shopping-cart) embebido: sin dependencias -->
+        <svg class="ico cart-btn__ico" id="iconoCarrito" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="6" cy="19" r="2"></circle>
+          <circle cx="17" cy="19" r="2"></circle>
+          <path d="M17 17h-11v-14h-2"></path>
+          <path d="M6 5l14 1l-1 7h-13"></path>
+        </svg>
+        <span class="sr-only">Carrito</span>
+        <span class="cart-btn__count" id="contadorCarrito" aria-hidden="true">0</span>
+        <span class="sr-only" id="contadorCarritoTexto">0 productos en el carrito</span>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -83,8 +88,14 @@
 
         <div class="hero__ctas">
           <!-- [7] único botón con halo latiendo en toda la página -->
-          <a class="btn btn--primario btn--pulso" href="#catalogo" data-scroll>Ver catálogo</a>
-          <a class="btn btn--secundario" href="#" id="ctaWhatsapp" target="_blank" rel="noopener">Escribinos</a>
+          <a class="btn btn--pulso" href="#catalogo" data-scroll>
+            <span class="btn__ico" data-ico="lista"></span><span class="btn__txt">Ver catálogo</span>
+          </a>
+          <a class="btn btn--sec" href="#" id="ctaWhatsapp" target="_blank" rel="noopener">
+            <span class="btn__ico" data-ico="whatsapp"></span><span class="btn__txt">Escribinos</span>
+          </a>
+          <!-- Instagram al lado del WhatsApp de contacto general: app.js -->
+          <span id="instaHero"></span>
         </div>
 
         <ul class="datos">
@@ -200,7 +211,9 @@
           </select>
         </label>
 
-        <button class="btn btn--texto" type="button" id="compararLimpiar">Limpiar</button>
+        <button class="btn btn--sec" type="button" id="compararLimpiar">
+          <span class="btn__ico" data-ico="cruz"></span><span class="btn__txt">Limpiar</span>
+        </button>
       </div>
 
       <div id="comparadorTabla"><!-- tabla o mensaje vacío: app.js --></div>
@@ -230,7 +243,10 @@
 
       <p class="faq__mas">
         ¿Otra consulta?
-        <a class="link-sub" href="#" id="ctaWhatsappFaq" target="_blank" rel="noopener">Escribinos</a>
+        <span class="contacto-redes">
+          <a class="link-sub" href="#" id="ctaWhatsappFaq" target="_blank" rel="noopener">Escribinos</a>
+          <span id="instaFaq"></span>
+        </span>
       </p>
     </div>
   </section>
@@ -240,7 +256,12 @@
     <div class="wrap contacto__inner">
       <h2 class="seccion__titulo">¿Dudas antes de comprar?</h2>
       <p class="seccion__sub">Escribinos y te respondemos con el stock y los precios del día.</p>
-      <a class="btn btn--primario" href="#" id="ctaWhatsapp2" target="_blank" rel="noopener">Escribinos por WhatsApp</a>
+      <span class="contacto-redes">
+        <a class="btn" href="#" id="ctaWhatsapp2" target="_blank" rel="noopener">
+          <span class="btn__ico" data-ico="whatsapp"></span><span class="btn__txt">Escribinos por WhatsApp</span>
+        </a>
+        <span id="instaContacto"></span>
+      </span>
     </div>
   </section>
 
@@ -270,8 +291,29 @@
     </button>
   </div>
 
+  <!-- Barra de pasos: la marca activa la mueve marcarPaso() en app.js -->
+  <ol class="pasos" id="pasosCarrito" aria-label="Pasos de la compra">
+    <li class="paso" data-activo="true">
+      <span class="paso__barra" aria-hidden="true"></span>
+      <span class="paso__label">1 · Carrito</span>
+    </li>
+    <li class="paso" data-activo="false">
+      <span class="paso__barra" aria-hidden="true"></span>
+      <span class="paso__label">2 · Datos</span>
+    </li>
+    <li class="paso" data-activo="false">
+      <span class="paso__barra" aria-hidden="true"></span>
+      <span class="paso__label">3 · WhatsApp</span>
+    </li>
+  </ol>
+
   <div class="drawer__body">
-    <div id="carritoItems"></div>
+    <!-- La lista scrollea en su propia caja para que el total de abajo
+         quede siempre visible. El degradado del borde inferior lo pone
+         .carrito-lista[data-hay-mas] desde pintarCarrito(). -->
+    <div class="carrito-lista" id="carritoLista">
+      <div id="carritoItems"></div>
+    </div>
 
     <!-- ==================== FORMULARIO DE ENTREGA ==================== -->
     <form class="form-entrega" id="formEntrega" novalidate hidden>
@@ -339,7 +381,9 @@
         <p class="campo__error" id="errorHorario" hidden></p>
       </fieldset>
 
-      <button class="btn btn--primario btn--bloque" type="submit">Confirmar compra por WhatsApp</button>
+      <button class="btn btn--bloque" type="submit">
+        <span class="btn__ico" data-ico="whatsapp"></span><span class="btn__txt">Confirmar compra por WhatsApp</span>
+      </button>
 
       <!-- [36] el tilde se traza recién después de abrir WhatsApp -->
       <p class="enviado" id="pedidoEnviado" hidden>
@@ -355,12 +399,17 @@
   </div>
 
   <div class="drawer__foot" id="pieCarrito">
-    <div class="drawer__total">
-      <span>Total</span>
-      <strong class="precio precio--total" id="carritoTotal">$ 0</strong>
+    <!-- Total + acción, anclados: nunca scrollean con la lista -->
+    <div class="drawer__anclado">
+      <div class="drawer__total">
+        <span>Total</span>
+        <strong class="precio precio--total" id="carritoTotal">$ 0</strong>
+      </div>
+      <button class="btn btn--bloque" type="button" id="pedirWhatsapp">
+        <span class="btn__ico" data-ico="flecha"></span><span class="btn__txt">Continuar</span>
+      </button>
     </div>
-    <button class="btn btn--primario btn--bloque" type="button" id="pedirWhatsapp">Finalizar compra</button>
-    <button class="btn btn--texto btn--bloque" type="button" id="vaciarCarrito">Vaciar carrito</button>
+    <button class="btn-plano" type="button" id="vaciarCarrito">Vaciar carrito</button>
   </div>
 </aside>
 

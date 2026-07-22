@@ -46,6 +46,21 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Dos manchas de luz jade en diagonal sobre el fondo plano.
+   position:fixed + z-index:-1 lo saca del flujo y lo manda detrás de
+   todo: NO es ancestro de .card ni de .media, así que no puede
+   reabrir el bug del scroll trabado sobre las imágenes. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 22% 28%, rgba(93, 202, 165, .13), transparent 42%),
+    radial-gradient(circle at 78% 72%, rgba(93, 202, 165, .09), transparent 46%);
+}
+
 h1, h2, h3 {
   font-family: var(--display);
   font-weight: 600;
@@ -119,88 +134,114 @@ button {
   padding-inline: var(--gutter);
 }
 
-/* ----------------------------- BOTONES ---------------------------- */
+/* ----------------------------- BOTONES ----------------------------
+   Tratamiento único para todos los botones de acción: bloque de color
+   con el ícono a la izquierda y el texto sobre fondo oscuro a la
+   derecha, unidos por un solo contorno.
+
+   El markup lo arma btnPartes() en app.js:
+     <button class="btn"><span class="btn__ico">svg</span>
+                         <span class="btn__txt">Texto</span></button>
+   Sigue siendo un <button>/<a> real; el ícono va con aria-hidden y el
+   texto queda accesible.
+
+   OJO: no poner transform en :hover de .btn. Los botones de las
+   tarjetas son descendientes de .card y un transform ahí puede
+   reabrir el bug del scroll trabado sobre .media.
+   ------------------------------------------------------------------ */
 .btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 13px 22px;
-  border-radius: var(--radio-sm);
+  border: 1px solid #2A313A;
+  border-radius: 6px;
+  overflow: hidden;
+  background: none;
+  padding: 0;
   font-family: var(--cuerpo);
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 12px;
   letter-spacing: 0.01em;
-  border: 1px solid transparent;
-  transition: background var(--transicion), border-color var(--transicion), color var(--transicion), transform var(--transicion);
-  text-align: center;
+  text-align: left;
+  transition: border-color var(--transicion);
 }
+.btn:hover { border-color: var(--acento-fuerte); }
 
-.btn--primario {
-  background: var(--acento);
-  color: #0C1013;
+.btn__ico {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 9px 11px;
+  background: var(--acento-fuerte);
+  color: #04342C;               /* el trazo del svg usa currentColor */
+  transition: background var(--transicion);
 }
-.btn--primario:hover { background: #6FD8B3; }
-.btn--primario:active { transform: translateY(1px); }
+.btn__ico .ico { width: 16px; height: 16px; }
 
-.btn--secundario {
-  border-color: var(--borde);
+.btn__txt {
+  padding: 9px 14px;
   color: var(--texto);
-  background: var(--superficie);
+  background: #171B21;
+  transition: background var(--transicion);
 }
-.btn--secundario:hover {
-  border-color: var(--acento-fuerte);
+.btn:hover .btn__txt { background: var(--superficie2); }
+
+/* Variante secundaria: el bloque del ícono va en superficie2 con el
+   trazo en jade, en vez del bloque jade lleno. */
+.btn--sec .btn__ico {
+  background: var(--superficie2);
   color: var(--acento);
 }
 
-.btn--sutil {
-  width: 100%;
-  background: var(--superficie2);
-  border-color: var(--borde);
-  color: var(--texto);
-  padding: 11px 16px;
-  font-size: 0.9rem;
-}
-.btn--sutil:hover {
-  background: var(--acento);
-  border-color: var(--acento);
-  color: #0C1013;
-}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled:hover { border-color: #2A313A; }
+.btn:disabled:hover .btn__txt { background: #171B21; }
 
-.btn--texto {
+/* A ancho completo el texto ocupa el resto de la fila */
+.btn--bloque { width: 100%; }
+.btn--bloque .btn__txt { flex: 1; }
+
+.btn--comparar { width: 100%; }
+
+/* Botón sin tratamiento de bloque: acción menor, sólo texto.
+   Hoy lo usa "Vaciar carrito". */
+.btn-plano {
   color: var(--texto-suave);
   font-weight: 500;
-  padding: 10px;
   font-size: 0.88rem;
+  padding: 10px;
+  width: 100%;
+  transition: color var(--transicion);
 }
-.btn--texto:hover { color: var(--texto); }
+.btn-plano:hover { color: var(--texto); }
 
-.btn--comparar { width: 100%; margin-top: -4px; }
-
-.btn--bloque { width: 100%; }
-
-/* ----------------------------- HEADER ----------------------------- */
+/* ----------------------------- HEADER -----------------------------
+   Cápsula flotante centrada, separada de los bordes de la pantalla.
+   El <header> en sí es transparente y no recibe clicks: sólo la
+   cápsula los recibe, así el hueco de alrededor no tapa el contenido
+   que pasa por debajo al scrollear.
+   ------------------------------------------------------------------ */
 .header {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: rgba(18, 22, 26, 0.86);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--borde);
+  padding-block: 14px 8px;
+  pointer-events: none;
 }
+.header > .wrap { pointer-events: none; }
 
-/* Mobile: dos filas — brand + carrito arriba, nav abajo con scroll
-   horizontal (más simple que un menú hamburguesa y no repite el
-   patrón de foco atrapado que ya usan el drawer y el modal).
-   El truco es de puro flexbox: nav pide flex-basis 100%, así que no
-   entra en la fila 1 y cae sola a la fila 2; brand y cart-btn se
-   reordenan con `order` para quedar juntos arriba. */
-.header__inner {
+.navbar {
+  pointer-events: auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
-  padding-block: 12px;
+  gap: 10px 14px;
+  background: #171B21;
+  border: 1px solid var(--borde);
+  /* mobile: los links caen a una 2da fila; la de arriba mantiene el
+     redondeo de píldora y abajo se corta para no hacer un arco enorme */
+  border-radius: 99px 99px 22px 22px;
+  padding: 6px 8px 6px 12px;
+  backdrop-filter: blur(12px);
 }
 
 .brand {
@@ -210,22 +251,28 @@ button {
 }
 
 /* --------------------------- LOGOTIPO ------------------------------
-   Texto en jade dentro de un recuadro del mismo color. Se usa tal cual
-   en el header (.brand) y en el footer (.footer__brand).
+   Sólo texto en jade, sin recuadro. Mismo tratamiento en el header
+   (.brand) y en el footer (.footer__brand).
    ------------------------------------------------------------------ */
 .logo {
   display: inline-block;
   font-family: var(--display);
   font-weight: 600;
   font-size: 0.92rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--acento);
-  background: transparent;
-  border: 1px solid var(--acento);
-  border-radius: 6px;
-  padding: 6px 12px;
   line-height: 1.2;
+}
+
+/* separador entre logotipo y links: sólo cuando van en la misma fila */
+.navbar__sep {
+  order: 1;
+  display: none;
+  flex: 0 0 auto;
+  width: 1px;
+  height: 20px;
+  background: var(--borde);
 }
 
 .cart-btn { order: 2; }
@@ -241,61 +288,55 @@ button {
   white-space: nowrap;
   font-size: 0.92rem;
   color: var(--texto-suave);
+  padding-inline: 4px;
 }
 .nav::-webkit-scrollbar { display: none; }  /* Chrome, Safari, Edge */
 .nav a { flex: 0 0 auto; transition: color var(--transicion); }
 .nav a:hover { color: var(--texto); }
 
+/* pastilla jade */
 .cart-btn {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  padding: 9px 15px;
-  border: 1px solid var(--borde);
-  border-radius: 999px;
-  background: var(--superficie);
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: border-color var(--transicion);
+  gap: 8px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 99px;
+  background: var(--acento-fuerte);
+  color: #04342C;              /* el trazo del ícono usa currentColor */
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background var(--transicion);
 }
-.cart-btn:hover { border-color: var(--acento-fuerte); }
+.cart-btn:hover { background: var(--acento); }
 
 .cart-btn__count {
-  min-width: 22px;
-  height: 22px;
+  min-width: 20px;
+  height: 20px;
   padding-inline: 6px;
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: var(--superficie2);
-  color: var(--texto-suave);
-  font-size: 0.78rem;
-  font-weight: 600;
+  background: rgba(4, 52, 44, 0.22);
+  color: #04342C;
+  font-size: 0.76rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   transition: background var(--transicion), color var(--transicion);
 }
 .cart-btn[data-lleno="true"] .cart-btn__count {
-  background: var(--acento);
-  color: #0C1013;
+  background: #04342C;
+  color: var(--acento);
 }
 
-/* ------------------------------ HERO ------------------------------ */
+/* ------------------------------ HERO ------------------------------
+   Sin fondo propio ni halo: las manchas jade ahora las pone body::before
+   y tienen que verse a través de toda la sección.
+   ------------------------------------------------------------------ */
 .hero {
   position: relative;
   padding-block: 52px 64px;
-  overflow: hidden;
-}
-
-/* halo jade muy sutil detrás del producto destacado */
-.hero::before {
-  content: "";
-  position: absolute;
-  right: -12%;
-  top: -10%;
-  width: 620px;
-  height: 620px;
-  background: radial-gradient(circle, rgba(93, 202, 165, 0.10), transparent 62%);
-  pointer-events: none;
+  background: none;
 }
 
 .hero__grid {
@@ -696,10 +737,15 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-/* ----------------------------- GRILLA ----------------------------- */
+/* ----------------------------- GRILLA -----------------------------
+   Mobile: una sola columna. El principal va primero en el DOM, así que
+   queda arriba conservando su tamaño mayor.
+   Desde 720px pasa a 1.5fr 1fr 1fr con el principal ocupando dos filas
+   de la primera columna (ver más abajo).
+   ------------------------------------------------------------------ */
 .grilla {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: 1fr;
   gap: 16px;
 }
 
@@ -827,6 +873,23 @@ button {
 .card__precios { margin-top: auto; padding-top: 4px; }
 .card__precios .precio { font-size: 1.2rem; }
 
+/* ------------------------- TARJETA PRINCIPAL -----------------------
+   Un producto por categoría con el doble de espacio. Borde un tono más
+   claro que las normales para distinguirla sin agregarle color.
+   ------------------------------------------------------------------ */
+.card--principal {
+  border-color: #2A313A;
+}
+.card--principal .card__nombre { font-size: 1.32rem; }
+.card--principal .card__precios .precio { font-size: 1.62rem; }
+
+/* La imagen del principal queda bastante más alta que la de una normal.
+   Va fuera de cualquier media query: en mobile, donde todo se apila en
+   una columna, la diferencia de alto es lo único que distingue al
+   principal, así que ahí también tiene que notarse. */
+.media--principal { aspect-ratio: 4 / 3; }
+.card:not(.card--principal) .media { aspect-ratio: 16 / 10; }
+
 .vacio {
   padding: 40px 0;
   text-align: center;
@@ -858,6 +921,18 @@ button {
 .contacto__inner { text-align: center; display: grid; justify-items: center; gap: 6px; }
 .contacto__inner .btn { margin-top: 18px; }
 
+/* Agrupa un enlace de WhatsApp de "contacto general" (hero, FAQ,
+   sección de contacto) con el ícono de Instagram al lado, para que se
+   vean juntos. inline-flex: funciona tanto suelto como incrustado en
+   un párrafo (el "¿Otra consulta?" del FAQ). Vacío si Instagram queda
+   en placeholder: el <span> del ícono no tiene borde ni fondo propio,
+   así que no deja hueco. */
+.contacto-redes {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 /* ----------------------------- FOOTER ----------------------------- */
 .footer {
   border-top: 1px solid var(--borde);
@@ -875,7 +950,11 @@ button {
   gap: 14px;
   margin: 16px 0;
 }
-.footer__red {
+
+/* Ícono circular para un enlace de red/contacto. Se usa en el footer
+   (WhatsApp, Instagram, correo) y en cualquier otro lugar donde el
+   Instagram acompañe a un WhatsApp de contacto general (.contacto-redes). */
+.red-link {
   display: grid;
   place-items: center;
   width: 38px;
@@ -885,8 +964,8 @@ button {
   color: var(--texto-suave);
   transition: color var(--transicion), border-color var(--transicion);
 }
-.footer__red:hover,
-.footer__red:focus-visible { color: var(--acento); border-color: var(--acento-fuerte); }
+.red-link:hover,
+.red-link:focus-visible { color: var(--acento); border-color: var(--acento-fuerte); }
 
 /* ----------------------------- CARRITO ---------------------------- */
 .overlay {
@@ -946,12 +1025,68 @@ button {
   padding: 16px 20px;
 }
 
-/* la grilla de líneas vive en #carritoItems, no en el scroller en sí:
-   así el formulario de entrega (hermano) puede tener su propio layout */
+/* ------------------------- BARRA DE PASOS --------------------------
+   1 · Carrito → 2 · Datos → 3 · WhatsApp. La marca activa la mueve
+   marcarPaso() en app.js. Info secundaria: etiquetas chicas a propósito.
+   ------------------------------------------------------------------ */
+.pasos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 0 20px 12px;
+  margin: 0;
+  list-style: none;
+}
+
+.paso { display: grid; gap: 5px; }
+
+.paso__barra {
+  height: 2px;
+  border-radius: 2px;
+  background: #2A313A;
+  transition: background 300ms ease;
+}
+
+.paso__label {
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+  transition: color 300ms ease;
+}
+
+.paso[data-activo="true"] .paso__barra { background: var(--acento); }
+.paso[data-activo="true"] .paso__label { color: var(--acento); }
+
+/* --------------------------- LISTA DEL CARRITO ---------------------
+   Scrollea en su propia caja: así el bloque del total queda siempre a
+   la vista sin depender del scroll del drawer. El degradado del borde
+   inferior se enciende sólo cuando hay contenido de sobra.
+   ------------------------------------------------------------------ */
+.carrito-lista { position: relative; }
+
+.carrito-lista::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transicion);
+  background: linear-gradient(to top, var(--superficie), transparent);
+}
+.carrito-lista[data-hay-mas="true"]::after { opacity: 1; }
+
 #carritoItems {
   display: grid;
-  gap: 12px;
+  gap: 7px;
   align-content: start;
+  max-height: calc(100dvh - 340px);
+  overflow-y: auto;
+  /* que el scroll de la lista no se filtre a la página de atrás */
+  overscroll-behavior: contain;
 }
 
 .drawer__vacio {
@@ -961,31 +1096,41 @@ button {
   font-size: 0.93rem;
 }
 
+/* ------------------- TARJETA DE PRODUCTO DEL CARRITO --------------- */
 .linea {
   display: grid;
-  grid-template-columns: 62px 1fr;
-  gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--borde);
+  grid-template-columns: 44px 1fr;
+  gap: 10px;
+  padding: 8px;
+  background: #171B21;
+  border: 1px solid var(--borde);
+  border-radius: 5px;
 }
-.linea:last-child { border-bottom: 0; }
 
-.linea .media { aspect-ratio: 1 / 1; }
-.linea .media__ph { font-size: 0.62rem; padding: 5px; line-height: 1.2; }
+.linea .media { aspect-ratio: 44 / 52; }
+.linea .media__ph { font-size: 0.58rem; padding: 4px; line-height: 1.15; }
 
-.linea__nombre { font-size: 0.93rem; font-weight: 500; line-height: 1.3; }
+.linea__nombre { font-size: 0.88rem; font-weight: 500; line-height: 1.3; }
+
+.linea__specs {
+  font-size: 0.72rem;
+  color: var(--texto-suave);
+  line-height: 1.35;
+  margin-top: 1px;
+}
+
 .linea__precio {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: var(--acento);
   font-variant-numeric: tabular-nums;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .linea__controles {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 9px;
+  margin-top: 7px;
 }
 
 .qty {
@@ -1020,9 +1165,18 @@ button {
 
 .drawer__foot {
   border-top: 1px solid var(--borde);
-  padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
   display: grid;
-  gap: 10px;
+  gap: 6px;
+}
+
+/* bloque anclado: total + acción principal */
+.drawer__anclado {
+  display: grid;
+  gap: 9px;
+  background: #171B21;
+  border-radius: 5px;
+  padding: 9px;
 }
 
 .drawer__total {
@@ -1546,6 +1700,15 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 .comparador__fila--difiere th,
 .comparador__fila--difiere td { background: var(--superficie2); }
 
+/* Celda ganadora. Va después de la regla de "difiere" para ganarle el
+   fondo. El color no es la única señal: comparadorCeldaValor() agrega
+   "(mejor valor)" en texto sólo para lectores de pantalla. */
+.comparador__tabla td.comparador__gana {
+  background: #1A2A26;
+  color: var(--acento);
+  font-weight: 600;
+}
+
 .comparador__tabla tbody th[scope="row"] {
   color: var(--texto-suave);
   font-weight: 500;
@@ -1628,12 +1791,30 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   gap: 16px;
 }
 
+/* Ícono en bloque jade a la izquierda, nombre a la derecha. Sin borde:
+   la tarjeta se apoya sólo en el fondo. */
 .pago-card {
-  padding: 20px;
-  background: var(--superficie);
-  border: 1px solid var(--borde);
-  border-radius: var(--radio);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  background: #171B21;
+  border: 0;
+  border-radius: 5px;
 }
+
+.pago-card__ico {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  background: var(--acento-fuerte);
+  color: #04342C;              /* el trazo del svg usa currentColor */
+}
+.pago-card__ico .ico { width: 19px; height: 19px; }
+
 .pago-card__titulo { font-weight: 600; }
 .pago-card__detalle { margin-top: 6px; color: var(--texto-suave); font-size: 0.9rem; }
 
@@ -1642,10 +1823,17 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
    ===================================================================== */
 .acordeon { display: grid; }
 
+/* La abierta se marca con una barra vertical jade sobre el borde
+   izquierdo. El borde de 2px existe siempre (transparente) para que al
+   abrir no se corra el texto. */
 .faq__item {
   border-bottom: 1px solid var(--borde);
+  border-left: 2px solid transparent;
+  padding-left: 12px;
+  transition: border-left-color 300ms ease;
 }
 .faq__item:first-child { border-top: 1px solid var(--borde); }
+.faq__item[open] { border-left-color: var(--acento); }
 
 .faq__pregunta {
   display: flex;
@@ -1659,6 +1847,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 }
 .faq__pregunta::-webkit-details-marker { display: none; }
 .faq__pregunta:hover { color: var(--acento); }
+.faq__item[open] .faq__pregunta { color: var(--acento); }
 
 .faq__chevron {
   flex: 0 0 auto;
@@ -1803,8 +1992,10 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   z-index: -1;
   pointer-events: none;
   display: none;
+  /* bajado a la mitad (era .06) para convivir con las manchas fijas del
+     fondo (body::before) sin que la suma quede lavada */
   background: radial-gradient(480px circle at var(--mx, 50%) var(--my, 50%),
-              rgba(93, 202, 165, 0.06), transparent 70%);
+              rgba(93, 202, 165, 0.03), transparent 70%);
 }
 
 @media (hover: hover) {
@@ -1827,18 +2018,35 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   .opciones--horarios { grid-template-columns: repeat(3, 1fr); }
 }
 
-@media (min-width: 900px) {
-  :root { --gutter: 32px; }
-
-  /* vuelve a ser una sola fila: brand — nav — carrito */
-  .header__inner { flex-wrap: nowrap; height: 64px; padding-block: 0; }
+/* La cápsula entra entera en una sola fila: se encoge al ancho de su
+   contenido y queda centrada. Debajo de 720px vuelve a dos filas. */
+@media (min-width: 720px) {
+  .navbar {
+    flex-wrap: nowrap;
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
+    border-radius: 99px;
+  }
+  .navbar__sep { display: block; }
+  .brand { margin-right: 0; }
   .nav {
     order: 0;
     flex: 0 1 auto;
     overflow-x: visible;
     white-space: normal;
+    padding-inline: 0;
   }
   .cart-btn { order: 0; }
+
+  /* Catálogo: el principal ocupa la columna ancha y dos filas; el resto
+     entra en las dos columnas de la derecha. */
+  .grilla { grid-template-columns: 1.5fr 1fr 1fr; }
+  .card--principal { grid-column: 1; grid-row: span 2; }
+}
+
+@media (min-width: 900px) {
+  :root { --gutter: 32px; }
 
   .hero {
     min-height: 85vh;

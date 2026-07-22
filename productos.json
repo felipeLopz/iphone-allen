@@ -6,8 +6,14 @@
     "precio": 3249000,
     "precioAnterior": 3490000,
     "destacado": true,
+    "principal": true,
     "stock": 3,
-    "specs": ["256 GB", "Titanio natural", "Batería 100%", "Liberado"],
+    "specs": [
+      "256 GB",
+      "Titanio natural",
+      "Batería 100%",
+      "Liberado"
+    ],
     "detalle": {
       "Pantalla": "6.9\" Super Retina XDR",
       "Procesador": "A18 Pro",
@@ -26,8 +32,14 @@
     "categoria": "iPhone",
     "precio": 2599000,
     "destacado": true,
+    "principal": false,
     "stock": 2,
-    "specs": ["256 GB", "Titanio azul", "Batería 96%", "Liberado"],
+    "specs": [
+      "256 GB",
+      "Titanio azul",
+      "Batería 96%",
+      "Liberado"
+    ],
     "detalle": {
       "Pantalla": "6.1\" Super Retina XDR",
       "Procesador": "A17 Pro",
@@ -47,8 +59,14 @@
     "precio": 1749000,
     "precioAnterior": 1899000,
     "destacado": false,
+    "principal": false,
     "stock": 5,
-    "specs": ["128 GB", "Negro", "Batería 100%", "Sellado"],
+    "specs": [
+      "128 GB",
+      "Negro",
+      "Batería 100%",
+      "Sellado"
+    ],
     "detalle": {
       "Pantalla": "6.1\" Super Retina XDR",
       "Procesador": "A16 Bionic",
@@ -68,8 +86,14 @@
     "precio": 1399000,
     "precioAnterior": 1549000,
     "destacado": false,
+    "principal": false,
     "stock": 4,
-    "specs": ["128 GB", "Azul medianoche", "Batería 92%", "Liberado"],
+    "specs": [
+      "128 GB",
+      "Azul medianoche",
+      "Batería 92%",
+      "Liberado"
+    ],
     "detalle": {
       "Pantalla": "6.1\" Super Retina XDR",
       "Procesador": "A15 Bionic",
@@ -88,8 +112,14 @@
     "categoria": "iPhone",
     "precio": 1099000,
     "destacado": false,
+    "principal": false,
     "stock": 0,
-    "specs": ["128 GB", "Blanco estelar", "Batería 89%", "Liberado"],
+    "specs": [
+      "128 GB",
+      "Blanco estelar",
+      "Batería 89%",
+      "Liberado"
+    ],
     "detalle": {
       "Pantalla": "6.1\" Super Retina XDR",
       "Procesador": "A15 Bionic",
@@ -109,8 +139,14 @@
     "precio": 2899000,
     "precioAnterior": 3100000,
     "destacado": true,
+    "principal": true,
     "stock": 2,
-    "specs": ["Chip M3", "8 GB RAM", "256 GB SSD", "Medianoche"],
+    "specs": [
+      "Chip M3",
+      "8 GB RAM",
+      "256 GB SSD",
+      "Medianoche"
+    ],
     "detalle": {
       "Pantalla": "13.6\" Liquid Retina, 500 nits",
       "Procesador": "Chip M3 · 8 núcleos CPU / 8 GPU",
@@ -129,8 +165,14 @@
     "categoria": "Mac",
     "precio": 4590000,
     "destacado": false,
+    "principal": false,
     "stock": 1,
-    "specs": ["Chip M4", "16 GB RAM", "512 GB SSD", "Space Black"],
+    "specs": [
+      "Chip M4",
+      "16 GB RAM",
+      "512 GB SSD",
+      "Space Black"
+    ],
     "detalle": {
       "Pantalla": "14.2\" Liquid Retina XDR, 120 Hz ProMotion",
       "Procesador": "Chip M4 · 10 núcleos CPU / 10 GPU",
@@ -149,8 +191,14 @@
     "categoria": "iPad",
     "precio": 1590000,
     "destacado": false,
+    "principal": true,
     "stock": 3,
-    "specs": ["Chip M2", "128 GB", "WiFi", "Gris espacial"],
+    "specs": [
+      "Chip M2",
+      "128 GB",
+      "WiFi",
+      "Gris espacial"
+    ],
     "detalle": {
       "Pantalla": "11\" Liquid Retina, 60 Hz",
       "Procesador": "Chip M2 · 8 núcleos CPU / 9 GPU",
@@ -170,8 +218,14 @@
     "precio": 899000,
     "precioAnterior": 999000,
     "destacado": false,
+    "principal": false,
     "stock": 0,
-    "specs": ["64 GB", "WiFi", "Pantalla 10.9\"", "Plata"],
+    "specs": [
+      "64 GB",
+      "WiFi",
+      "Pantalla 10.9\"",
+      "Plata"
+    ],
     "detalle": {
       "Pantalla": "10.9\" Liquid Retina",
       "Procesador": "A14 Bionic",
@@ -191,8 +245,13 @@
     "precio": 429000,
     "precioAnterior": 479000,
     "destacado": true,
+    "principal": true,
     "stock": 8,
-    "specs": ["Cancelación activa", "USB-C", "Sellado"],
+    "specs": [
+      "Cancelación activa",
+      "USB-C",
+      "Sellado"
+    ],
     "detalle": {
       "Chip": "H2",
       "Audio": "Cancelación activa de ruido 2x, modo Transparencia",
@@ -211,8 +270,14 @@
     "categoria": "Accesorios",
     "precio": 749000,
     "destacado": false,
+    "principal": false,
     "stock": 2,
-    "specs": ["42 mm", "GPS", "Aluminio", "Malla deportiva"],
+    "specs": [
+      "42 mm",
+      "GPS",
+      "Aluminio",
+      "Malla deportiva"
+    ],
     "detalle": {
       "Pantalla": "42 mm LTPO3 OLED, hasta 2000 nits",
       "Chip": "S10 SiP",
@@ -232,8 +297,13 @@
     "precio": 89000,
     "precioAnterior": 105000,
     "destacado": false,
+    "principal": false,
     "stock": 12,
-    "specs": ["15W", "Cable 1 m", "Original"],
+    "specs": [
+      "15W",
+      "Cable 1 m",
+      "Original"
+    ],
     "detalle": {
       "Potencia": "Hasta 15 W de carga inalámbrica",
       "Compatibilidad": "iPhone 12 o superior",

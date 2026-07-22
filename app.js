@@ -76,14 +76,17 @@
   };
 
   // ---------------------------------------------------------------------
-  // FORMAS DE PAGO — todo placeholder, el cliente lo completa.
-  // Se pueden agregar o quitar elementos libremente: cada uno se renderiza
-  // como una tarjeta en la sección "Formas de pago".
+  // FORMAS DE PAGO — los medios ya están confirmados, pero todavía no
+  // hay definición de descuentos, recargos o cuotas: el campo "detalle"
+  // de cada uno queda vacío a propósito y se completa más adelante. Con
+  // "detalle" vacío no se renderiza esa línea (evita un hueco en blanco
+  // en la tarjeta). Se pueden agregar o quitar elementos libremente.
   // ---------------------------------------------------------------------
+  // "icono" es el nombre de una clave del objeto ICONOS (más abajo).
   var FORMAS_PAGO = [
-    { titulo: '[FORMA DE PAGO 1]', detalle: '[Detalle o descuento]' },
-    { titulo: '[FORMA DE PAGO 2]', detalle: '[Detalle o descuento]' },
-    { titulo: '[FORMA DE PAGO 3]', detalle: '[Detalle o descuento]' }
+    { titulo: 'Efectivo', detalle: '', icono: 'billete' },
+    { titulo: 'Transferencia', detalle: '', icono: 'transferencia' },
+    { titulo: 'Tarjeta', detalle: '', icono: 'tarjeta' }
   ];
 
   // ---------------------------------------------------------------------
@@ -163,13 +166,43 @@
                '<path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path>' +
                '<path d="M16.5 7.5m-.5 0a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0"></path>',
     correo: '<path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10z"></path>' +
-            '<path d="M3 7l9 6l9 -6"></path>'
+            '<path d="M3 7l9 6l9 -6"></path>',
+    lista: '<path d="M9 6l11 0"></path><path d="M9 12l11 0"></path><path d="M9 18l11 0"></path>' +
+           '<path d="M5 6l0 .01"></path><path d="M5 12l0 .01"></path><path d="M5 18l0 .01"></path>',
+    campana: '<path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6"></path>' +
+             '<path d="M9 17v1a3 3 0 0 0 6 0v-1"></path>',
+    flecha: '<path d="M5 12l14 0"></path><path d="M13 18l6 -6"></path><path d="M13 6l6 6"></path>',
+    cruz: '<path d="M18 6l-12 12"></path><path d="M6 6l12 12"></path>',
+    billete: '<path d="M7 9m0 2a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2z"></path>' +
+             '<path d="M14 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"></path>' +
+             '<path d="M17 9v-2a2 2 0 0 0 -2 -2h-10a2 2 0 0 0 -2 2v6a2 2 0 0 0 2 2h2"></path>',
+    transferencia: '<path d="M7 10h14l-4 -4"></path><path d="M17 14h-14l4 4"></path>',
+    tarjeta: '<path d="M3 5m0 3a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3z"></path>' +
+             '<path d="M3 10l18 0"></path><path d="M7 15l.01 0"></path><path d="M11 15l2 0"></path>'
   };
 
   function icono(nombre, clase) {
     return '<svg class="ico ' + (clase || '') + '" viewBox="0 0 24 24" fill="none" ' +
            'stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
            'stroke-linejoin="round" aria-hidden="true">' + ICONOS[nombre] + '</svg>';
+  }
+
+  // Interior de un botón con el tratamiento de bloque: el ícono a la
+  // izquierda (aria-hidden, viene de icono()) y el texto a la derecha.
+  // `extraSr` agrega texto sólo para lectores de pantalla.
+  function btnPartes(nombreIcono, texto, extraSr) {
+    return '<span class="btn__ico">' + icono(nombreIcono) + '</span>' +
+           '<span class="btn__txt">' + texto + (extraSr || '') + '</span>';
+  }
+
+  // Los botones que ya vienen escritos en index.html marcan su ícono con
+  // data-ico="nombre" en vez de repetir el SVG en el markup: así los
+  // trazos viven en un solo lugar (ICONOS). Se rellenan una vez al cargar.
+  function hidratarIconos(raiz) {
+    Array.prototype.forEach.call((raiz || document).querySelectorAll('[data-ico]'), function (span) {
+      var nombre = span.dataset.ico;
+      if (ICONOS[nombre]) span.innerHTML = icono(nombre);
+    });
   }
 
   /* --------------------------- PRODUCTO: PARTES --------------------- */
@@ -220,14 +253,23 @@
   }
 
   // Con stock agrega al carrito; sin stock abre WhatsApp para que le avisen.
-  function botonAccion(p, clase) {
+  // `texto` permite la versión compacta ("Agregar") de las tarjetas chicas.
+  function botonAccion(p, clase, texto) {
+    var sr = '<span class="sr-only"> — ' + esc(p.nombre) + '</span>';
+
     if (hayStock(p)) {
-      return '<button class="btn ' + clase + '" type="button" data-agregar="' + esc(p.id) + '">' +
-             'Agregar al carrito<span class="sr-only"> — ' + esc(p.nombre) + '</span></button>';
+      return '<button class="btn ' + (clase || '') + '" type="button" data-agregar="' + esc(p.id) + '">' +
+             btnPartes('carrito', texto || 'Agregar al carrito', sr) + '</button>';
     }
-    return '<a class="btn ' + clase + '" data-avisar="' + esc(p.id) + '" ' +
+    return '<a class="btn btn--sec ' + (clase || '') + '" data-avisar="' + esc(p.id) + '" ' +
            'href="' + urlWhatsapp(msgAviso(p)) + '" target="_blank" rel="noopener">' +
-           'Avisame cuando llegue<span class="sr-only"> — ' + esc(p.nombre) + '</span></a>';
+           btnPartes('campana', 'Avisame cuando llegue', sr) + '</a>';
+  }
+
+  function botonComparar(p) {
+    return '<button class="btn btn--sec btn--comparar" type="button" data-comparar="' + esc(p.id) + '">' +
+           btnPartes('lista', 'Comparar', '<span class="sr-only"> — ' + esc(p.nombre) + '</span>') +
+           '</button>';
   }
 
   function badgeStock(p) {
@@ -241,9 +283,11 @@
   // Estas tres secciones son contenido estático (no dependen de
   // productos.json), así que se pintan de una y siguen ahí aunque
   // el fetch de productos falle.
+  hidratarIconos();
   pintarPagos();
   pintarFaq();
   pintarRedes();
+  pintarRedesContacto();
 
   fetch('productos.json')
     .then(function (r) {
@@ -313,7 +357,7 @@
         '<div class="destacado-card__fila">' +
           bloquePrecios(p) +
         '</div>' +
-        botonAccion(p, 'btn--sutil') +
+        botonAccion(p, 'btn--bloque') +
       '</article>';
   }
 
@@ -339,7 +383,7 @@
                '</div>' +
                '<div class="carrusel__pie">' +
                  bloquePrecios(p) +
-                 botonAccion(p, 'btn--sutil') +
+                 botonAccion(p, 'btn--bloque') +
                '</div>' +
              '</article>';
     }).join('');
@@ -524,6 +568,8 @@
 
   /* ---------------------------- CATÁLOGO ---------------------------- */
 
+  // Tarjeta normal: imagen, nombre y precio. Sin specs y con el botón
+  // de agregar compacto — la ficha completa está en el modal.
   function tarjeta(p) {
     return '<article class="card' + (hayStock(p) ? '' : ' card--agotado') + '">' +
              media(p, '', badgeStock(p)) +
@@ -535,12 +581,43 @@
                  '</button>' +
                '</h4>' +
              '</div>' +
+             bloquePrecios(p) +
+             botonAccion(p, 'btn--bloque', 'Agregar') +
+             botonComparar(p) +
+           '</article>';
+  }
+
+  // Tarjeta principal: ocupa el doble de alto en la primera columna.
+  // Mantiene las specs y el botón con el texto completo.
+  function tarjetaPrincipal(p) {
+    return '<article class="card card--principal' + (hayStock(p) ? '' : ' card--agotado') + '">' +
+             media(p, 'media--principal', badgeStock(p)) +
+             '<div>' +
+               '<p class="card__cat">' + esc(p.categoria) + '</p>' +
+               '<h4 class="card__nombre">' +
+                 '<button class="card__abrir" type="button" data-modal="' + esc(p.id) + '">' +
+                   esc(p.nombre) +
+                 '</button>' +
+               '</h4>' +
+             '</div>' +
              '<p class="card__specs">' + esc((p.specs || []).join(' · ')) + '</p>' +
              bloquePrecios(p) +
-             botonAccion(p, 'btn--sutil') +
-             '<button class="btn btn--texto btn--comparar" type="button" data-comparar="' + esc(p.id) + '">' +
-               'Comparar<span class="sr-only"> — ' + esc(p.nombre) + '</span></button>' +
+             botonAccion(p, 'btn--bloque') +
+             botonComparar(p) +
            '</article>';
+  }
+
+  // Elige el producto principal de una categoría: el primero marcado con
+  // "principal": true en productos.json. Si no hay ninguno, el primero de
+  // la lista. Si hay más de uno, usa el primero (y lo avisa por consola).
+  function elegirPrincipal(lista, categoria) {
+    var marcados = lista.filter(function (p) { return p.principal; });
+    if (marcados.length > 1) {
+      console.warn('[tienda] la categoría "' + categoria + '" tiene ' + marcados.length +
+                   ' productos con "principal": true. Se usa el primero (' + marcados[0].id +
+                   '). Dejá uno solo en productos.json.');
+    }
+    return marcados[0] || lista[0];
   }
 
   function productosDe(categoria) {
@@ -566,12 +643,20 @@
 
       var idTitulo = 'cat-' + c.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
+      // El principal va primero en el DOM y ocupa la columna ancha;
+      // el resto entra en las dos columnas de la derecha.
+      var principal = elegirPrincipal(lista, c);
+      var resto = lista.filter(function (p) { return p !== principal; });
+
       return '<section class="' + claseSeccion + '" aria-labelledby="' + idTitulo + '">' +
                '<header class="cat__head">' +
                  '<h3 class="cat__titulo" id="' + idTitulo + '">' + esc(c) + '</h3>' +
                  '<p class="cat__conteo">' + conteo(c, lista.length) + '</p>' +
                '</header>' +
-               '<div class="grilla">' + lista.map(tarjeta).join('') + '</div>' +
+               '<div class="grilla">' +
+                 tarjetaPrincipal(principal) +
+                 resto.map(tarjeta).join('') +
+               '</div>' +
              '</section>';
     }).join('');
 
@@ -654,6 +739,65 @@
     selectB.innerHTML = base;
     selectA.value = comparadorA || '';
     selectB.value = comparadorB || '';
+    actualizarDisponibilidadComparador();
+  }
+
+  // No tiene sentido comparar un producto consigo mismo: la opción ya
+  // elegida en una columna se deshabilita en la otra (la opción vacía
+  // nunca se toca). Se llama después de cualquier cambio de estado.
+  function actualizarDisponibilidadComparador() {
+    deshabilitarOpcion(selectA, comparadorB);
+    deshabilitarOpcion(selectB, comparadorA);
+  }
+
+  function deshabilitarOpcion(select, idADeshabilitar) {
+    Array.prototype.forEach.call(select.options, function (opt) {
+      opt.disabled = opt.value !== '' && opt.value === idADeshabilitar;
+    });
+  }
+
+  /* ------------------- GANADOR POR FILA (comparador) -----------------
+     Sólo se marca ganador donde la comparación es objetiva y sale de un
+     número. Las filas que no estén en este mapa se muestran normales en
+     las dos columnas: nada de inventar que un color o un conector "gana".
+
+     Para agregar un campo: poné la clave EXACTA como aparece en el
+     objeto "detalle" de productos.json y elegí 'mayor' o 'menor'.
+     Ej: "Memoria": "mayor" haría ganar al que tenga más GB de RAM.
+
+     Se compara el PRIMER número que aparezca en el texto:
+       "6.9\" Super Retina XDR"        -> 6.9
+       "256 GB"                        -> 256
+       "Hasta 33 h de video · salud 100%" -> 33
+     Si de alguno de los dos valores no sale un número, la fila no se
+     marca. Si los dos números son iguales, tampoco.
+     ------------------------------------------------------------------ */
+  var CRITERIO_COMPARACION = {
+    'Pantalla': 'mayor',        // pulgadas
+    'Batería': 'mayor',         // horas de uso
+    'Almacenamiento': 'mayor',  // GB
+    'Precio': 'menor'
+  };
+
+  function primerNumero(valor) {
+    if (typeof valor === 'number') return valor;
+    if (valor === undefined || valor === null) return null;
+    var m = String(valor).match(/-?\d+(?:[.,]\d+)?/);
+    return m ? parseFloat(m[0].replace(',', '.')) : null;
+  }
+
+  // Devuelve 'a', 'b' o null (sin ganador / no comparable).
+  function ganadorDeFila(clave, va, vb) {
+    var criterio = CRITERIO_COMPARACION[clave];
+    if (!criterio) return null;
+
+    var na = primerNumero(va);
+    var nb = primerNumero(vb);
+    if (na === null || nb === null || isNaN(na) || isNaN(nb)) return null;
+    if (na === nb) return null;
+
+    var ganaA = criterio === 'menor' ? na < nb : na > nb;
+    return ganaA ? 'a' : 'b';
   }
 
   // Une las claves de "detalle" de los dos productos preservando el orden
@@ -677,11 +821,14 @@
            '</div>';
   }
 
-  function comparadorCeldaValor(valor, nombreProducto) {
+  function comparadorCeldaValor(valor, nombreProducto, gana) {
     var contenido = (valor === undefined || valor === null)
       ? '<span aria-hidden="true">—</span><span class="sr-only">Sin dato</span>'
       : esc(valor);
-    return '<td data-label="' + esc(nombreProducto) + '">' + contenido + '</td>';
+    // el "gana" se anuncia también en texto: el color solo no alcanza
+    if (gana) contenido += '<span class="sr-only"> (mejor valor)</span>';
+    return '<td class="' + (gana ? 'comparador__gana' : '') + '" ' +
+           'data-label="' + esc(nombreProducto) + '">' + contenido + '</td>';
   }
 
   function pintarComparador() {
@@ -696,19 +843,27 @@
       return;
     }
 
-    var claves = comparadorUnionClaves(a, b);
+    // El precio va como primera fila comparable: es el campo donde el
+    // criterio "menor gana" tiene más sentido y no vive en "detalle".
+    var filasDatos = [{ clave: 'Precio', va: precio(a.precio), vb: precio(b.precio),
+                        numA: a.precio, numB: b.precio }];
 
-    var filas = claves.map(function (k) {
+    comparadorUnionClaves(a, b).forEach(function (k) {
       var va = a.detalle ? a.detalle[k] : undefined;
       var vb = b.detalle ? b.detalle[k] : undefined;
+      filasDatos.push({ clave: k, va: va, vb: vb, numA: va, numB: vb });
+    });
+
+    var filas = filasDatos.map(function (f) {
       // difieren también cuenta cuando la clave falta en uno de los dos:
       // esa diferencia es justamente lo que hay que resaltar de un vistazo.
-      var difiere = va !== vb;
+      var difiere = f.va !== f.vb;
+      var gana = ganadorDeFila(f.clave, f.numA, f.numB);
 
       return '<tr class="' + (difiere ? 'comparador__fila--difiere' : '') + '">' +
-               '<th scope="row">' + esc(k) + '</th>' +
-               comparadorCeldaValor(va, a.nombre) +
-               comparadorCeldaValor(vb, b.nombre) +
+               '<th scope="row">' + esc(f.clave) + '</th>' +
+               comparadorCeldaValor(f.va, a.nombre, gana === 'a') +
+               comparadorCeldaValor(f.vb, b.nombre, gana === 'b') +
              '</tr>';
     }).join('');
 
@@ -724,8 +879,8 @@
           '<tbody>' + filas + '</tbody>' +
           '<tfoot><tr>' +
             '<td></td>' +
-            '<td>' + botonAccion(a, 'btn--sutil btn--bloque') + '</td>' +
-            '<td>' + botonAccion(b, 'btn--sutil btn--bloque') + '</td>' +
+            '<td>' + botonAccion(a, 'btn--bloque') + '</td>' +
+            '<td>' + botonAccion(b, 'btn--bloque') + '</td>' +
           '</tr></tfoot>' +
         '</table>' +
       '</div>';
@@ -733,10 +888,12 @@
 
   selectA.addEventListener('change', function () {
     comparadorA = this.value || null;
+    actualizarDisponibilidadComparador();
     pintarComparador();
   });
   selectB.addEventListener('change', function () {
     comparadorB = this.value || null;
+    actualizarDisponibilidadComparador();
     pintarComparador();
   });
 
@@ -745,19 +902,25 @@
     comparadorB = null;
     selectA.value = '';
     selectB.value = '';
+    actualizarDisponibilidadComparador(); // rehabilita las dos opciones
     pintarComparador();
   });
 
   // Botón "Comparar" de cada tarjeta: ocupa la primera columna libre y,
-  // si las dos ya están ocupadas, reemplaza la segunda.
+  // si las dos ya están ocupadas, reemplaza la segunda. Si el producto
+  // ya está cargado en alguna de las dos, no lo duplica: sólo lleva la
+  // vista al comparador para que se vea que ya está.
   function cargarEnComparador(id) {
-    if (!comparadorA) comparadorA = id;
-    else if (!comparadorB) comparadorB = id;
-    else comparadorB = id;
+    if (id !== comparadorA && id !== comparadorB) {
+      if (!comparadorA) comparadorA = id;
+      else if (!comparadorB) comparadorB = id;
+      else comparadorB = id;
 
-    selectA.value = comparadorA || '';
-    selectB.value = comparadorB || '';
-    pintarComparador();
+      selectA.value = comparadorA || '';
+      selectB.value = comparadorB || '';
+      actualizarDisponibilidadComparador();
+      pintarComparador();
+    }
 
     $('#comparar').scrollIntoView({ block: 'start' });
   }
@@ -779,10 +942,10 @@
       : '';
 
     var primario = hayStock(p)
-      ? '<button class="btn btn--primario" type="button" data-agregar="' + esc(p.id) + '">' +
-        'Agregar al carrito</button>'
-      : '<a class="btn btn--primario" href="' + urlWhatsapp(msgAviso(p)) + '" ' +
-        'target="_blank" rel="noopener">Avisame cuando llegue</a>';
+      ? '<button class="btn btn--bloque" type="button" data-agregar="' + esc(p.id) + '">' +
+        btnPartes('carrito', 'Agregar al carrito') + '</button>'
+      : '<a class="btn btn--sec btn--bloque" href="' + urlWhatsapp(msgAviso(p)) + '" ' +
+        'target="_blank" rel="noopener">' + btnPartes('campana', 'Avisame cuando llegue') + '</a>';
 
     return media(p, '', badgeStock(p)) +
       '<p class="modal__cat">' + esc(p.categoria) + '</p>' +
@@ -793,8 +956,8 @@
       (hayStock(p) ? '' : '<p class="modal__agotado">Sin stock por ahora. Dejanos tu mensaje y te avisamos apenas entre.</p>') +
       (filas ? '<dl class="detalle">' + filas + '</dl>' : '') +
       '<div class="modal__acciones">' +
-        '<a class="btn btn--secundario" href="' + urlWhatsapp(msgConsulta(p)) + '" ' +
-        'target="_blank" rel="noopener">Consultar por WhatsApp</a>' +
+        '<a class="btn btn--sec btn--bloque" href="' + urlWhatsapp(msgConsulta(p)) + '" ' +
+        'target="_blank" rel="noopener">' + btnPartes('whatsapp', 'Consultar por WhatsApp') + '</a>' +
         primario +
       '</div>';
   }
@@ -951,12 +1114,15 @@
         var p = l.producto;
         var entra = idsEntrando.indexOf(p.id) !== -1 && !sinMovimiento();
 
+        var specs = (p.specs || []).slice(0, 2).join(' · ');
+
         return '<div class="linea-wrap' + (entra ? ' linea-wrap--entra' : '') + '" ' +
                     'data-linea="' + esc(p.id) + '">' +
                  '<div class="linea">' +
                    media(p) +
                    '<div>' +
                      '<p class="linea__nombre">' + esc(p.nombre) + '</p>' +
+                     (specs ? '<p class="linea__specs">' + esc(specs) + '</p>' : '') +
                      '<p class="linea__precio">' + precio(p.precio) + '</p>' +
                      '<div class="linea__controles">' +
                        '<button class="qty" type="button" data-menos="' + esc(p.id) + '" ' +
@@ -981,7 +1147,27 @@
     $('#carritoTotal').textContent = precio(total());
     $('#pedirWhatsapp').disabled = n === 0;
 
+    actualizarFade();
     actualizarEnlacesWhatsapp();
+  }
+
+  // El degradado del borde inferior sólo si la lista tiene más contenido
+  // del que entra en la caja. Hay que recalcularlo también al abrir el
+  // drawer: mientras está [hidden] mide 0 y daría siempre "no hay más".
+  function actualizarFade() {
+    var cont = $('#carritoItems');
+    $('#carritoLista').dataset.hayMas =
+      cont.scrollHeight > cont.clientHeight + 1 ? 'true' : 'false';
+  }
+
+  // Barra de pasos del drawer: 1 carrito · 2 datos · 3 whatsapp.
+  function marcarPaso(n) {
+    Array.prototype.forEach.call($('#pasosCarrito').children, function (li, i) {
+      var activo = (i + 1) === n;
+      li.dataset.activo = activo ? 'true' : 'false';
+      if (activo) li.setAttribute('aria-current', 'step');
+      else li.removeAttribute('aria-current');
+    });
   }
 
   // [8] salto del ícono del carrito al agregar
@@ -1057,6 +1243,7 @@
     drawer.dataset.visible = 'true';
     overlay.dataset.visible = 'true';
     bloquearScroll();
+    actualizarFade();                // recién ahora la lista tiene altura real
     $('#cerrarCarrito').focus();
   }
 
@@ -1384,22 +1571,25 @@
     // sólo se mandó el mensaje para coordinar por WhatsApp.
     window.open(urlWhatsapp(mensajePedidoConEntrega(datos)), '_blank', 'noopener');
     mostrarEnviado();
+    marcarPaso(3);
   });
 
   /* --------------------------- CAMBIO DE VISTA ------------------------ */
 
   function mostrarVistaCheckout() {
-    $('#carritoItems').hidden = true;
+    $('#carritoLista').hidden = true;
     $('#pieCarrito').hidden = true;
     formEntrega.hidden = false;
+    marcarPaso(2);
     $('#formEntregaTitulo').focus();
   }
 
   // `enfocar:false` la usa abrirDrawer(), que ya mueve el foco por su cuenta.
   function mostrarVistaCarrito(enfocar) {
     formEntrega.hidden = true;
-    $('#carritoItems').hidden = false;
+    $('#carritoLista').hidden = false;
     $('#pieCarrito').hidden = false;
+    marcarPaso(1);
     if (enfocar !== false) $('#pedirWhatsapp').focus();
   }
 
@@ -1429,9 +1619,13 @@
 
   function pintarPagos() {
     $('#pagosGrilla').innerHTML = FORMAS_PAGO.map(function (f) {
+      var ico = ICONOS[f.icono] ? '<span class="pago-card__ico">' + icono(f.icono) + '</span>' : '';
       return '<article class="pago-card">' +
-               '<p class="pago-card__titulo">' + esc(f.titulo) + '</p>' +
-               '<p class="pago-card__detalle">' + esc(f.detalle) + '</p>' +
+               ico +
+               '<div>' +
+                 '<p class="pago-card__titulo">' + esc(f.titulo) + '</p>' +
+                 (f.detalle ? '<p class="pago-card__detalle">' + esc(f.detalle) + '</p>' : '') +
+               '</div>' +
              '</article>';
     }).join('');
   }
@@ -1462,7 +1656,7 @@
     });
   }, true);
 
-  /* --------------------------- REDES (FOOTER) ------------------------- */
+  /* ------------------------------- REDES ------------------------------ */
 
   // Placeholder sin reemplazar ("[USUARIO_INSTAGRAM]", "[CORREO]", etc.):
   // ese enlace directamente no se renderiza.
@@ -1470,29 +1664,47 @@
     return !valor || /^\[.*\]$/.test(valor);
   }
 
+  // Ícono de Instagram solo: lo usan tanto el footer como cualquier lugar
+  // de "contacto general" donde tenga que verse junto al WhatsApp
+  // (ver pintarRedesContacto). Nunca en los WhatsApp de un paso concreto
+  // de la compra (confirmar pedido, consultar un producto, avisar stock).
+  function enlaceInstagram() {
+    if (esPlaceholder(CONTACTO.instagram)) return '';
+    return '<a class="red-link" href="https://instagram.com/' + encodeURIComponent(CONTACTO.instagram) + '" ' +
+           'target="_blank" rel="noopener" aria-label="Instagram de ' + esc(NEGOCIO) + '">' + icono('instagram') + '</a>';
+  }
+
   function pintarRedes() {
     var enlaces = [];
 
     if (!esPlaceholder(CONTACTO.whatsapp)) {
       enlaces.push(
-        '<a class="footer__red" href="' + urlWhatsapp(MENSAJE_CONSULTA) + '" target="_blank" rel="noopener" ' +
+        '<a class="red-link" href="' + urlWhatsapp(MENSAJE_CONSULTA) + '" target="_blank" rel="noopener" ' +
         'aria-label="WhatsApp de ' + esc(NEGOCIO) + '">' + icono('whatsapp') + '</a>'
       );
     }
-    if (!esPlaceholder(CONTACTO.instagram)) {
-      enlaces.push(
-        '<a class="footer__red" href="https://instagram.com/' + encodeURIComponent(CONTACTO.instagram) + '" ' +
-        'target="_blank" rel="noopener" aria-label="Instagram de ' + esc(NEGOCIO) + '">' + icono('instagram') + '</a>'
-      );
-    }
+
+    var insta = enlaceInstagram();
+    if (insta) enlaces.push(insta);
+
     if (!esPlaceholder(CONTACTO.email)) {
       enlaces.push(
-        '<a class="footer__red" href="mailto:' + esc(CONTACTO.email) + '" ' +
+        '<a class="red-link" href="mailto:' + esc(CONTACTO.email) + '" ' +
         'aria-label="Enviar un correo a ' + esc(NEGOCIO) + '">' + icono('correo') + '</a>'
       );
     }
 
     $('#footerRedes').innerHTML = enlaces.join('');
+  }
+
+  // Instagram al lado de los WhatsApp de "contacto general" (hero, FAQ,
+  // sección de contacto). Si Instagram está en placeholder, cada
+  // contenedor queda vacío y no se nota que falta nada.
+  function pintarRedesContacto() {
+    var insta = enlaceInstagram();
+    $('#instaHero').innerHTML = insta;
+    $('#instaFaq').innerHTML = insta;
+    $('#instaContacto').innerHTML = insta;
   }
 
   /* -------------------- RESPLANDOR QUE SIGUE AL CURSOR ----------------
