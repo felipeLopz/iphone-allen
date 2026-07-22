@@ -1,0 +1,1509 @@
+/* =====================================================================
+   IPHONE ALLEN — lógica de la tienda
+   Vanilla JS, sin dependencias, sin build step.
+   =====================================================================
+
+   ---------------------------------------------------------------------
+   CÓMO EDITAR LOS PRODUCTOS  (archivo: productos.json)
+   ---------------------------------------------------------------------
+   productos.json es un array. Cada producto es un objeto así:
+
+   {
+     "id":            "iphone-15-128",     // único, sin espacios ni acentos
+     "nombre":        "iPhone 15 128 GB",  // se muestra tal cual
+     "categoria":     "iPhone",            // iPhone | Mac | iPad | Accesorios
+     "precio":        1749000,             // número, SIN puntos ni signo $
+     "precioAnterior": 1899000,            // opcional: se muestra tachado
+     "destacado":     true,                // true => aparece en el carrusel
+     "stock":         5,                   // 0 => "Sin stock" (no se oculta)
+     "specs":         ["128 GB", "Negro"], // lista corta para la tarjeta
+     "detalle":       { ... },             // ficha del modal, ver abajo
+     "imagen":        ""                   // "" => placeholder con el nombre
+                                           // "fotos/iphone15.jpg" => foto real
+   }
+
+   El campo "detalle" son pares clave-valor que se muestran en el modal
+   del producto, en el mismo orden en que los escribas:
+
+     "detalle": {
+       "Pantalla": "6.1\" Super Retina XDR",
+       "Procesador": "A16 Bionic",
+       "Almacenamiento": "128 GB"
+     }
+
+   Reglas rápidas:
+   · Los precios se formatean solos en pesos argentinos. Escribí el número
+     pelado: 1749000, no "$1.749.000".
+   · "stock": 0 NO esconde el producto: lo muestra atenuado, con el cartel
+     "Sin stock", y cambia el botón por "Avisame cuando llegue".
+     Si un producto no tiene el campo "stock", se asume que hay.
+   · Para sacar un producto, borrá su bloque { ... } completo (y la coma
+     que lo separa del siguiente). El último producto NO lleva coma final.
+   · Para que aparezca en el carrusel poné "destacado": true. Lo ideal 3 o 4.
+   · Si agregás una categoría nueva, aparece sola en los filtros y como
+     sección propia al final del catálogo.
+   ---------------------------------------------------------------------
+*/
+
+(function () {
+  'use strict';
+
+  /* ------------------------- CONFIGURACIÓN ------------------------- */
+
+  // Nombre del negocio: se usa en todos los mensajes de WhatsApp.
+  var NEGOCIO = 'IPHONE ALLEN';
+
+  // WhatsApp en formato internacional, sin + ni espacios.
+  var WHATSAPP = '5492613900039';
+
+  // Mensaje del botón "Escribinos" (consulta general).
+  var MENSAJE_CONSULTA = '¡Hola ' + NEGOCIO + '! Quería hacerles una consulta sobre los equipos.';
+
+  var STORAGE_KEY = 'nombre-carrito-v1';
+  var ENTREGA_STORAGE_KEY = 'nombre-entrega-v1';
+
+  // Orden fijo de las secciones del catálogo. Una categoría que aparezca
+  // en productos.json y no esté acá se agrega al final.
+  var ORDEN_CATEGORIAS = ['iPhone', 'Mac', 'iPad', 'Accesorios'];
+
+  // Redes del footer. Un valor que quede con el placeholder ("[ALGO]")
+  // sencillamente no se renderiza: un ícono que lleva a una cuenta que
+  // no existe es peor que no tenerlo.
+  var CONTACTO = {
+    whatsapp: WHATSAPP,
+    instagram: 'iphone.allen',
+    email: '[CORREO]'
+  };
+
+  // ---------------------------------------------------------------------
+  // FORMAS DE PAGO — todo placeholder, el cliente lo completa.
+  // Se pueden agregar o quitar elementos libremente: cada uno se renderiza
+  // como una tarjeta en la sección "Formas de pago".
+  // ---------------------------------------------------------------------
+  var FORMAS_PAGO = [
+    { titulo: '[FORMA DE PAGO 1]', detalle: '[Detalle o descuento]' },
+    { titulo: '[FORMA DE PAGO 2]', detalle: '[Detalle o descuento]' },
+    { titulo: '[FORMA DE PAGO 3]', detalle: '[Detalle o descuento]' }
+  ];
+
+  // ---------------------------------------------------------------------
+  // PREGUNTAS FRECUENTES — las preguntas están armadas, pero las
+  // respuestas son OBLIGATORIAS DE COMPLETAR antes de publicar la página.
+  // Se pueden agregar o quitar preguntas libremente.
+  // ---------------------------------------------------------------------
+  var FAQ = [
+    { p: '¿Los equipos son nuevos o usados?', r: '[RESPUESTA — completar]' },
+    { p: '¿Qué garantía tienen?', r: '[RESPUESTA — completar]' },
+    { p: '¿Los equipos vienen liberados?', r: '[RESPUESTA — completar]' },
+    { p: '¿Cómo puedo pagar?', r: '[RESPUESTA — completar]' },
+    { p: '¿Hacen envíos? ¿A qué zonas?', r: '[RESPUESTA — completar]' },
+    { p: '¿Puedo retirar en persona?', r: '[RESPUESTA — completar]' },
+    { p: '¿Qué pasa si el equipo viene con una falla?', r: '[RESPUESTA — completar]' }
+  ];
+
+  /* ------------------------------ ESTADO ---------------------------- */
+
+  var productos = [];
+  var carrito = leerCarrito();       // [{ id, cantidad }]
+  var categoriaActiva = 'Todos';
+  var busqueda = '';
+  var slideActivo = 0;
+  var destacados = [];
+  var primeraPintada = true;         // el escalonado [10] es sólo la 1ra vez
+  var idsEntrando = [];              // líneas del carrito que animan su entrada
+  var bloquearClick = false;         // evita abrir el modal al terminar un swipe
+  var comparadorA = null;            // id del producto en la columna 1
+  var comparadorB = null;            // id del producto en la columna 2
+
+  /* ----------------------------- UTILIDADES ------------------------- */
+
+  var $ = function (sel) { return document.querySelector(sel); };
+
+  var mqReduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  function sinMovimiento() { return mqReduce.matches; }
+
+  var pesos = new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  });
+
+  function precio(valor) { return pesos.format(valor); }
+
+  function esc(txt) {
+    return String(txt)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // Para buscar sin depender de tildes ni mayusculas. NFD separa el acento
+  // de la letra; el rango U+0300-U+036F son esas marcas sueltas.
+  var DIACRITICOS = new RegExp('[̀-ͯ]', 'g');
+
+  function normalizar(txt) {
+    return String(txt).toLowerCase().normalize('NFD').replace(DIACRITICOS, '');
+  }
+
+  /* ------------------------------- ICONOS ---------------------------
+     Trazos estilo Tabler embebidos: sin CDN ni webfont de íconos.
+     ------------------------------------------------------------------ */
+  var ICONOS = {
+    check: '<path d="M5 12l5 5l10 -10"></path>',
+    carrito: '<circle cx="6" cy="19" r="2"></circle><circle cx="17" cy="19" r="2"></circle>' +
+             '<path d="M17 17h-11v-14h-2"></path><path d="M6 5l14 1l-1 7h-13"></path>',
+    sinResultados: '<path d="M5.039 5.062a7 7 0 0 0 9.91 9.89m1.584 -2.434a7 7 0 0 0 -9.038 -9.057"></path>' +
+                   '<path d="M21 21l-6 -6"></path><path d="M3 3l18 18"></path>',
+    chevron: '<path d="M6 9l6 6l6 -6"></path>',
+    whatsapp: '<path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>' +
+              '<path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path>',
+    instagram: '<path d="M4 8a4 4 0 0 1 4 -4h8a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-8a4 4 0 0 1 -4 -4z"></path>' +
+               '<path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path>' +
+               '<path d="M16.5 7.5m-.5 0a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0"></path>',
+    correo: '<path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10z"></path>' +
+            '<path d="M3 7l9 6l9 -6"></path>'
+  };
+
+  function icono(nombre, clase) {
+    return '<svg class="ico ' + (clase || '') + '" viewBox="0 0 24 24" fill="none" ' +
+           'stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+           'stroke-linejoin="round" aria-hidden="true">' + ICONOS[nombre] + '</svg>';
+  }
+
+  /* --------------------------- PRODUCTO: PARTES --------------------- */
+
+  // Si un producto no declara "stock", se asume que hay.
+  function hayStock(p) { return p.stock === undefined || p.stock === null || p.stock > 0; }
+
+  // Imagen: si el producto tiene "imagen" usa <img>, si no el placeholder CSS.
+  // Reemplazar placeholders por fotos = cargar la ruta en productos.json.
+  function media(p, clase, extra) {
+    var contenido = p.imagen
+      ? '<img class="media__img" src="' + esc(p.imagen) + '" alt="' + esc(p.nombre) + '" loading="lazy">'
+      : '<div class="media__ph">' + esc(p.nombre) + '</div>';
+    return '<div class="media ' + (clase || '') + '">' + contenido + (extra || '') + '</div>';
+  }
+
+  function bloquePrecios(p) {
+    var anterior = p.precioAnterior
+      ? '<span class="precio--anterior">' + precio(p.precioAnterior) + '</span>'
+      : '';
+    return '<div class="card__precios">' + anterior +
+           '<span class="precio">' + precio(p.precio) + '</span></div>';
+  }
+
+  // Con stock agrega al carrito; sin stock abre WhatsApp para que le avisen.
+  function botonAccion(p, clase) {
+    if (hayStock(p)) {
+      return '<button class="btn ' + clase + '" type="button" data-agregar="' + esc(p.id) + '">' +
+             'Agregar al carrito<span class="sr-only"> — ' + esc(p.nombre) + '</span></button>';
+    }
+    return '<a class="btn ' + clase + '" data-avisar="' + esc(p.id) + '" ' +
+           'href="' + urlWhatsapp(msgAviso(p)) + '" target="_blank" rel="noopener">' +
+           'Avisame cuando llegue<span class="sr-only"> — ' + esc(p.nombre) + '</span></a>';
+  }
+
+  function badgeStock(p) {
+    return hayStock(p) ? '' : '<span class="badge-stock">Sin stock</span>';
+  }
+
+  /* ---------------------------- CARGA DE DATOS ---------------------- */
+
+  pintarEsqueletos();
+
+  // Estas tres secciones son contenido estático (no dependen de
+  // productos.json), así que se pintan de una y siguen ahí aunque
+  // el fetch de productos falle.
+  pintarPagos();
+  pintarFaq();
+  pintarRedes();
+
+  fetch('productos.json')
+    .then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function (data) {
+      productos = data;
+      destacados = productos.filter(function (p) { return p.destacado; });
+      if (!destacados.length) destacados = productos.slice(0, 3);
+
+      pintarHero();
+      pintarCarrusel();
+      pintarFiltros();
+      pintarCatalogo();
+      pintarCarrito();
+      pintarSelectsComparador();
+      pintarComparador();
+    })
+    .catch(function (err) {
+      // Ocurre al abrir index.html con doble clic (file://): el navegador
+      // bloquea fetch. Hay que servirlo por HTTP.
+      $('#catalogoSecciones').innerHTML =
+        '<div class="aviso"><strong>No se pudieron cargar los productos.</strong><br>' +
+        'Si abriste el archivo con doble clic, el navegador bloquea la lectura de ' +
+        '<code>productos.json</code>. Levantá un servidor local desde esta carpeta, ' +
+        'por ejemplo con <code>python -m http.server</code>, y entrá a ' +
+        '<code>http://localhost:8000</code>.<br><small>Detalle: ' + esc(err.message) + '</small></div>';
+      console.error('[tienda] no se pudo cargar productos.json:', err);
+    });
+
+  // [9] esqueletos con la misma forma que la tarjeta real
+  function pintarEsqueletos() {
+    var tarjetaFalsa =
+      '<div class="skel-card">' +
+        '<div class="skel skel--media"></div>' +
+        '<div class="skel skel--linea"></div>' +
+        '<div class="skel skel--corta"></div>' +
+        '<div class="skel skel--precio"></div>' +
+        '<div class="skel skel--boton"></div>' +
+      '</div>';
+
+    var tarjetas = '';
+    for (var i = 0; i < 8; i++) tarjetas += tarjetaFalsa;
+
+    $('#catalogoSecciones').innerHTML =
+      '<section class="cat" aria-hidden="true">' +
+        '<header class="cat__head"><span class="skel skel--linea" style="width:130px;height:22px"></span></header>' +
+        '<div class="skel-grilla">' + tarjetas + '</div>' +
+      '</section>';
+  }
+
+  /* ------------------------------- HERO ----------------------------- */
+
+  function pintarHero() {
+    var p = destacados[0];
+    if (!p) return;
+
+    $('#heroProducto').innerHTML =
+      '<article class="destacado-card">' +
+        '<span class="destacado-card__cinta">Destacado</span>' +
+        media(p, '', badgeStock(p)) +
+        '<div>' +
+          '<h2 class="destacado-card__nombre">' + esc(p.nombre) + '</h2>' +
+          '<p class="destacado-card__specs">' + esc((p.specs || []).join(' · ')) + '</p>' +
+        '</div>' +
+        '<div class="destacado-card__fila">' +
+          bloquePrecios(p) +
+        '</div>' +
+        botonAccion(p, 'btn--sutil') +
+      '</article>';
+  }
+
+  /* ----------------------------- CARRUSEL --------------------------- */
+
+  var track = $('#carruselTrack');
+  var barras = $('#carruselBarras');
+  var viewport = $('#carruselViewport');
+  var btnPrev = $('#carruselPrev');
+  var btnNext = $('#carruselNext');
+
+  function pintarCarrusel() {
+    track.innerHTML = destacados.map(function (p, i) {
+      return '<article class="carrusel__slide" id="slide-' + i + '">' +
+               media(p, '', badgeStock(p)) +
+               '<div>' +
+                 '<h3 class="carrusel__nombre">' +
+                   '<button class="card__abrir" type="button" data-modal="' + esc(p.id) + '">' +
+                     esc(p.nombre) +
+                   '</button>' +
+                 '</h3>' +
+                 '<p class="carrusel__specs">' + esc((p.specs || []).join(' · ')) + '</p>' +
+               '</div>' +
+               '<div class="carrusel__pie">' +
+                 bloquePrecios(p) +
+                 botonAccion(p, 'btn--sutil') +
+               '</div>' +
+             '</article>';
+    }).join('');
+
+    barras.innerHTML = destacados.map(function (p, i) {
+      return '<button class="barra" type="button" role="tab" data-slide="' + i + '" ' +
+             'aria-controls="slide-' + i + '" ' +
+             'aria-label="Ver ' + esc(p.nombre) + '"></button>';
+    }).join('');
+
+    irASlide(0);
+  }
+
+  function irASlide(i) {
+    slideActivo = Math.max(0, Math.min(i, destacados.length - 1));
+    track.style.transform = 'translateX(' + (-slideActivo * 100) + '%)';
+
+    Array.prototype.forEach.call(track.children, function (slide, idx) {
+      var visible = idx === slideActivo;
+      slide.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      // los controles de los slides ocultos quedan fuera del orden de tabulación
+      Array.prototype.forEach.call(slide.querySelectorAll('button, a'), function (b) {
+        b.tabIndex = visible ? 0 : -1;
+      });
+    });
+
+    Array.prototype.forEach.call(barras.children, function (b, idx) {
+      b.setAttribute('aria-selected', idx === slideActivo ? 'true' : 'false');
+      b.tabIndex = idx === slideActivo ? 0 : -1;
+    });
+
+    btnPrev.disabled = slideActivo === 0;
+    btnNext.disabled = slideActivo === destacados.length - 1;
+  }
+
+  btnPrev.addEventListener('click', function () { irASlide(slideActivo - 1); });
+  btnNext.addEventListener('click', function () { irASlide(slideActivo + 1); });
+
+  barras.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-slide]');
+    if (b) irASlide(Number(b.dataset.slide));
+  });
+
+  // Flechas del teclado sobre el carrusel
+  $('#carrusel').addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') { irASlide(slideActivo + 1); enfocarBarra(); }
+    if (e.key === 'ArrowLeft')  { irASlide(slideActivo - 1); enfocarBarra(); }
+  });
+
+  function enfocarBarra() {
+    if (document.activeElement && document.activeElement.classList.contains('barra')) {
+      barras.children[slideActivo].focus();
+    }
+  }
+
+  // Swipe táctil (pointer events: sirve para dedo y mouse)
+  var arrastre = null;
+
+  viewport.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    arrastre = { x: e.clientX, y: e.clientY, dx: 0, decidido: false, horizontal: false };
+  });
+
+  viewport.addEventListener('pointermove', function (e) {
+    if (!arrastre) return;
+    arrastre.dx = e.clientX - arrastre.x;
+    var dy = e.clientY - arrastre.y;
+
+    // Primer movimiento: decidir si el gesto es horizontal (swipe) o vertical (scroll)
+    if (!arrastre.decidido && (Math.abs(arrastre.dx) > 8 || Math.abs(dy) > 8)) {
+      arrastre.decidido = true;
+      arrastre.horizontal = Math.abs(arrastre.dx) > Math.abs(dy);
+    }
+    if (!arrastre.horizontal) return;
+
+    var ancho = viewport.offsetWidth || 1;
+    var pct = (arrastre.dx / ancho) * 100;
+    track.style.transition = 'none';
+    track.style.transform = 'translateX(' + (-slideActivo * 100 + pct) + '%)';
+  });
+
+  function terminarArrastre() {
+    if (!arrastre) return;
+    var dx = arrastre.horizontal ? arrastre.dx : 0;
+    arrastre = null;
+    track.style.transition = '';
+
+    // si hubo swipe, el click que viene después no debe abrir el modal
+    if (Math.abs(dx) > 8) {
+      bloquearClick = true;
+      setTimeout(function () { bloquearClick = false; }, 350);
+    }
+
+    var umbral = Math.min(80, viewport.offsetWidth * 0.18);
+    if (dx < -umbral) irASlide(slideActivo + 1);
+    else if (dx > umbral) irASlide(slideActivo - 1);
+    else irASlide(slideActivo);
+  }
+
+  viewport.addEventListener('pointerup', terminarArrastre);
+  viewport.addEventListener('pointercancel', terminarArrastre);
+  viewport.addEventListener('pointerleave', terminarArrastre);
+
+  /* ------------------------- FILTROS Y BUSCADOR --------------------- */
+
+  function categoriasConProductos() {
+    var presentes = [];
+    productos.forEach(function (p) {
+      if (presentes.indexOf(p.categoria) === -1) presentes.push(p.categoria);
+    });
+
+    var ordenadas = ORDEN_CATEGORIAS.filter(function (c) {
+      return presentes.indexOf(c) !== -1;
+    });
+    presentes.forEach(function (c) {
+      if (ordenadas.indexOf(c) === -1) ordenadas.push(c);
+    });
+    return ordenadas;
+  }
+
+  function conteo(categoria, n) {
+    var palabra = categoria === 'Accesorios' ? 'accesorio' : 'equipo';
+    return n + ' ' + palabra + (n === 1 ? '' : 's');
+  }
+
+  function pintarFiltros() {
+    var cats = ['Todos'].concat(categoriasConProductos());
+
+    $('#filtros').innerHTML = cats.map(function (c) {
+      return '<button class="filtro" type="button" data-cat="' + esc(c) + '" ' +
+             'aria-pressed="' + (c === categoriaActiva) + '">' + esc(c) + '</button>';
+    }).join('');
+  }
+
+  $('#filtros').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-cat]');
+    if (!b) return;
+    categoriaActiva = b.dataset.cat;
+    Array.prototype.forEach.call(this.children, function (f) {
+      f.setAttribute('aria-pressed', f.dataset.cat === categoriaActiva ? 'true' : 'false');
+    });
+    pintarCatalogo(true); // [16] las secciones entran al cambiar de filtro
+  });
+
+  // [32] buscador que se abre desde la lupa
+  var buscador = $('#buscador');
+  var campoBusqueda = $('#busqueda');
+  var lupa = $('#buscadorToggle');
+
+  function abrirBuscador() {
+    buscador.dataset.abierto = 'true';
+    lupa.setAttribute('aria-expanded', 'true');
+    campoBusqueda.tabIndex = 0;
+    campoBusqueda.focus();
+  }
+
+  function cerrarBuscador(devolverFoco) {
+    buscador.dataset.abierto = 'false';
+    lupa.setAttribute('aria-expanded', 'false');
+    campoBusqueda.tabIndex = -1;   // cerrado no debe recibir foco por Tab
+    if (campoBusqueda.value) {
+      campoBusqueda.value = '';
+      busqueda = '';
+      pintarCatalogo();
+    }
+    if (devolverFoco) lupa.focus();
+  }
+
+  lupa.addEventListener('click', function () {
+    if (buscador.dataset.abierto === 'true') cerrarBuscador(true);
+    else abrirBuscador();
+  });
+
+  campoBusqueda.addEventListener('input', function () {
+    busqueda = this.value.trim();
+    pintarCatalogo();
+  });
+
+  campoBusqueda.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') cerrarBuscador(true);
+  });
+
+  /* ---------------------------- CATÁLOGO ---------------------------- */
+
+  function tarjeta(p) {
+    return '<article class="card' + (hayStock(p) ? '' : ' card--agotado') + '">' +
+             media(p, '', badgeStock(p)) +
+             '<div>' +
+               '<p class="card__cat">' + esc(p.categoria) + '</p>' +
+               '<h4 class="card__nombre">' +
+                 '<button class="card__abrir" type="button" data-modal="' + esc(p.id) + '">' +
+                   esc(p.nombre) +
+                 '</button>' +
+               '</h4>' +
+             '</div>' +
+             '<p class="card__specs">' + esc((p.specs || []).join(' · ')) + '</p>' +
+             bloquePrecios(p) +
+             botonAccion(p, 'btn--sutil') +
+             '<button class="btn btn--texto btn--comparar" type="button" data-comparar="' + esc(p.id) + '">' +
+               'Comparar<span class="sr-only"> — ' + esc(p.nombre) + '</span></button>' +
+           '</article>';
+  }
+
+  function productosDe(categoria) {
+    return productos.filter(function (p) {
+      if (p.categoria !== categoria) return false;
+      if (!busqueda) return true;
+      return normalizar(p.nombre).indexOf(normalizar(busqueda)) !== -1;
+    });
+  }
+
+  // Una sección por categoría. Con un filtro activo se renderiza sólo esa;
+  // las categorías sin productos no generan encabezado.
+  function pintarCatalogo(animarSecciones) {
+    var visibles = categoriasConProductos().filter(function (c) {
+      return categoriaActiva === 'Todos' || c === categoriaActiva;
+    });
+
+    var claseSeccion = 'cat' + (animarSecciones && !sinMovimiento() ? ' cat--entra' : '');
+
+    var html = visibles.map(function (c) {
+      var lista = productosDe(c);
+      if (!lista.length) return '';
+
+      var idTitulo = 'cat-' + c.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+      return '<section class="' + claseSeccion + '" aria-labelledby="' + idTitulo + '">' +
+               '<header class="cat__head">' +
+                 '<h3 class="cat__titulo" id="' + idTitulo + '">' + esc(c) + '</h3>' +
+                 '<p class="cat__conteo">' + conteo(c, lista.length) + '</p>' +
+               '</header>' +
+               '<div class="grilla">' + lista.map(tarjeta).join('') + '</div>' +
+             '</section>';
+    }).join('');
+
+    $('#catalogoSecciones').innerHTML = html;
+    pintarVacio(html === '');
+    revelarTarjetas();
+  }
+
+  // [13] sin resultados
+  function pintarVacio(vacio) {
+    var cont = $('#catalogoVacio');
+    cont.hidden = !vacio;
+    cont.innerHTML = vacio
+      ? '<div class="estado-vacio">' +
+          icono('sinResultados', 'ico--grande') +
+          '<p class="estado-vacio__titulo">No hay equipos en esta categoría</p>' +
+          '<p class="estado-vacio__texto">Probá con otra o ' +
+            '<a class="enlace link-sub" href="' + urlWhatsapp(MENSAJE_CONSULTA) + '" ' +
+            'target="_blank" rel="noopener">escribinos</a>' +
+          '</p>' +
+        '</div>'
+      : '';
+  }
+
+  /* ------------------ [10] ENTRADA ESCALONADA (IO) ------------------ */
+
+  var observador = ('IntersectionObserver' in window)
+    ? new IntersectionObserver(function (entradas) {
+        entradas.forEach(function (e) {
+          if (!e.isIntersecting) return;
+          e.target.classList.add('is-visible');
+          observador.unobserve(e.target);
+        });
+      }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' })
+    : null;
+
+  function revelarTarjetas() {
+    var grillas = $('#catalogoSecciones').querySelectorAll('.grilla');
+
+    // Sin observer, sin movimiento, o ya re-pintando (filtro/búsqueda):
+    // el usuario ya está mirando el catálogo, no corresponde escalonar.
+    if (!observador || sinMovimiento() || !primeraPintada) {
+      Array.prototype.forEach.call($('#catalogoSecciones').querySelectorAll('.card'), function (c) {
+        c.classList.add('is-visible');
+      });
+      primeraPintada = false;
+      return;
+    }
+
+    Array.prototype.forEach.call(grillas, function (g) {
+      // el delay se reinicia en cada sección y se corta a 500ms
+      Array.prototype.forEach.call(g.children, function (card, i) {
+        card.style.setProperty('--delay', Math.min(i * 60, 500) + 'ms');
+        observador.observe(card);
+      });
+    });
+
+    primeraPintada = false;
+  }
+
+  /* ----------------------------- COMPARADOR --------------------------
+     Reutiliza el campo "detalle" de productos.json: cada fila de la
+     tabla es una clave, cada columna un producto.
+     ------------------------------------------------------------------ */
+
+  var selectA = $('#compararA');
+  var selectB = $('#compararB');
+
+  function pintarSelectsComparador() {
+    var optgroups = categoriasConProductos().map(function (c) {
+      var lista = productos.filter(function (p) { return p.categoria === c; });
+      if (!lista.length) return '';
+      return '<optgroup label="' + esc(c) + '">' + lista.map(function (p) {
+        return '<option value="' + esc(p.id) + '">' + esc(p.nombre) + '</option>';
+      }).join('') + '</optgroup>';
+    }).join('');
+
+    var base = '<option value="">Elegir producto…</option>' + optgroups;
+    selectA.innerHTML = base;
+    selectB.innerHTML = base;
+    selectA.value = comparadorA || '';
+    selectB.value = comparadorB || '';
+  }
+
+  // Une las claves de "detalle" de los dos productos preservando el orden
+  // de aparición: primero las de A, después las de B que A no tenía.
+  function comparadorUnionClaves(a, b) {
+    var claves = [];
+    Object.keys(a.detalle || {}).forEach(function (k) {
+      if (claves.indexOf(k) === -1) claves.push(k);
+    });
+    Object.keys(b.detalle || {}).forEach(function (k) {
+      if (claves.indexOf(k) === -1) claves.push(k);
+    });
+    return claves;
+  }
+
+  function comparadorCeldaProducto(p) {
+    return '<div class="comparador__prod">' +
+             media(p, 'media--comparador') +
+             '<p class="comparador__nombre">' + esc(p.nombre) + '</p>' +
+             bloquePrecios(p) +
+           '</div>';
+  }
+
+  function comparadorCeldaValor(valor, nombreProducto) {
+    var contenido = (valor === undefined || valor === null)
+      ? '<span aria-hidden="true">—</span><span class="sr-only">Sin dato</span>'
+      : esc(valor);
+    return '<td data-label="' + esc(nombreProducto) + '">' + contenido + '</td>';
+  }
+
+  function pintarComparador() {
+    var cont = $('#comparadorTabla');
+    var a = comparadorA ? buscarProducto(comparadorA) : null;
+    var b = comparadorB ? buscarProducto(comparadorB) : null;
+
+    if (!a || !b) {
+      cont.innerHTML = '<p class="comparador__vacio">' +
+        (a || b ? 'Elegí el segundo producto para comparar.' : 'Elegí dos productos para ver la comparación.') +
+        '</p>';
+      return;
+    }
+
+    var claves = comparadorUnionClaves(a, b);
+
+    var filas = claves.map(function (k) {
+      var va = a.detalle ? a.detalle[k] : undefined;
+      var vb = b.detalle ? b.detalle[k] : undefined;
+      // difieren también cuenta cuando la clave falta en uno de los dos:
+      // esa diferencia es justamente lo que hay que resaltar de un vistazo.
+      var difiere = va !== vb;
+
+      return '<tr class="' + (difiere ? 'comparador__fila--difiere' : '') + '">' +
+               '<th scope="row">' + esc(k) + '</th>' +
+               comparadorCeldaValor(va, a.nombre) +
+               comparadorCeldaValor(vb, b.nombre) +
+             '</tr>';
+    }).join('');
+
+    cont.innerHTML =
+      '<div class="comparador__scroll">' +
+        '<table class="comparador__tabla">' +
+          '<caption class="sr-only">Comparación entre ' + esc(a.nombre) + ' y ' + esc(b.nombre) + '</caption>' +
+          '<thead><tr>' +
+            '<th scope="col"><span class="sr-only">Especificación</span></th>' +
+            '<th scope="col">' + comparadorCeldaProducto(a) + '</th>' +
+            '<th scope="col">' + comparadorCeldaProducto(b) + '</th>' +
+          '</tr></thead>' +
+          '<tbody>' + filas + '</tbody>' +
+          '<tfoot><tr>' +
+            '<td></td>' +
+            '<td>' + botonAccion(a, 'btn--sutil btn--bloque') + '</td>' +
+            '<td>' + botonAccion(b, 'btn--sutil btn--bloque') + '</td>' +
+          '</tr></tfoot>' +
+        '</table>' +
+      '</div>';
+  }
+
+  selectA.addEventListener('change', function () {
+    comparadorA = this.value || null;
+    pintarComparador();
+  });
+  selectB.addEventListener('change', function () {
+    comparadorB = this.value || null;
+    pintarComparador();
+  });
+
+  $('#compararLimpiar').addEventListener('click', function () {
+    comparadorA = null;
+    comparadorB = null;
+    selectA.value = '';
+    selectB.value = '';
+    pintarComparador();
+  });
+
+  // Botón "Comparar" de cada tarjeta: ocupa la primera columna libre y,
+  // si las dos ya están ocupadas, reemplaza la segunda.
+  function cargarEnComparador(id) {
+    if (!comparadorA) comparadorA = id;
+    else if (!comparadorB) comparadorB = id;
+    else comparadorB = id;
+
+    selectA.value = comparadorA || '';
+    selectB.value = comparadorB || '';
+    pintarComparador();
+
+    $('#comparar').scrollIntoView({ block: 'start' });
+  }
+
+  /* --------------------------- MODAL PRODUCTO ----------------------- */
+
+  var modal = $('#modalProducto');
+  var overlayModal = $('#overlayModal');
+  var ultimoFocoModal = null;
+
+  function contenidoModal(p) {
+    var d = p.detalle || {};
+    var filas = Object.keys(d).map(function (k) {
+      return '<div class="detalle__fila"><dt>' + esc(k) + '</dt><dd>' + esc(d[k]) + '</dd></div>';
+    }).join('');
+
+    var anterior = p.precioAnterior
+      ? '<span class="precio--anterior">' + precio(p.precioAnterior) + '</span>'
+      : '';
+
+    var primario = hayStock(p)
+      ? '<button class="btn btn--primario" type="button" data-agregar="' + esc(p.id) + '">' +
+        'Agregar al carrito</button>'
+      : '<a class="btn btn--primario" href="' + urlWhatsapp(msgAviso(p)) + '" ' +
+        'target="_blank" rel="noopener">Avisame cuando llegue</a>';
+
+    return media(p, '', badgeStock(p)) +
+      '<p class="modal__cat">' + esc(p.categoria) + '</p>' +
+      '<h2 class="modal__nombre" id="modalNombre">' + esc(p.nombre) + '</h2>' +
+      '<p class="modal__precios">' +
+        '<span class="precio">' + precio(p.precio) + '</span>' + anterior +
+      '</p>' +
+      (hayStock(p) ? '' : '<p class="modal__agotado">Sin stock por ahora. Dejanos tu mensaje y te avisamos apenas entre.</p>') +
+      (filas ? '<dl class="detalle">' + filas + '</dl>' : '') +
+      '<div class="modal__acciones">' +
+        '<a class="btn btn--secundario" href="' + urlWhatsapp(msgConsulta(p)) + '" ' +
+        'target="_blank" rel="noopener">Consultar por WhatsApp</a>' +
+        primario +
+      '</div>';
+  }
+
+  function abrirModal(id, disparador) {
+    var p = buscarProducto(id);
+    if (!p) return;
+
+    ultimoFocoModal = disparador || document.activeElement;
+    $('#modalContenido').innerHTML = contenidoModal(p);
+
+    modal.hidden = false;
+    overlayModal.hidden = false;
+    void modal.offsetWidth;           // fuerza reflow para que se vea la entrada
+    modal.dataset.visible = 'true';
+    overlayModal.dataset.visible = 'true';
+    bloquearScroll();
+    $('#modalCerrar').focus();
+  }
+
+  function cerrarModal() {
+    if (modal.hidden) return;
+    modal.dataset.visible = 'false';
+    overlayModal.dataset.visible = 'false';
+
+    var ocultar = function () {
+      modal.hidden = true;
+      overlayModal.hidden = true;
+      liberarScroll();
+    };
+    if (sinMovimiento()) ocultar();
+    else setTimeout(ocultar, 220);
+
+    // el foco vuelve a la tarjeta que lo abrió
+    if (ultimoFocoModal && document.contains(ultimoFocoModal)) ultimoFocoModal.focus();
+    ultimoFocoModal = null;
+  }
+
+  $('#modalCerrar').addEventListener('click', cerrarModal);
+  overlayModal.addEventListener('click', cerrarModal);
+
+  /* ------------------------------ CARRITO --------------------------- */
+
+  function leerCarrito() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      var data = raw ? JSON.parse(raw) : [];
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function guardarCarrito() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(carrito));
+    } catch (e) {
+      // modo privado / sin espacio: el carrito sigue funcionando en memoria
+      console.warn('[tienda] no se pudo guardar el carrito:', e);
+    }
+  }
+
+  function buscarProducto(id) {
+    for (var i = 0; i < productos.length; i++) {
+      if (productos[i].id === id) return productos[i];
+    }
+    return null;
+  }
+
+  // Líneas del carrito con los datos del producto ya resueltos.
+  // Descarta ítems cuyo producto ya no existe en productos.json.
+  function lineas() {
+    return carrito.reduce(function (acc, item) {
+      var p = buscarProducto(item.id);
+      if (p) acc.push({ producto: p, cantidad: item.cantidad });
+      return acc;
+    }, []);
+  }
+
+  function agregar(id) {
+    var p = buscarProducto(id);
+    if (!p || !hayStock(p)) return;
+
+    var existente = null;
+    carrito.forEach(function (i) { if (i.id === id) existente = i; });
+
+    if (existente) {
+      existente.cantidad += 1;
+    } else {
+      carrito.push({ id: id, cantidad: 1 });
+      idsEntrando.push(id);          // [28] sólo animan las líneas nuevas
+    }
+
+    guardarCarrito();
+    pintarCarrito();
+    saltarIcono();                   // [8]
+    avisar('Agregado al carrito');   // [25]
+  }
+
+  function cambiarCantidad(id, delta) {
+    var actual = null;
+    carrito.forEach(function (i) { if (i.id === id) actual = i; });
+    if (!actual) return;
+
+    // llegar a 0 restando sale por la misma animación que "Quitar"
+    if (actual.cantidad + delta <= 0) { quitar(id); return; }
+
+    actual.cantidad += delta;
+    guardarCarrito();
+    pintarCarrito();
+  }
+
+  // [27] la línea se va a la derecha y colapsa; las de abajo suben suave
+  function quitar(id) {
+    var nodo = $('#carritoItems').querySelector('[data-linea="' + id + '"]');
+
+    if (!nodo || sinMovimiento()) { quitarDelEstado(id); return; }
+    if (nodo.classList.contains('linea-wrap--sale')) return;   // ya está saliendo
+
+    nodo.classList.add('linea-wrap--sale');
+    setTimeout(function () { quitarDelEstado(id); }, 400);
+  }
+
+  function quitarDelEstado(id) {
+    carrito = carrito.filter(function (i) { return i.id !== id; });
+    guardarCarrito();
+    pintarCarrito();
+  }
+
+  function total() {
+    return lineas().reduce(function (t, l) {
+      return t + l.producto.precio * l.cantidad;
+    }, 0);
+  }
+
+  function unidades() {
+    return lineas().reduce(function (t, l) { return t + l.cantidad; }, 0);
+  }
+
+  function pintarCarrito() {
+    var ls = lineas();
+    var cont = $('#carritoItems');
+
+    if (!ls.length) {
+      // [31] carrito vacío
+      cont.innerHTML =
+        '<div class="carrito-vacio">' +
+          icono('carrito', 'ico--grande') +
+          '<p class="carrito-vacio__texto">Todavía no agregaste nada</p>' +
+          '<a class="enlace link-sub" href="#destacados" data-ir-destacados>Ver los destacados</a>' +
+        '</div>';
+    } else {
+      cont.innerHTML = ls.map(function (l) {
+        var p = l.producto;
+        var entra = idsEntrando.indexOf(p.id) !== -1 && !sinMovimiento();
+
+        return '<div class="linea-wrap' + (entra ? ' linea-wrap--entra' : '') + '" ' +
+                    'data-linea="' + esc(p.id) + '">' +
+                 '<div class="linea">' +
+                   media(p) +
+                   '<div>' +
+                     '<p class="linea__nombre">' + esc(p.nombre) + '</p>' +
+                     '<p class="linea__precio">' + precio(p.precio) + '</p>' +
+                     '<div class="linea__controles">' +
+                       '<button class="qty" type="button" data-menos="' + esc(p.id) + '" ' +
+                         'aria-label="Quitar una unidad de ' + esc(p.nombre) + '">−</button>' +
+                       '<span class="qty__valor" aria-label="Cantidad">' + l.cantidad + '</span>' +
+                       '<button class="qty" type="button" data-mas="' + esc(p.id) + '" ' +
+                         'aria-label="Agregar una unidad de ' + esc(p.nombre) + '">+</button>' +
+                       '<button class="linea__quitar" type="button" data-quitar="' + esc(p.id) + '">Quitar</button>' +
+                     '</div>' +
+                   '</div>' +
+                 '</div>' +
+               '</div>';
+      }).join('');
+    }
+
+    idsEntrando = [];
+
+    var n = unidades();
+    $('#contadorCarrito').textContent = n;
+    $('#contadorCarritoTexto').textContent = n + (n === 1 ? ' producto en el carrito' : ' productos en el carrito');
+    $('#abrirCarrito').dataset.lleno = n > 0 ? 'true' : 'false';
+    $('#carritoTotal').textContent = precio(total());
+    $('#pedirWhatsapp').disabled = n === 0;
+
+    actualizarEnlacesWhatsapp();
+  }
+
+  // [8] salto del ícono del carrito al agregar
+  function saltarIcono() {
+    if (sinMovimiento()) return;
+    var ico = $('#iconoCarrito');
+    ico.classList.remove('is-saltando');
+    void ico.offsetWidth;            // reinicia la animación si se agrega seguido
+    ico.classList.add('is-saltando');
+  }
+
+  /* ------------------------ CLICKS DELEGADOS ------------------------ */
+
+  document.addEventListener('click', function (e) {
+    var add = e.target.closest('[data-agregar]');
+    if (add) {
+      agregar(add.dataset.agregar);
+      cerrarModal();                 // agregar desde el modal lo cierra
+      return;
+    }
+
+    var abrir = e.target.closest('[data-modal]');
+    if (abrir) {
+      if (bloquearClick) return;     // veníamos de un swipe del carrusel
+      abrirModal(abrir.dataset.modal, abrir);
+      return;
+    }
+
+    var comparar = e.target.closest('[data-comparar]');
+    if (comparar) {
+      cargarEnComparador(comparar.dataset.comparar);
+      return;
+    }
+
+    var irDestacados = e.target.closest('[data-ir-destacados]');
+    if (irDestacados) cerrarDrawer();
+  });
+
+  $('#carritoItems').addEventListener('click', function (e) {
+    var mas = e.target.closest('[data-mas]');
+    var menos = e.target.closest('[data-menos]');
+    var quit = e.target.closest('[data-quitar]');
+    if (mas) cambiarCantidad(mas.dataset.mas, 1);
+    if (menos) cambiarCantidad(menos.dataset.menos, -1);
+    if (quit) quitar(quit.dataset.quitar);
+  });
+
+  $('#vaciarCarrito').addEventListener('click', function () {
+    carrito = [];
+    guardarCarrito();
+    pintarCarrito();
+  });
+
+  /* --------------------------- DRAWER (UI) -------------------------- */
+
+  var drawer = $('#carrito');
+  var overlay = $('#overlayCarrito');
+  var ultimoFoco = null;
+
+  function bloquearScroll() { document.body.style.overflow = 'hidden'; }
+
+  function liberarScroll() {
+    // sólo se libera si no queda ninguna capa abierta
+    if (drawer.hidden && modal.hidden) document.body.style.overflow = '';
+  }
+
+  function abrirDrawer() {
+    ultimoFoco = document.activeElement;
+    mostrarVistaCarrito(false);      // siempre arranca en la lista, no en el checkout
+    drawer.hidden = false;
+    overlay.hidden = false;
+    void drawer.offsetWidth;
+    drawer.dataset.visible = 'true';
+    overlay.dataset.visible = 'true';
+    bloquearScroll();
+    $('#cerrarCarrito').focus();
+  }
+
+  function cerrarDrawer() {
+    if (drawer.hidden) return;
+    drawer.dataset.visible = 'false';
+    overlay.dataset.visible = 'false';
+
+    var ocultar = function () {
+      drawer.hidden = true;
+      overlay.hidden = true;
+      liberarScroll();
+    };
+    if (sinMovimiento()) ocultar();
+    else setTimeout(ocultar, 300);
+
+    if (ultimoFoco && document.contains(ultimoFoco)) ultimoFoco.focus();
+    ultimoFoco = null;
+  }
+
+  $('#abrirCarrito').addEventListener('click', abrirDrawer);
+  $('#cerrarCarrito').addEventListener('click', cerrarDrawer);
+  overlay.addEventListener('click', cerrarDrawer);
+
+  /* --------------------- FOCO ATRAPADO (Esc + Tab) ------------------ */
+
+  var SELECTOR_FOCO = 'button:not([disabled]), a[href], input:not([tabindex="-1"]), ' +
+                      'select, textarea, [tabindex]:not([tabindex="-1"])';
+
+  function atraparTab(e, contenedor) {
+    // querySelectorAll no filtra por visibilidad: desde que el drawer
+    // tiene dos vistas (carrito / formulario) que se alternan con
+    // [hidden], hay que descartar a mano lo que quedó dentro de la vista
+    // oculta. offsetParent es null tanto para display:none como para
+    // cualquier ancestro oculto; los hijos normales del drawer (fixed)
+    // no son ellos mismos position:fixed, así que este chequeo no da
+    // falsos negativos acá.
+    var focosables = Array.prototype.filter.call(
+      contenedor.querySelectorAll(SELECTOR_FOCO),
+      function (el) { return el.offsetParent !== null; }
+    );
+    if (!focosables.length) return;
+
+    var primero = focosables[0];
+    var ultimo = focosables[focosables.length - 1];
+
+    if (e.shiftKey && document.activeElement === primero) {
+      e.preventDefault();
+      ultimo.focus();
+    } else if (!e.shiftKey && document.activeElement === ultimo) {
+      e.preventDefault();
+      primero.focus();
+    }
+  }
+
+  document.addEventListener('keydown', function (e) {
+    // el modal está por encima del drawer: se atiende primero
+    var capa = !modal.hidden ? modal : (!drawer.hidden ? drawer : null);
+    if (!capa) return;
+
+    if (e.key === 'Escape') {
+      if (capa === modal) cerrarModal();
+      else cerrarDrawer();
+      return;
+    }
+    if (e.key === 'Tab') atraparTab(e, capa);
+  });
+
+  /* ----------------------------- WHATSAPP --------------------------- */
+
+  function urlWhatsapp(texto) {
+    return 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(texto);
+  }
+
+  function msgConsulta(p) {
+    return '¡Hola ' + NEGOCIO + '! Quería consultar por el ' + p.nombre + '.';
+  }
+
+  function msgAviso(p) {
+    return '¡Hola ' + NEGOCIO + '! ¿Me avisan cuando entre el ' + p.nombre + '?';
+  }
+
+  // Líneas del pedido en texto plano, reutilizadas por el mensaje final.
+  function lineasPedidoTexto() {
+    return lineas().map(function (l) {
+      return '• ' + l.cantidad + 'x ' + l.producto.nombre +
+             ' — ' + precio(l.producto.precio * l.cantidad);
+    });
+  }
+
+  // Mensaje final: productos + total + datos de entrega cargados en el formulario.
+  function mensajePedidoConEntrega(datos) {
+    var partes = ['¡Hola ' + NEGOCIO + '! Quiero hacer este pedido:', ''];
+    partes = partes.concat(lineasPedidoTexto());
+    partes.push('');
+    partes.push('Total: ' + precio(total()));
+    partes.push('');
+    partes.push('Entrega: ' + datos.metodo);
+    partes.push('Nombre: ' + datos.nombre);
+    if (datos.metodo === 'Envío') partes.push('Dirección: ' + datos.direccion);
+    partes.push('Teléfono: ' + datos.telefono);
+    if (datos.email) partes.push('Correo: ' + datos.email);
+    partes.push('Horario: ' + datos.horario);
+
+    return partes.join('\n');
+  }
+
+  function actualizarEnlacesWhatsapp() {
+    var consulta = urlWhatsapp(MENSAJE_CONSULTA);
+    $('#ctaWhatsapp').href = consulta;
+    $('#ctaWhatsapp2').href = consulta;
+    $('#ctaWhatsappFaq').href = consulta;
+  }
+
+  var enviadoTimer = null;
+
+  // "Finalizar compra" ya no manda el WhatsApp directo: abre el
+  // formulario de entrega. El envío real pasa por manejarSubmitFormulario.
+  $('#pedirWhatsapp').addEventListener('click', function () {
+    if (!lineas().length) return;
+    mostrarVistaCheckout();
+  });
+
+  // [36] el tilde se traza recién acá, después de abrir WhatsApp
+  function mostrarEnviado() {
+    var el = $('#pedidoEnviado');
+    var trazo = el.querySelector('path');
+
+    el.hidden = false;
+    trazo.style.animation = 'none';
+    void trazo.offsetWidth;          // reinicia el trazo si se manda de nuevo
+    trazo.style.animation = '';
+
+    clearTimeout(enviadoTimer);
+    enviadoTimer = setTimeout(function () { el.hidden = true; }, 5000);
+  }
+
+  actualizarEnlacesWhatsapp();
+
+  /* ------------------------ FORMULARIO DE ENTREGA --------------------
+     Vive siempre en el DOM (nunca se recrea con innerHTML): así, alternar
+     entre carrito y formulario con [hidden] no pierde lo que el cliente
+     ya escribió. Los datos, además, se guardan en localStorage para que
+     sobrevivan a un recargo de página.
+     ------------------------------------------------------------------ */
+
+  var formEntrega = $('#formEntrega');
+
+  var CAMPO_TEXTO = {
+    nombre:    { input: $('#entregaNombre'),    error: $('#errorNombre') },
+    direccion: { input: $('#entregaDireccion'), error: $('#errorDireccion') },
+    telefono:  { input: $('#entregaTelefono'),  error: $('#errorTelefono') },
+    email:     { input: $('#entregaEmail'),     error: $('#errorEmail') }
+  };
+
+  function metodoElegido() {
+    var marcado = formEntrega.querySelector('input[name="metodoEntrega"]:checked');
+    return marcado ? marcado.value : 'Envío';
+  }
+
+  function horarioElegido() {
+    var marcado = formEntrega.querySelector('input[name="horario"]:checked');
+    return marcado ? marcado.value : '';
+  }
+
+  // La dirección sólo es obligatoria (y visible) con "Envío"; con
+  // "Retiro" la etiqueta del horario también cambia.
+  function actualizarSegunMetodo() {
+    var esRetiro = metodoElegido() === 'Retiro';
+    $('#campoDireccion').hidden = esRetiro;
+    $('#horarioLabelTexto').textContent = esRetiro ? 'Horario de retiro' : 'Horario de entrega';
+  }
+
+  formEntrega.addEventListener('change', function (e) {
+    if (e.target.name === 'metodoEntrega') actualizarSegunMetodo();
+  });
+
+  /* ------------------------- PERSISTENCIA (localStorage) -------------- */
+
+  function leerDatosEntrega() {
+    try {
+      var raw = localStorage.getItem(ENTREGA_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function guardarDatosEntrega() {
+    var datos = {
+      metodo: metodoElegido(),
+      nombre: $('#entregaNombre').value,
+      direccion: $('#entregaDireccion').value,
+      telefono: $('#entregaTelefono').value,
+      email: $('#entregaEmail').value,
+      horario: horarioElegido()
+    };
+    try {
+      localStorage.setItem(ENTREGA_STORAGE_KEY, JSON.stringify(datos));
+    } catch (e) {
+      console.warn('[tienda] no se pudieron guardar los datos de entrega:', e);
+    }
+  }
+
+  function aplicarDatosGuardados() {
+    var datos = leerDatosEntrega();
+    if (!datos) return;
+
+    if (datos.metodo) {
+      var radioMetodo = formEntrega.querySelector('input[name="metodoEntrega"][value="' + datos.metodo + '"]');
+      if (radioMetodo) radioMetodo.checked = true;
+    }
+    $('#entregaNombre').value = datos.nombre || '';
+    $('#entregaDireccion').value = datos.direccion || '';
+    $('#entregaTelefono').value = datos.telefono || '';
+    $('#entregaEmail').value = datos.email || '';
+    if (datos.horario) {
+      var radioHorario = formEntrega.querySelector('input[name="horario"][value="' + datos.horario + '"]');
+      if (radioHorario) radioHorario.checked = true;
+    }
+
+    actualizarSegunMetodo();
+  }
+
+  // Cualquier tecleo o cambio de opción guarda: no hace falta esperar al envío.
+  formEntrega.addEventListener('input', guardarDatosEntrega);
+  formEntrega.addEventListener('change', guardarDatosEntrega);
+
+  aplicarDatosGuardados();
+
+  /* ------------------------------ VALIDACIÓN --------------------------- */
+
+  function limpiarErrores() {
+    Object.keys(CAMPO_TEXTO).forEach(function (k) {
+      var c = CAMPO_TEXTO[k];
+      c.input.removeAttribute('aria-invalid');
+      c.input.removeAttribute('aria-describedby');
+      c.error.hidden = true;
+      c.error.textContent = '';
+    });
+    $('#grupoHorario').removeAttribute('data-invalid');
+    $('#errorHorario').hidden = true;
+    $('#errorHorario').textContent = '';
+  }
+
+  function marcarError(campo, mensaje) {
+    if (campo === 'horario') {
+      $('#grupoHorario').setAttribute('data-invalid', 'true');
+      var errHorario = $('#errorHorario');
+      errHorario.textContent = mensaje;
+      errHorario.hidden = false;
+      return;
+    }
+    var c = CAMPO_TEXTO[campo];
+    c.input.setAttribute('aria-invalid', 'true');
+    c.input.setAttribute('aria-describedby', c.error.id);
+    c.error.textContent = mensaje;
+    c.error.hidden = false;
+  }
+
+  // Devuelve la lista de errores en el mismo orden en que aparecen los
+  // campos en el formulario (así el primer error es también el primer
+  // campo visualmente, y el foco tiene sentido).
+  function validarFormulario() {
+    var errores = [];
+    var metodo = metodoElegido();
+
+    var nombre = $('#entregaNombre').value.trim();
+    if (!nombre) errores.push({ campo: 'nombre', mensaje: 'Falta el nombre y apellido.' });
+
+    if (metodo === 'Envío') {
+      var direccion = $('#entregaDireccion').value.trim();
+      if (!direccion) errores.push({ campo: 'direccion', mensaje: 'Falta la dirección de entrega.' });
+    }
+
+    var telefono = $('#entregaTelefono').value.trim();
+    var soloDigitos = telefono.replace(/\D/g, '');
+    if (!telefono) {
+      errores.push({ campo: 'telefono', mensaje: 'Falta el teléfono.' });
+    } else if (!/^[\d\s-]+$/.test(telefono) || soloDigitos.length < 8) {
+      errores.push({ campo: 'telefono', mensaje: 'Usá sólo números, espacios y guiones, con al menos 8 dígitos.' });
+    }
+
+    var email = $('#entregaEmail').value.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errores.push({ campo: 'email', mensaje: 'Revisá el formato del correo.' });
+    }
+
+    if (!horarioElegido()) {
+      errores.push({ campo: 'horario', mensaje: metodo === 'Retiro' ? 'Elegí un horario de retiro.' : 'Elegí un horario de entrega.' });
+    }
+
+    return errores;
+  }
+
+  function enfocarCampo(campo) {
+    if (campo === 'horario') {
+      formEntrega.querySelector('input[name="horario"]').focus();
+      return;
+    }
+    CAMPO_TEXTO[campo].input.focus();
+  }
+
+  formEntrega.addEventListener('submit', function (e) {
+    e.preventDefault();
+    limpiarErrores();
+
+    var errores = validarFormulario();
+    if (errores.length) {
+      errores.forEach(function (err) { marcarError(err.campo, err.mensaje); });
+      enfocarCampo(errores[0].campo);
+      return;
+    }
+
+    var datos = {
+      metodo: metodoElegido(),
+      nombre: $('#entregaNombre').value.trim(),
+      direccion: $('#entregaDireccion').value.trim(),
+      telefono: $('#entregaTelefono').value.trim(),
+      email: $('#entregaEmail').value.trim(),
+      horario: horarioElegido()
+    };
+
+    // el carrito NO se vacía acá: el pedido todavía no está confirmado,
+    // sólo se mandó el mensaje para coordinar por WhatsApp.
+    window.open(urlWhatsapp(mensajePedidoConEntrega(datos)), '_blank', 'noopener');
+    mostrarEnviado();
+  });
+
+  /* --------------------------- CAMBIO DE VISTA ------------------------ */
+
+  function mostrarVistaCheckout() {
+    $('#carritoItems').hidden = true;
+    $('#pieCarrito').hidden = true;
+    formEntrega.hidden = false;
+    $('#formEntregaTitulo').focus();
+  }
+
+  // `enfocar:false` la usa abrirDrawer(), que ya mueve el foco por su cuenta.
+  function mostrarVistaCarrito(enfocar) {
+    formEntrega.hidden = true;
+    $('#carritoItems').hidden = false;
+    $('#pieCarrito').hidden = false;
+    if (enfocar !== false) $('#pedirWhatsapp').focus();
+  }
+
+  $('#volverAlCarrito').addEventListener('click', function () {
+    mostrarVistaCarrito();
+  });
+
+  /* --------------------- [25] CONFIRMACIÓN (TOAST) ------------------ */
+
+  var toast = $('#toast');
+  var toastTimer = null;
+
+  function avisar(texto) {
+    toast.innerHTML = icono('check') + '<span>' + esc(texto) + '</span>';
+    toast.dataset.visible = 'true';
+    // [7] el pulso del hero se pausa mientras se ve la confirmación
+    document.body.dataset.confirmando = 'true';
+
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      toast.dataset.visible = 'false';
+      document.body.dataset.confirmando = 'false';
+    }, 2400);
+  }
+
+  /* -------------------------- FORMAS DE PAGO ------------------------- */
+
+  function pintarPagos() {
+    $('#pagosGrilla').innerHTML = FORMAS_PAGO.map(function (f) {
+      return '<article class="pago-card">' +
+               '<p class="pago-card__titulo">' + esc(f.titulo) + '</p>' +
+               '<p class="pago-card__detalle">' + esc(f.detalle) + '</p>' +
+             '</article>';
+    }).join('');
+  }
+
+  /* --------------------- PREGUNTAS FRECUENTES (FAQ) ------------------- */
+
+  function pintarFaq() {
+    // name="faq" agrupa los <details> nativamente en navegadores nuevos
+    // (se cierran solos entre sí); el listener de 'toggle' de más abajo
+    // hace lo mismo a mano para los que todavía no lo soportan.
+    $('#acordeonFaq').innerHTML = FAQ.map(function (item) {
+      return '<details class="faq__item" name="faq">' +
+               '<summary class="faq__pregunta">' +
+                 '<span>' + esc(item.p) + '</span>' +
+                 icono('chevron', 'faq__chevron') +
+               '</summary>' +
+               '<div class="faq__respuesta"><p>' + esc(item.r) + '</p></div>' +
+             '</details>';
+    }).join('');
+  }
+
+  // 'toggle' no burbujea, pero sí atraviesa la fase de captura: por eso
+  // el listener va en el contenedor con el tercer argumento en true.
+  $('#acordeonFaq').addEventListener('toggle', function (e) {
+    if (e.target.tagName !== 'DETAILS' || !e.target.open) return;
+    Array.prototype.forEach.call($('#acordeonFaq').querySelectorAll('details[open]'), function (d) {
+      if (d !== e.target) d.open = false;
+    });
+  }, true);
+
+  /* --------------------------- REDES (FOOTER) ------------------------- */
+
+  // Placeholder sin reemplazar ("[USUARIO_INSTAGRAM]", "[CORREO]", etc.):
+  // ese enlace directamente no se renderiza.
+  function esPlaceholder(valor) {
+    return !valor || /^\[.*\]$/.test(valor);
+  }
+
+  function pintarRedes() {
+    var enlaces = [];
+
+    if (!esPlaceholder(CONTACTO.whatsapp)) {
+      enlaces.push(
+        '<a class="footer__red" href="' + urlWhatsapp(MENSAJE_CONSULTA) + '" target="_blank" rel="noopener" ' +
+        'aria-label="WhatsApp de ' + esc(NEGOCIO) + '">' + icono('whatsapp') + '</a>'
+      );
+    }
+    if (!esPlaceholder(CONTACTO.instagram)) {
+      enlaces.push(
+        '<a class="footer__red" href="https://instagram.com/' + encodeURIComponent(CONTACTO.instagram) + '" ' +
+        'target="_blank" rel="noopener" aria-label="Instagram de ' + esc(NEGOCIO) + '">' + icono('instagram') + '</a>'
+      );
+    }
+    if (!esPlaceholder(CONTACTO.email)) {
+      enlaces.push(
+        '<a class="footer__red" href="mailto:' + esc(CONTACTO.email) + '" ' +
+        'aria-label="Enviar un correo a ' + esc(NEGOCIO) + '">' + icono('correo') + '</a>'
+      );
+    }
+
+    $('#footerRedes').innerHTML = enlaces.join('');
+  }
+
+  /* -------------------- RESPLANDOR QUE SIGUE AL CURSOR ----------------
+     Sólo en dispositivos con mouse real y sin prefers-reduced-motion (el
+     CSS ya lo oculta en esos casos; acá además evitamos atar el listener
+     de mousemove en vano). Un único listener guarda la última posición;
+     un rAF por frame la escribe en --mx/--my, nunca más seguido que eso,
+     y nunca reescribiendo el style completo.
+     El elemento es fixed, pointer-events:none y z-index:-1: no es
+     ancestro de .card ni de .media, así que no puede reabrir el bug del
+     scroll trabado sobre las imágenes del catálogo.
+     ------------------------------------------------------------------ */
+  (function () {
+    if (sinMovimiento() || !window.matchMedia('(hover: hover)').matches) return;
+
+    var resplandor = $('#resplandor');
+    if (!resplandor) return;
+
+    var mx = 0;
+    var my = 0;
+    var actualizacionPendiente = false;
+
+    function volcarPosicion() {
+      actualizacionPendiente = false;
+      resplandor.style.setProperty('--mx', mx + 'px');
+      resplandor.style.setProperty('--my', my + 'px');
+    }
+
+    window.addEventListener('mousemove', function (e) {
+      mx = e.clientX;
+      my = e.clientY;
+      if (!actualizacionPendiente) {
+        actualizacionPendiente = true;
+        requestAnimationFrame(volcarPosicion);
+      }
+    }, { passive: true });
+  })();
+
+})();

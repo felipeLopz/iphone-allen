@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IPHONE ALLEN — iPhones y productos Apple en Allen, Río Negro</title>
+<meta name="description" content="IPHONE ALLEN: revendedora de productos Apple en Allen, Río Negro. Equipos liberados y envíos a ciudades vecinas.">
+
+<!-- OJO: sacar esta línea antes de publicar el sitio de verdad. Está acá
+     para que Google no indexe la página mientras todavía tiene textos
+     placeholder sin completar (ver README.md). -->
+<meta name="robots" content="noindex, nofollow">
+
+<!--
+  ============================================================
+  CÓMO PERSONALIZAR ESTA PÁGINA
+  ============================================================
+  1) NOMBRE DEL NEGOCIO: "IPHONE ALLEN" aparece en el <title>, la meta
+     description, el logotipo (header y footer, clase .logo) y en
+     app.js (constante NEGOCIO, se usa en los mensajes de WhatsApp).
+     Si cambia el nombre, actualizalo en los cuatro lugares.
+  2) WHATSAPP: la constante WHATSAPP en app.js.
+  3) TEXTOS DEL HERO: están marcados con data-editable más abajo.
+  4) PRODUCTOS: se editan en productos.json (ver instrucciones
+     al inicio de app.js).
+  ============================================================
+-->
+
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=general-sans@400,500,600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Resplandor que sigue al cursor: fixed, detrás de todo (z-index -1),
+     pointer-events:none. Posición vía --mx/--my, actualizadas desde
+     app.js. Oculto en mobile (sin mouse real) y con reduced-motion. -->
+<div class="resplandor" id="resplandor" aria-hidden="true"></div>
+
+<a class="skip-link" href="#catalogo">Saltar al catálogo</a>
+
+<header class="header">
+  <div class="wrap header__inner">
+    <a class="brand" href="#top"><span class="logo">IPHONE ALLEN</span></a>
+
+    <!-- en mobile esta barra pasa a una segunda fila con scroll horizontal -->
+    <nav class="nav" aria-label="Principal">
+      <a class="link-sub" href="#destacados">Destacados</a>
+      <a class="link-sub" href="#catalogo">Catálogo</a>
+      <a class="link-sub" href="#comparar">Comparar</a>
+      <a class="link-sub" href="#pagos">Pagos</a>
+      <a class="link-sub" href="#preguntas">Preguntas</a>
+      <a class="link-sub" href="#contacto">Contacto</a>
+    </nav>
+
+    <button class="cart-btn" type="button" id="abrirCarrito" aria-haspopup="dialog" aria-controls="carrito">
+      <!-- ícono estilo Tabler (ti-shopping-cart) embebido: sin dependencias -->
+      <svg class="ico cart-btn__ico" id="iconoCarrito" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="6" cy="19" r="2"></circle>
+        <circle cx="17" cy="19" r="2"></circle>
+        <path d="M17 17h-11v-14h-2"></path>
+        <path d="M6 5l14 1l-1 7h-13"></path>
+      </svg>
+      Carrito
+      <span class="cart-btn__count" id="contadorCarrito" aria-hidden="true">0</span>
+      <span class="sr-only" id="contadorCarritoTexto">0 productos en el carrito</span>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============================ HERO ============================ -->
+  <section class="hero">
+    <div class="wrap hero__grid">
+
+      <div class="hero__texto">
+        <p class="eyebrow" data-editable="hero-eyebrow">Allen, Río Negro · Envíos a ciudades vecinas</p>
+        <h1 class="hero__titulo" data-editable="hero-titulo">iPhones con soporte real</h1>
+        <p class="hero__bajada" data-editable="hero-bajada">
+          Equipos liberados y soporte real después de la venta.
+        </p>
+
+        <div class="hero__ctas">
+          <!-- [7] único botón con halo latiendo en toda la página -->
+          <a class="btn btn--primario btn--pulso" href="#catalogo" data-scroll>Ver catálogo</a>
+          <a class="btn btn--secundario" href="#" id="ctaWhatsapp" target="_blank" rel="noopener">Escribinos</a>
+        </div>
+
+        <ul class="datos">
+          <li class="dato">
+            <span class="dato__valor">Equipos</span>
+            <span class="dato__label">liberados</span>
+          </li>
+          <li class="dato">
+            <span class="dato__valor">Local</span>
+            <span class="dato__label">en Allen</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Producto destacado del hero: lo inyecta app.js -->
+      <div class="hero__producto" id="heroProducto" aria-live="polite"></div>
+
+    </div>
+  </section>
+
+  <!-- ========================= DESTACADOS ========================= -->
+  <section class="seccion" id="destacados">
+    <div class="wrap">
+      <header class="seccion__head">
+        <h2 class="seccion__titulo">Destacados de la semana</h2>
+        <p class="seccion__sub">Seleccionados a mano, con stock inmediato.</p>
+      </header>
+
+      <div class="carrusel" id="carrusel" role="group" aria-roledescription="carrusel" aria-label="Productos destacados">
+        <button class="carrusel__flecha carrusel__flecha--prev" type="button" id="carruselPrev" aria-label="Producto anterior">
+          <span aria-hidden="true">←</span>
+        </button>
+
+        <div class="carrusel__viewport" id="carruselViewport">
+          <div class="carrusel__track" id="carruselTrack"><!-- slides: app.js --></div>
+        </div>
+
+        <button class="carrusel__flecha carrusel__flecha--next" type="button" id="carruselNext" aria-label="Producto siguiente">
+          <span aria-hidden="true">→</span>
+        </button>
+
+        <div class="carrusel__barras" id="carruselBarras" role="tablist" aria-label="Elegir producto destacado"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================== CATÁLOGO ========================== -->
+  <section class="seccion" id="catalogo">
+    <div class="wrap">
+
+      <ul class="confianza">
+        <li class="confianza__item">
+          <span class="confianza__valor">Liberados</span>
+          <span class="confianza__label">Funcionan con cualquier compañía</span>
+        </li>
+        <li class="confianza__item">
+          <span class="confianza__valor">Allen</span>
+          <span class="confianza__label">Local físico y envíos a ciudades vecinas</span>
+        </li>
+      </ul>
+
+      <header class="seccion__head seccion__head--catalogo">
+        <h2 class="seccion__titulo">Catálogo</h2>
+        <p class="seccion__sub">Precios finales en pesos. Consultá por financiación.</p>
+      </header>
+
+      <div class="barra-catalogo">
+        <div class="filtros" id="filtros" role="group" aria-label="Filtrar por categoría"></div>
+
+        <!-- [32] el campo crece desde la lupa al hacer clic -->
+        <div class="buscador" id="buscador" data-abierto="false">
+          <button class="buscador__lupa" type="button" id="buscadorToggle"
+                  aria-expanded="false" aria-controls="busqueda" aria-label="Buscar productos">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="10" cy="10" r="7"></circle>
+              <path d="M21 21l-6 -6"></path>
+            </svg>
+          </button>
+          <input class="buscador__campo" id="busqueda" type="search" placeholder="Buscar equipo…"
+                 aria-label="Buscar productos por nombre" tabindex="-1" autocomplete="off">
+        </div>
+      </div>
+
+      <!-- Una sección por categoría (encabezado + su propia grilla): app.js -->
+      <div class="secciones" id="catalogoSecciones" aria-live="polite"></div>
+      <div id="catalogoVacio" hidden></div>
+
+    </div>
+  </section>
+
+  <!-- ========================== COMPARADOR ========================= -->
+  <section class="seccion" id="comparar">
+    <div class="wrap">
+      <header class="seccion__head">
+        <h2 class="seccion__titulo">Comparar equipos</h2>
+        <p class="seccion__sub">Elegí dos productos y mirá sus fichas técnicas lado a lado.</p>
+      </header>
+
+      <div class="comparador__selects">
+        <label class="comparador__campo">
+          <span class="sr-only">Producto de la columna 1</span>
+          <select class="select" id="compararA" aria-label="Elegir primer producto a comparar">
+            <option value="">Elegir producto…</option>
+          </select>
+        </label>
+
+        <span class="comparador__vs" aria-hidden="true">vs</span>
+
+        <label class="comparador__campo">
+          <span class="sr-only">Producto de la columna 2</span>
+          <select class="select" id="compararB" aria-label="Elegir segundo producto a comparar">
+            <option value="">Elegir producto…</option>
+          </select>
+        </label>
+
+        <button class="btn btn--texto" type="button" id="compararLimpiar">Limpiar</button>
+      </div>
+
+      <div id="comparadorTabla"><!-- tabla o mensaje vacío: app.js --></div>
+    </div>
+  </section>
+
+  <!-- ========================= FORMAS DE PAGO ======================= -->
+  <section class="seccion" id="pagos">
+    <div class="wrap">
+      <header class="seccion__head">
+        <h2 class="seccion__titulo">Formas de pago</h2>
+        <p class="seccion__sub">Coordinamos el medio que te resulte más cómodo.</p>
+      </header>
+
+      <div class="pagos-grilla" id="pagosGrilla"><!-- desde FORMAS_PAGO en app.js --></div>
+    </div>
+  </section>
+
+  <!-- ======================== PREGUNTAS FRECUENTES ================== -->
+  <section class="seccion" id="preguntas">
+    <div class="wrap wrap--angosto">
+      <header class="seccion__head">
+        <h2 class="seccion__titulo">Preguntas frecuentes</h2>
+      </header>
+
+      <div class="acordeon" id="acordeonFaq"><!-- desde FAQ en app.js --></div>
+
+      <p class="faq__mas">
+        ¿Otra consulta?
+        <a class="link-sub" href="#" id="ctaWhatsappFaq" target="_blank" rel="noopener">Escribinos</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- =========================== CONTACTO ========================= -->
+  <section class="seccion contacto" id="contacto">
+    <div class="wrap contacto__inner">
+      <h2 class="seccion__titulo">¿Dudas antes de comprar?</h2>
+      <p class="seccion__sub">Escribinos y te respondemos con el stock y los precios del día.</p>
+      <a class="btn btn--primario" href="#" id="ctaWhatsapp2" target="_blank" rel="noopener">Escribinos por WhatsApp</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer__inner">
+    <p class="footer__brand"><span class="logo">IPHONE ALLEN</span></p>
+    <p class="footer__nota">Allen, Río Negro · Envíos a ciudades vecinas</p>
+
+    <!-- Instagram, WhatsApp y correo: se arman en app.js desde CONTACTO.
+         Un valor con el placeholder sin reemplazar no se renderiza. -->
+    <div class="footer__redes" id="footerRedes"></div>
+
+    <p class="footer__legal">No somos revendedor oficial de Apple. Apple, iPhone, iPad y Mac son marcas registradas de Apple Inc.</p>
+  </div>
+</footer>
+
+<!-- ============================ CARRITO ============================ -->
+<div class="overlay" id="overlayCarrito" hidden></div>
+
+<aside class="drawer" id="carrito" role="dialog" aria-modal="true" aria-labelledby="carritoTitulo" hidden>
+  <div class="drawer__head">
+    <h2 class="drawer__titulo" id="carritoTitulo">Tu carrito</h2>
+    <button class="drawer__cerrar" type="button" id="cerrarCarrito" aria-label="Cerrar carrito">
+      <span aria-hidden="true">✕</span>
+    </button>
+  </div>
+
+  <div class="drawer__body">
+    <div id="carritoItems"></div>
+
+    <!-- ==================== FORMULARIO DE ENTREGA ==================== -->
+    <form class="form-entrega" id="formEntrega" novalidate hidden>
+
+      <button class="form-entrega__volver" type="button" id="volverAlCarrito">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 6l-6 6l6 6"></path>
+        </svg>
+        Volver al carrito
+      </button>
+
+      <h3 class="form-entrega__titulo" id="formEntregaTitulo" tabindex="-1">Datos de entrega</h3>
+      <p class="form-entrega__bajada">Completá tus datos para confirmar la compra.</p>
+
+      <fieldset class="campo">
+        <legend class="campo__label">Método de entrega <span class="req" aria-hidden="true">*</span></legend>
+        <div class="opciones" role="radiogroup" aria-label="Método de entrega">
+          <label class="opcion">
+            <input type="radio" name="metodoEntrega" value="Envío" id="metodoEnvio" checked>
+            <span>Envío</span>
+          </label>
+          <label class="opcion">
+            <input type="radio" name="metodoEntrega" value="Retiro" id="metodoRetiro">
+            <span>Retiro</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="campo">
+        <label class="campo__label" for="entregaNombre">Nombre y apellido <span class="req" aria-hidden="true">*</span></label>
+        <input class="input" type="text" id="entregaNombre" name="nombre" placeholder="Ej: Juan Pérez" autocomplete="name">
+        <p class="campo__error" id="errorNombre" hidden></p>
+      </div>
+
+      <div class="campo" id="campoDireccion">
+        <label class="campo__label" for="entregaDireccion">Dirección completa <span class="req" aria-hidden="true">*</span></label>
+        <input class="input" type="text" id="entregaDireccion" name="direccion" placeholder="Calle, número, piso, ciudad, CP" autocomplete="street-address">
+        <p class="campo__error" id="errorDireccion" hidden></p>
+      </div>
+
+      <div class="campo">
+        <label class="campo__label" for="entregaTelefono">Número de teléfono <span class="req" aria-hidden="true">*</span></label>
+        <input class="input" type="tel" id="entregaTelefono" name="telefono" placeholder="Ej: 2985551234" autocomplete="tel" inputmode="tel">
+        <p class="campo__error" id="errorTelefono" hidden></p>
+      </div>
+
+      <div class="campo">
+        <label class="campo__label" for="entregaEmail">Correo electrónico <span class="campo__opcional">(opcional)</span></label>
+        <input class="input" type="email" id="entregaEmail" name="email" placeholder="Ej: tu@email.com" autocomplete="email">
+        <p class="campo__error" id="errorEmail" hidden></p>
+      </div>
+
+      <fieldset class="campo">
+        <legend class="campo__label">
+          <span id="horarioLabelTexto">Horario de entrega</span> <span class="req" aria-hidden="true">*</span>
+        </legend>
+        <div class="opciones opciones--horarios" id="grupoHorario" role="radiogroup" aria-labelledby="horarioLabelTexto">
+          <label class="opcion"><input type="radio" name="horario" value="08:00 - 10:00"><span>08:00 - 10:00</span></label>
+          <label class="opcion"><input type="radio" name="horario" value="10:00 - 12:00"><span>10:00 - 12:00</span></label>
+          <label class="opcion"><input type="radio" name="horario" value="12:00 - 14:00"><span>12:00 - 14:00</span></label>
+          <label class="opcion"><input type="radio" name="horario" value="14:00 - 16:00"><span>14:00 - 16:00</span></label>
+          <label class="opcion"><input type="radio" name="horario" value="16:00 - 18:00"><span>16:00 - 18:00</span></label>
+          <label class="opcion"><input type="radio" name="horario" value="18:00 - 20:00"><span>18:00 - 20:00</span></label>
+        </div>
+        <p class="campo__error" id="errorHorario" hidden></p>
+      </fieldset>
+
+      <button class="btn btn--primario btn--bloque" type="submit">Confirmar compra por WhatsApp</button>
+
+      <!-- [36] el tilde se traza recién después de abrir WhatsApp -->
+      <p class="enviado" id="pedidoEnviado" hidden>
+        <svg class="enviado__tilde" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 12l5 5l10 -10"></path>
+        </svg>
+        <span>Te abrimos WhatsApp con el pedido</span>
+      </p>
+
+      <p class="form-entrega__nota">Se abrirá WhatsApp con los productos del carrito para coordinar el pago y la entrega.</p>
+      <p class="form-entrega__privacidad">Tus datos se envían sólo por WhatsApp, no se guardan en el sitio.</p>
+    </form>
+  </div>
+
+  <div class="drawer__foot" id="pieCarrito">
+    <div class="drawer__total">
+      <span>Total</span>
+      <strong class="precio precio--total" id="carritoTotal">$ 0</strong>
+    </div>
+    <button class="btn btn--primario btn--bloque" type="button" id="pedirWhatsapp">Finalizar compra</button>
+    <button class="btn btn--texto btn--bloque" type="button" id="vaciarCarrito">Vaciar carrito</button>
+  </div>
+</aside>
+
+<!-- ====================== MODAL DE PRODUCTO ======================= -->
+<div class="overlay" id="overlayModal" hidden></div>
+
+<div class="modal" id="modalProducto" role="dialog" aria-modal="true" aria-labelledby="modalNombre" hidden>
+  <button class="modal__cerrar" type="button" id="modalCerrar" aria-label="Cerrar detalle del producto">
+    <span aria-hidden="true">✕</span>
+  </button>
+  <div class="modal__scroll" id="modalContenido"><!-- lo arma app.js --></div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

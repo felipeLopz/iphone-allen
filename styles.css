@@ -1,0 +1,1897 @@
+/* =====================================================================
+   IPHONE ALLEN — hoja de estilos única
+   Mobile primero. Sin dependencias salvo las fuentes de Fontshare.
+   ===================================================================== */
+
+/* ----------------------------- TOKENS ----------------------------- */
+:root {
+  --fondo:        #12161A;
+  --superficie:   #181D23;
+  --superficie2:  #1F252C;
+  --borde:        #232A31;
+  --acento:       #5DCAA5;
+  --acento-fuerte:#1D9E75;
+  --texto:        #D5DAE0;
+  --texto-suave:  #79838E;
+  --rojo-suave:   #E28275;
+
+  --display: 'Clash Display', 'General Sans', system-ui, sans-serif;
+  --cuerpo:  'General Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --radio:    14px;
+  --radio-sm: 10px;
+  --wrap:     1180px;
+  --gutter:   20px;
+
+  --transicion: 220ms cubic-bezier(.4, .1, .2, 1);
+}
+
+/* ------------------------------ BASE ------------------------------ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  /* el header sticky no tapa el destino del scroll */
+  scroll-padding-top: 84px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: var(--cuerpo);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--display);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+p { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+img { max-width: 100%; display: block; }
+
+a { color: inherit; text-decoration: none; }
+
+/* El atributo hidden tiene que ganarle a cualquier display de autor.
+   .modal y .drawer declaran display:flex, y una regla de autor le gana a
+   la del navegador ([hidden] { display: none }) aunque tengan la misma
+   especificidad: sin este !important quedan en pantalla con opacity 0,
+   invisibles pero interceptando clicks y rueda del mouse. */
+[hidden] { display: none !important; }
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+/* Todos los precios en cifras de ancho fijo */
+.precio, .precio--anterior, .precio--total, [data-precio] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Foco visible en teclado, en todos los controles */
+:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: 12px; top: -60px;
+  z-index: 100;
+  background: var(--acento);
+  color: #0C1013;
+  padding: 10px 16px;
+  border-radius: var(--radio-sm);
+  font-weight: 600;
+  transition: top var(--transicion);
+}
+.skip-link:focus { top: 12px; }
+
+.wrap {
+  width: 100%;
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* ----------------------------- BOTONES ---------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 22px;
+  border-radius: var(--radio-sm);
+  font-family: var(--cuerpo);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+  transition: background var(--transicion), border-color var(--transicion), color var(--transicion), transform var(--transicion);
+  text-align: center;
+}
+
+.btn--primario {
+  background: var(--acento);
+  color: #0C1013;
+}
+.btn--primario:hover { background: #6FD8B3; }
+.btn--primario:active { transform: translateY(1px); }
+
+.btn--secundario {
+  border-color: var(--borde);
+  color: var(--texto);
+  background: var(--superficie);
+}
+.btn--secundario:hover {
+  border-color: var(--acento-fuerte);
+  color: var(--acento);
+}
+
+.btn--sutil {
+  width: 100%;
+  background: var(--superficie2);
+  border-color: var(--borde);
+  color: var(--texto);
+  padding: 11px 16px;
+  font-size: 0.9rem;
+}
+.btn--sutil:hover {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #0C1013;
+}
+
+.btn--texto {
+  color: var(--texto-suave);
+  font-weight: 500;
+  padding: 10px;
+  font-size: 0.88rem;
+}
+.btn--texto:hover { color: var(--texto); }
+
+.btn--comparar { width: 100%; margin-top: -4px; }
+
+.btn--bloque { width: 100%; }
+
+/* ----------------------------- HEADER ----------------------------- */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(18, 22, 26, 0.86);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--borde);
+}
+
+/* Mobile: dos filas — brand + carrito arriba, nav abajo con scroll
+   horizontal (más simple que un menú hamburguesa y no repite el
+   patrón de foco atrapado que ya usan el drawer y el modal).
+   El truco es de puro flexbox: nav pide flex-basis 100%, así que no
+   entra en la fila 1 y cae sola a la fila 2; brand y cart-btn se
+   reordenan con `order` para quedar juntos arriba. */
+.header__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding-block: 12px;
+}
+
+.brand {
+  order: 1;
+  flex: 0 0 auto;
+  margin-right: auto;
+}
+
+/* --------------------------- LOGOTIPO ------------------------------
+   Texto en jade dentro de un recuadro del mismo color. Se usa tal cual
+   en el header (.brand) y en el footer (.footer__brand).
+   ------------------------------------------------------------------ */
+.logo {
+  display: inline-block;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.92rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--acento);
+  background: transparent;
+  border: 1px solid var(--acento);
+  border-radius: 6px;
+  padding: 6px 12px;
+  line-height: 1.2;
+}
+
+.cart-btn { order: 2; }
+
+.nav {
+  order: 3;
+  flex: 1 1 100%;
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;       /* Firefox */
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+  font-size: 0.92rem;
+  color: var(--texto-suave);
+}
+.nav::-webkit-scrollbar { display: none; }  /* Chrome, Safari, Edge */
+.nav a { flex: 0 0 auto; transition: color var(--transicion); }
+.nav a:hover { color: var(--texto); }
+
+.cart-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 15px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: border-color var(--transicion);
+}
+.cart-btn:hover { border-color: var(--acento-fuerte); }
+
+.cart-btn__count {
+  min-width: 22px;
+  height: 22px;
+  padding-inline: 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--superficie2);
+  color: var(--texto-suave);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition: background var(--transicion), color var(--transicion);
+}
+.cart-btn[data-lleno="true"] .cart-btn__count {
+  background: var(--acento);
+  color: #0C1013;
+}
+
+/* ------------------------------ HERO ------------------------------ */
+.hero {
+  position: relative;
+  padding-block: 52px 64px;
+  overflow: hidden;
+}
+
+/* halo jade muy sutil detrás del producto destacado */
+.hero::before {
+  content: "";
+  position: absolute;
+  right: -12%;
+  top: -10%;
+  width: 620px;
+  height: 620px;
+  background: radial-gradient(circle, rgba(93, 202, 165, 0.10), transparent 62%);
+  pointer-events: none;
+}
+
+.hero__grid {
+  position: relative;
+  display: grid;
+  gap: 44px;
+  align-items: center;
+}
+
+.eyebrow {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--acento);
+  margin-bottom: 18px;
+}
+
+.hero__titulo {
+  font-size: clamp(2.5rem, 9vw, 4.4rem);
+  font-weight: 600;
+  max-width: 12ch;
+}
+
+.hero__bajada {
+  margin-top: 20px;
+  max-width: 44ch;
+  font-size: 1.05rem;
+  color: var(--texto-suave);
+}
+
+.hero__ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+/* fila de 3 datos de confianza */
+.datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 34px;
+  margin-top: 42px;
+  padding-top: 26px;
+  border-top: 1px solid var(--borde);
+}
+
+.dato {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.dato__valor {
+  font-family: var(--display);
+  font-size: 1.18rem;
+  font-weight: 600;
+  color: var(--acento);
+  font-variant-numeric: tabular-nums;
+}
+
+.dato__label {
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+
+/* tarjeta del producto destacado del hero */
+.hero__producto { min-height: 1px; }
+
+.destacado-card {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 18px;
+  display: grid;
+  gap: 16px;
+}
+
+.destacado-card__cinta {
+  display: inline-flex;
+  align-items: center;
+  align-self: start;
+  gap: 7px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--acento);
+  background: rgba(93, 202, 165, 0.09);
+  border: 1px solid rgba(93, 202, 165, 0.22);
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+
+.destacado-card__nombre {
+  font-family: var(--display);
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.destacado-card__specs {
+  color: var(--texto-suave);
+  font-size: 0.9rem;
+  margin-top: 5px;
+}
+
+.destacado-card__fila {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* ---------------------- IMAGEN / PLACEHOLDER ----------------------
+   Estructura pensada para que reemplazar el placeholder por una foto
+   sea trivial: dentro de .media, poner
+       <img class="media__img" src="fotos/iphone-15.jpg" alt="iPhone 15">
+   y borrar (o dejar, queda debajo) el div .media__ph.
+   ------------------------------------------------------------------ */
+.media {
+  position: relative;
+  background: var(--superficie2);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-sm);
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  /* explícito a propósito: el recorte de la imagen no debe retener la
+     rueda del mouse ni encadenarla de forma distinta al resto de la
+     página. overscroll-behavior sólo debe existir en .modal__scroll
+     (ahí sí el scroll interno tiene que contenerse). */
+  overscroll-behavior: auto;
+}
+
+.media--alta { aspect-ratio: 1 / 1; }
+
+.media__ph {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 16px;
+  color: var(--texto-suave);
+  font-size: 0.88rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.media__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ---------------------------- PRECIOS ----------------------------- */
+.precio {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.35rem;
+  color: var(--acento);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.precio--anterior {
+  display: block;
+  font-family: var(--cuerpo);
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--texto-suave);
+  text-decoration: line-through;
+  margin-bottom: 2px;
+}
+
+.precio--total {
+  font-size: 1.5rem;
+  color: var(--acento);
+}
+
+/* --------------------------- SECCIONES ---------------------------- */
+.seccion { padding-block: 62px; }
+
+.seccion__head { margin-bottom: 30px; }
+
+.seccion__head--catalogo { margin-top: 46px; }
+
+.seccion__titulo {
+  font-size: clamp(1.65rem, 5vw, 2.3rem);
+}
+
+.seccion__sub {
+  margin-top: 9px;
+  color: var(--texto-suave);
+  font-size: 0.98rem;
+}
+
+/* --------------------------- CARRUSEL ----------------------------- */
+.carrusel {
+  position: relative;
+  max-width: 620px;
+  margin-inline: auto;
+}
+
+.carrusel__viewport {
+  overflow: hidden;
+  border-radius: var(--radio);
+  touch-action: pan-y;
+}
+
+.carrusel__track {
+  display: flex;
+  transition: transform 420ms cubic-bezier(.4, .1, .2, 1);
+  will-change: transform;
+}
+
+.carrusel__slide {
+  flex: 0 0 100%;
+  min-width: 0;
+  padding: 22px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  display: grid;
+  gap: 18px;
+  /* evita que el gesto de swipe arrastre la imagen/el texto */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.carrusel__slide[aria-hidden="true"] { visibility: hidden; }
+.carrusel__slide .media { aspect-ratio: 16 / 11; }
+
+.carrusel__nombre {
+  font-family: var(--display);
+  font-size: 1.45rem;
+  font-weight: 600;
+}
+
+.carrusel__specs {
+  margin-top: 6px;
+  color: var(--texto-suave);
+  font-size: 0.92rem;
+}
+
+.carrusel__pie {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.carrusel__pie .btn { flex: 1 1 170px; }
+
+/* flechas: sólo desktop */
+.carrusel__flecha {
+  display: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  color: var(--texto);
+  font-size: 1.05rem;
+  transition: border-color var(--transicion), color var(--transicion), background var(--transicion);
+}
+.carrusel__flecha:hover:not(:disabled) {
+  border-color: var(--acento-fuerte);
+  color: var(--acento);
+}
+.carrusel__flecha:disabled { opacity: 0.32; cursor: not-allowed; }
+.carrusel__flecha--prev { left: -62px; }
+.carrusel__flecha--next { right: -62px; }
+
+/* barritas de navegación (no puntos) */
+.carrusel__barras {
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 24px;
+}
+
+/* [11] activa en acento, inactivas en #2A313A, 300ms */
+.barra {
+  width: 42px;
+  height: 4px;
+  border-radius: 999px;
+  background: #2A313A;
+  border: 0;
+  padding: 0;
+  transition: background 300ms ease, width 300ms ease;
+}
+.barra:hover { background: var(--texto-suave); }
+.barra[aria-selected="true"] {
+  background: var(--acento);
+  width: 62px;
+}
+/* área táctil cómoda sin agrandar la barrita visible */
+.barra { position: relative; }
+.barra::after {
+  content: "";
+  position: absolute;
+  inset: -14px -4px;
+}
+
+/* ------------------------ BARRA DE CONFIANZA ---------------------- */
+.confianza {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.confianza__item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.confianza__valor {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--acento);
+  font-variant-numeric: tabular-nums;
+}
+
+.confianza__label {
+  font-size: 0.88rem;
+  color: var(--texto-suave);
+}
+
+/* ---------------------------- FILTROS ----------------------------- */
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-bottom: 28px;
+}
+
+.filtro {
+  padding: 9px 17px;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  color: var(--texto-suave);
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: color var(--transicion), border-color var(--transicion), background var(--transicion);
+}
+.filtro:hover { color: var(--texto); border-color: var(--texto-suave); }
+.filtro[aria-pressed="true"] {
+  background: rgba(93, 202, 165, 0.10);
+  border-color: var(--acento-fuerte);
+  color: var(--acento);
+}
+
+/* ------------------- SECCIONES POR CATEGORÍA ----------------------
+   El catálogo se lee como bloques distintos, no como una grilla
+   partida: de ahí el gap grande entre secciones.
+   El encabezado vive en el mismo contenedor que la grilla, así que su
+   borde inferior queda alineado con el ancho de las tarjetas.
+   ------------------------------------------------------------------ */
+.secciones {
+  display: grid;
+  gap: 58px;
+}
+
+.cat__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 13px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.cat__titulo {
+  font-family: var(--display);
+  font-size: clamp(1.35rem, 4.5vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.cat__conteo {
+  color: var(--texto-suave);
+  font-size: 0.86rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------- GRILLA ----------------------------- */
+.grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  /* position: relative lo declara la regla del enlace estirado, más abajo */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  opacity: 0; /* [10] la revela el IntersectionObserver */
+  transition: border-color 300ms ease, transform var(--transicion);
+}
+
+/* [10] entrada escalonada. `backwards` mantiene el estado inicial durante
+   el delay; al terminar, el elemento vuelve a su estilo propio y el
+   transform queda libre para el hover. */
+.card.is-visible {
+  opacity: 1;
+  animation: entrarTarjeta 300ms ease var(--delay, 0ms) backwards;
+}
+
+/* [4] borde que enciende.
+   Ojo: NO agregar transform acá (ni translateY ni scale). .media es hijo
+   directo de .card y tiene overflow:hidden + border-radius (el recorte
+   de la imagen); un transform en :hover sobre este ancestro promueve
+   .card a su propia capa de composición exactamente al entrar el mouse,
+   y esa capa puede "tragarse" la rueda del mouse sobre el área recortada
+   hasta que el cursor sale de la tarjeta (bug real, ya reportado). El
+   cambio de borde no compone capa nueva, así que es seguro. */
+.card.is-visible:hover {
+  border-color: var(--acento);
+}
+
+@keyframes entrarTarjeta {
+  from { opacity: 0; transform: translateY(10px); }
+}
+
+/* el nombre es el único foco de la tarjeta y su ::after la cubre entera,
+   así todo el bloque abre el modal con un solo elemento en el tab order.
+
+   OJO: estas tres reglas van juntas y valen para los DOS contenedores que
+   usan .card__abrir (tarjeta de grilla y slide del carrusel):
+     1. el contenedor debe ser position:relative, si no el ::after se
+        ancla al ancestro posicionado más cercano y se desborda;
+     2. el botón de acción necesita position + z-index para quedar
+        por encima del ::after;
+     3. el foco se dibuja sobre el contenedor entero.
+   Si mañana aparece otro contenedor con .card__abrir, hay que sumarlo
+   a los tres selectores. */
+.card__abrir {
+  display: block;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+}
+.card__abrir::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radio);
+}
+
+.card,
+.carrusel__slide { position: relative; }
+
+.card [data-agregar],
+.card [data-avisar],
+.card [data-comparar],
+.carrusel__slide [data-agregar],
+.carrusel__slide [data-avisar] { position: relative; z-index: 2; }
+
+.card:has(.card__abrir:focus-visible),
+.carrusel__slide:has(.card__abrir:focus-visible) {
+  outline: 2px solid var(--acento);
+  outline-offset: 3px;
+}
+
+/* [14] sin stock: se atenúa el contenido, no el badge ni el botón */
+.card--agotado .media,
+.card--agotado .card__cat,
+.card--agotado .card__nombre,
+.card--agotado .card__specs,
+.card--agotado .card__precios { opacity: 0.55; }
+
+.badge-stock {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  background: rgba(18, 22, 26, 0.9);
+  border: 1px solid var(--borde);
+  color: var(--texto-suave);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+}
+
+.card__cat {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.card__nombre {
+  font-family: var(--display);
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.card__specs {
+  font-size: 0.83rem;
+  color: var(--texto-suave);
+  line-height: 1.45;
+}
+
+.card__precios { margin-top: auto; padding-top: 4px; }
+.card__precios .precio { font-size: 1.2rem; }
+
+.vacio {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--texto-suave);
+}
+
+/* aviso de error al cargar productos.json */
+.aviso {
+  grid-column: 1 / -1;
+  padding: 22px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  color: var(--texto-suave);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+.aviso code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+  color: var(--acento);
+  background: var(--superficie2);
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+
+/* ---------------------------- CONTACTO ---------------------------- */
+.contacto { border-top: 1px solid var(--borde); }
+.contacto__inner { text-align: center; display: grid; justify-items: center; gap: 6px; }
+.contacto__inner .btn { margin-top: 18px; }
+
+/* ----------------------------- FOOTER ----------------------------- */
+.footer {
+  border-top: 1px solid var(--borde);
+  padding-block: 34px 44px;
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+}
+.footer__brand { margin-bottom: 9px; }
+.footer__legal { margin-top: 12px; max-width: 62ch; font-size: 0.78rem; opacity: 0.75; }
+
+/* WhatsApp / Instagram / correo. Vacío si los tres son placeholder:
+   el contenedor no colapsa raro porque no tiene borde ni fondo propio. */
+.footer__redes {
+  display: flex;
+  gap: 14px;
+  margin: 16px 0;
+}
+.footer__red {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  color: var(--texto-suave);
+  transition: color var(--transicion), border-color var(--transicion);
+}
+.footer__red:hover,
+.footer__red:focus-visible { color: var(--acento); border-color: var(--acento-fuerte); }
+
+/* ----------------------------- CARRITO ---------------------------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(8, 11, 13, 0.6);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity var(--transicion);
+}
+.overlay[data-visible="true"] { opacity: 1; }
+
+.drawer {
+  position: fixed;
+  z-index: 60;
+  top: 0;
+  right: 0;
+  height: 100dvh;
+  width: min(420px, 100%);
+  background: var(--superficie);
+  border-left: 1px solid var(--borde);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 300ms cubic-bezier(.4, .1, .2, 1);
+}
+.drawer[data-visible="true"] { transform: translateX(0); }
+
+.drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.drawer__titulo { font-size: 1.2rem; }
+
+.drawer__cerrar {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  color: var(--texto-suave);
+  transition: color var(--transicion), border-color var(--transicion);
+}
+.drawer__cerrar:hover { color: var(--texto); border-color: var(--texto-suave); }
+
+.drawer__body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 20px;
+}
+
+/* la grilla de líneas vive en #carritoItems, no en el scroller en sí:
+   así el formulario de entrega (hermano) puede tener su propio layout */
+#carritoItems {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.drawer__vacio {
+  color: var(--texto-suave);
+  text-align: center;
+  padding-block: 48px;
+  font-size: 0.93rem;
+}
+
+.linea {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--borde);
+}
+.linea:last-child { border-bottom: 0; }
+
+.linea .media { aspect-ratio: 1 / 1; }
+.linea .media__ph { font-size: 0.62rem; padding: 5px; line-height: 1.2; }
+
+.linea__nombre { font-size: 0.93rem; font-weight: 500; line-height: 1.3; }
+.linea__precio {
+  font-size: 0.9rem;
+  color: var(--acento);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.linea__controles {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.qty {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  color: var(--texto);
+  font-size: 1rem;
+  line-height: 1;
+  transition: border-color var(--transicion), color var(--transicion);
+}
+.qty:hover { border-color: var(--acento-fuerte); color: var(--acento); }
+
+.qty__valor {
+  min-width: 22px;
+  text-align: center;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.linea__quitar {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.linea__quitar:hover { color: var(--texto); }
+
+.drawer__foot {
+  border-top: 1px solid var(--borde);
+  padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
+  display: grid;
+  gap: 10px;
+}
+
+.drawer__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  color: var(--texto-suave);
+  font-size: 0.92rem;
+}
+
+/* --------------------- [25] CONFIRMACIÓN (TOAST) ------------------ */
+.toast {
+  position: fixed;
+  z-index: 70;
+  left: 50%;
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--superficie2);
+  border: 1px solid var(--borde);
+  color: var(--texto);
+  padding: 11px 18px 11px 14px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 0) scale(0.86);
+  transition: opacity 180ms ease;
+}
+.toast .ico { color: var(--acento); }
+
+.toast[data-visible="true"] {
+  opacity: 1;
+  animation: aparecerToast 340ms cubic-bezier(.34, 1.4, .64, 1) forwards;
+}
+
+@keyframes aparecerToast {
+  0%   { opacity: 0; transform: translate(-50%, 0) scale(0.86); }
+  60%  { opacity: 1; transform: translate(-50%, 0) scale(1.08); }
+  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+/* =====================================================================
+   ICONOS
+   SVG estilo Tabler embebidos en el markup (ti-shopping-cart, ti-check,
+   ti-search-off…). Van inline para no sumar dependencias externas.
+   ===================================================================== */
+.ico {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  stroke: currentColor;
+}
+.ico--grande { width: 34px; height: 34px; }
+
+/* ------------------- [19] SUBRAYADO QUE CORRE --------------------- */
+.link-sub {
+  position: relative;
+  display: inline-block;
+}
+.link-sub::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 2px;
+  background: var(--acento);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 350ms cubic-bezier(.4, .1, .2, 1);
+}
+.link-sub:hover::after,
+.link-sub:focus-visible::after { transform: scaleX(1); }
+
+/* --------------------- [7] PULSO DEL CTA DEL HERO ------------------
+   Único botón con halo. Se pausa mientras la confirmación [25] está en
+   pantalla para que los dos efectos no compitan.
+   ------------------------------------------------------------------ */
+.btn--pulso { animation: pulso 2.6s ease-out infinite; }
+
+body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
+
+@keyframes pulso {
+  0%   { box-shadow: 0 0 0 0 rgba(93, 202, 165, 0.4); }
+  70%  { box-shadow: 0 0 0 9px rgba(93, 202, 165, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(93, 202, 165, 0); }
+}
+
+/* ------------------- BARRA DEL CATÁLOGO + BUSCADOR ----------------- */
+.barra-catalogo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+.barra-catalogo .filtros { margin-bottom: 0; flex: 1 1 auto; }
+
+.buscador {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.buscador__lupa {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  color: var(--texto-suave);
+  transition: color var(--transicion), border-color var(--transicion);
+}
+.buscador__lupa:hover { color: var(--texto); border-color: var(--texto-suave); }
+.buscador[data-abierto="true"] .buscador__lupa { color: var(--acento); border-color: var(--acento-fuerte); }
+
+/* [32] el campo crece desde la lupa. Animar width es la excepción
+   aceptada: no hay forma limpia de hacerlo con transform. */
+.buscador__campo {
+  width: 0;
+  padding: 9px 0;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie);
+  color: var(--texto);
+  font-family: var(--cuerpo);
+  font-size: 0.88rem;
+  opacity: 0;
+  transition: width 400ms cubic-bezier(.4, .1, .2, 1),
+              padding 400ms cubic-bezier(.4, .1, .2, 1),
+              opacity 260ms ease,
+              border-color 200ms ease,
+              box-shadow 200ms ease;
+}
+.buscador[data-abierto="true"] .buscador__campo {
+  width: 132px;
+  padding-inline: 14px;
+  opacity: 1;
+}
+
+/* [35] campo con foco: borde en acento, también por teclado */
+.buscador__campo:focus-visible {
+  outline: none;
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px rgba(93, 202, 165, 0.16);
+}
+.buscador__campo::-webkit-search-cancel-button { filter: grayscale(1); }
+
+/* --------------------- [9] ESQUELETOS DE CARGA -------------------- */
+.skel-grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.skel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+}
+
+.skel {
+  border-radius: var(--radio-sm);
+  background: linear-gradient(90deg, var(--superficie2) 25%, #2E3741 50%, var(--superficie2) 75%);
+  background-size: 200% 100%;
+  animation: brillo 1.5s linear infinite;
+}
+.skel--media  { aspect-ratio: 4 / 3; }
+.skel--linea  { height: 12px; }
+.skel--corta  { height: 12px; width: 55%; }
+.skel--precio { height: 20px; width: 42%; }
+.skel--boton  { height: 38px; border-radius: var(--radio-sm); }
+
+@keyframes brillo {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+/* ------------------ [16] ENTRADA AL CAMBIAR FILTRO ---------------- */
+.cat--entra { animation: entrarSeccion 200ms ease backwards; }
+
+@keyframes entrarSeccion {
+  from { opacity: 0; transform: translateX(9px); }
+}
+
+/* -------------------- [13] SIN RESULTADOS ------------------------- */
+.estado-vacio {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 58px 20px;
+  animation: aparecer 250ms ease backwards;
+}
+.estado-vacio .ico { color: var(--texto-suave); }
+.estado-vacio__titulo {
+  font-family: var(--display);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.estado-vacio__texto { color: var(--texto-suave); font-size: 0.92rem; }
+
+.enlace {
+  color: var(--acento);
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
+@keyframes aparecer { from { opacity: 0; } }
+
+/* ------------------- [31] CARRITO VACÍO --------------------------- */
+.carrito-vacio {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 54px 16px;
+  color: var(--texto-suave);
+}
+.carrito-vacio .ico {
+  color: var(--texto-suave);
+  animation: latido 3.2s ease-in-out infinite;
+}
+.carrito-vacio__texto { font-size: 0.95rem; }
+
+@keyframes latido {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.14); }
+}
+
+/* ------------- [8] SALTO DEL ÍCONO DEL CARRITO -------------------- */
+.cart-btn__ico { width: 18px; height: 18px; }
+.cart-btn__ico.is-saltando { animation: salto 550ms cubic-bezier(.34, 1.4, .64, 1); }
+
+@keyframes salto {
+  0%, 100% { transform: translateY(0); }
+  40%      { transform: translateY(-3px); }
+  70%      { transform: translateY(1px); }
+}
+
+/* ------------ [27] [28] LÍNEAS DEL CARRITO ------------------------
+   El wrapper colapsa con grid-template-rows 1fr → 0fr: así las líneas
+   de abajo suben acompañando la transición en vez de saltar.
+   ------------------------------------------------------------------ */
+.linea-wrap {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 400ms cubic-bezier(.4, .1, .2, 1),
+              opacity 400ms ease;
+}
+.linea-wrap > .linea { overflow: hidden; }
+
+.linea-wrap--sale {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+.linea-wrap--sale > .linea {
+  transform: translateX(70px);
+  transition: transform 400ms cubic-bezier(.4, .1, .2, 1);
+}
+
+.linea-wrap--entra > .linea { animation: entrarLinea 350ms ease backwards; }
+
+@keyframes entrarLinea {
+  from { opacity: 0; transform: translateX(-26px); }
+}
+
+/* --------------- [36] TILDE QUE SE DIBUJA ------------------------- */
+.enviado {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--acento);
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding-bottom: 4px;
+}
+.enviado__tilde {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+}
+.enviado__tilde path {
+  stroke-dasharray: 26;
+  stroke-dashoffset: 26;
+  animation: trazar 520ms cubic-bezier(.4, .1, .2, 1) forwards;
+}
+
+@keyframes trazar { to { stroke-dashoffset: 0; } }
+
+/* =====================================================================
+   FORMULARIO DE ENTREGA (paso 2 del carrito)
+   Vive dentro de .drawer__body, hermano de #carritoItems. Nunca se
+   destruye/reconstruye: sólo se alterna [hidden], así los valores
+   cargados no se pierden al volver al carrito.
+   ===================================================================== */
+.form-entrega {
+  display: grid;
+  gap: 18px;
+}
+
+.form-entrega__volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  color: var(--texto-suave);
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 4px 2px;
+  transition: color var(--transicion);
+}
+.form-entrega__volver .ico { width: 18px; height: 18px; }
+.form-entrega__volver:hover { color: var(--texto); }
+
+.form-entrega__titulo {
+  font-family: var(--display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: -6px;
+}
+.form-entrega__titulo:focus-visible { outline: none; } /* foco programático, no de teclado */
+
+.form-entrega__bajada { color: var(--texto-suave); font-size: 0.9rem; margin-top: -10px; }
+
+/* ------------------------------ CAMPOS ----------------------------- */
+.campo {
+  display: grid;
+  gap: 7px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.campo__label {
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 0;
+}
+
+.req { color: var(--rojo-suave); }
+
+.campo__opcional {
+  color: var(--texto-suave);
+  font-weight: 400;
+  font-size: 0.82rem;
+}
+
+.campo__error {
+  color: var(--rojo-suave);
+  font-size: 0.82rem;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-sm);
+  background: var(--superficie);
+  color: var(--texto);
+  font-family: var(--cuerpo);
+  /* 16px fijo: por debajo de esto, iOS hace zoom automático al enfocar */
+  font-size: 16px;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+.input::placeholder { color: var(--texto-suave); }
+.input:focus-visible {
+  outline: none;
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px rgba(93, 202, 165, 0.16);
+}
+.input[aria-invalid="true"] { border-color: var(--rojo-suave); }
+.input[aria-invalid="true"]:focus-visible { box-shadow: 0 0 0 3px rgba(226, 130, 117, 0.18); }
+
+/* --------------------- OPCIONES TIPO BOTÓN (radio) ------------------
+   input real, oculto visualmente pero enfocable (nada de display:none,
+   eso lo sacaría del tab order). Las flechas del teclado entre opciones
+   son gratis: es el comportamiento nativo de un grupo de radios con el
+   mismo name.
+   ------------------------------------------------------------------ */
+.opciones {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.opcion {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 10px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-sm);
+  background: var(--superficie);
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 200ms ease, background 200ms ease, color 200ms ease;
+}
+.opcion input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+.opcion:has(input:checked) {
+  border-color: var(--acento);
+  background: rgba(93, 202, 165, 0.1);
+  color: var(--acento);
+}
+.opcion:has(input:focus-visible) {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+.opciones[data-invalid="true"] .opcion { border-color: var(--rojo-suave); }
+
+.opciones--horarios {
+  grid-template-columns: repeat(2, 1fr);
+}
+.opciones--horarios .opcion { font-size: 0.8rem; padding-inline: 6px; }
+
+.form-entrega__nota,
+.form-entrega__privacidad {
+  color: var(--texto-suave);
+  font-size: 0.82rem;
+  text-align: center;
+  margin-top: -6px;
+}
+
+/* wrap más angosto para bloques de lectura (FAQ) */
+.wrap--angosto { max-width: 760px; }
+
+/* =====================================================================
+   COMPARADOR DE EQUIPOS
+   ===================================================================== */
+.comparador__selects {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.comparador__campo { flex: 1 1 220px; min-width: 0; }
+
+.select {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-sm);
+  background: var(--superficie);
+  color: var(--texto);
+  font-family: var(--cuerpo);
+  font-size: 0.92rem;
+  transition: border-color 200ms ease;
+}
+.select:focus-visible {
+  outline: none;
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px rgba(93, 202, 165, 0.16);
+}
+
+.comparador__vs {
+  flex: 0 0 auto;
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.comparador__vacio {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--texto-suave);
+}
+
+.comparador__scroll {
+  overflow-x: auto;    /* red de seguridad si algún nombre muy largo no entra */
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+}
+
+.comparador__tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.comparador__tabla th,
+.comparador__tabla td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--borde);
+  vertical-align: top;
+}
+.comparador__tabla tbody tr:last-child th,
+.comparador__tabla tbody tr:last-child td { border-bottom: 0; }
+
+.comparador__tabla thead th {
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borde);
+}
+
+/* fila donde el valor difiere entre los dos productos: fondo sutil */
+.comparador__fila--difiere th,
+.comparador__fila--difiere td { background: var(--superficie2); }
+
+.comparador__tabla tbody th[scope="row"] {
+  color: var(--texto-suave);
+  font-weight: 500;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.comparador__tabla tbody td { font-size: 0.92rem; }
+
+.comparador__prod {
+  display: grid;
+  gap: 10px;
+  min-width: 160px;
+}
+.comparador__prod .media { aspect-ratio: 4 / 3; }
+.comparador__nombre {
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 600;
+}
+.comparador__prod .card__precios { margin-top: 0; }
+
+.comparador__tabla tfoot td {
+  border-bottom: 0;
+  background: var(--superficie);
+}
+
+/* La tabla de 2 columnas no entra en 375px: por debajo de 560px se
+   apila. El <table> sigue siendo el mismo elemento semántico (mismo
+   DOM, mismo th scope="row"/"col"); sólo cambia cómo se dibuja.
+   La fila de imagen/nombre/precio queda en 2 columnas (cabe igual,
+   son pocos datos); lo que se apila es cada especificación: la clave
+   arriba y, debajo, los dos valores identificados con el nombre del
+   equipo en texto suave (vía data-label + ::before). */
+@media (max-width: 559px) {
+  .comparador__tabla thead tr {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .comparador__tabla thead th:first-child { display: none; } /* celda vacía, sr-only */
+  .comparador__tabla thead th { flex: 1 1 0; padding: 12px 8px; }
+  .comparador__prod { min-width: 0; }
+  .comparador__prod .media__ph { font-size: 0.68rem; padding: 6px; }
+
+  .comparador__tabla tbody tr {
+    display: block;
+    padding: 14px 4px;
+  }
+  .comparador__tabla tbody th,
+  .comparador__tabla tbody td {
+    display: block;
+    padding: 3px 4px;
+    border-bottom: 0;
+  }
+  .comparador__tabla tbody th[scope="row"] {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding-top: 6px;
+  }
+  .comparador__tabla tbody td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.76rem;
+    color: var(--texto-suave);
+    margin-top: 6px;
+  }
+
+  .comparador__tabla tfoot tr { display: flex; gap: 10px; padding: 12px 4px; }
+  .comparador__tabla tfoot td:first-child { display: none; }
+  .comparador__tabla tfoot td { flex: 1 1 0; padding: 0; border-bottom: 0; }
+}
+
+/* =====================================================================
+   FORMAS DE PAGO
+   ===================================================================== */
+.pagos-grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.pago-card {
+  padding: 20px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+}
+.pago-card__titulo { font-weight: 600; }
+.pago-card__detalle { margin-top: 6px; color: var(--texto-suave); font-size: 0.9rem; }
+
+/* =====================================================================
+   PREGUNTAS FRECUENTES — acordeón con <details>/<summary> nativos
+   ===================================================================== */
+.acordeon { display: grid; }
+
+.faq__item {
+  border-bottom: 1px solid var(--borde);
+}
+.faq__item:first-child { border-top: 1px solid var(--borde); }
+
+.faq__pregunta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 4px;
+  cursor: pointer;
+  font-weight: 500;
+  list-style: none;             /* quita el triángulo por defecto */
+}
+.faq__pregunta::-webkit-details-marker { display: none; }
+.faq__pregunta:hover { color: var(--acento); }
+
+.faq__chevron {
+  flex: 0 0 auto;
+  color: var(--texto-suave);
+  transition: transform 300ms ease;
+}
+.faq__item[open] .faq__chevron { transform: rotate(180deg); }
+
+.faq__respuesta { padding: 0 4px 18px; color: var(--texto-suave); font-size: 0.93rem; }
+
+.faq__mas {
+  margin-top: 26px;
+  text-align: center;
+  color: var(--texto-suave);
+  font-size: 0.92rem;
+}
+
+/* =====================================================================
+   MODAL DE PRODUCTO
+   ===================================================================== */
+.modal {
+  position: fixed;
+  z-index: 65;
+  left: 50%;
+  top: 50%;
+  width: min(620px, calc(100% - 24px));
+  max-height: min(88dvh, 820px);
+  display: flex;
+  flex-direction: column;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  transform: translate(-50%, -50%) scale(0.97);
+  opacity: 0;
+  transition: opacity 220ms ease, transform 220ms cubic-bezier(.4, .1, .2, 1);
+}
+.modal[data-visible="true"] {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.modal__cerrar {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  background: rgba(18, 22, 26, 0.86);
+  color: var(--texto-suave);
+  transition: color var(--transicion), border-color var(--transicion);
+}
+.modal__cerrar:hover { color: var(--texto); border-color: var(--texto-suave); }
+
+.modal__scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px;
+}
+
+.modal .media { aspect-ratio: 16 / 10; }
+
+.modal__cat {
+  margin-top: 18px;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.modal__nombre {
+  font-family: var(--display);
+  font-size: clamp(1.4rem, 5vw, 1.9rem);
+  font-weight: 600;
+  margin-top: 4px;
+  padding-right: 44px;
+}
+
+.modal__precios {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.modal__precios .precio { font-size: 1.65rem; }
+/* acá el precio anterior va al lado, no arriba: como .modal__precios es
+   flex, alcanza con sacarle el margen que trae para la tarjeta */
+.modal__precios .precio--anterior { margin: 0; font-size: 0.95rem; }
+
+.modal__agotado {
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+
+.detalle {
+  margin: 22px 0 0;
+  border-top: 1px solid var(--borde);
+}
+.detalle__fila {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--borde);
+}
+.detalle dt {
+  color: var(--texto-suave);
+  font-size: 0.82rem;
+}
+.detalle dd {
+  margin: 0;
+  color: var(--texto);
+  font-size: 0.93rem;
+}
+
+.modal__acciones {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+/* =====================================================================
+   RESPLANDOR QUE SIGUE AL CURSOR
+   Fixed detrás de todo (z-index -1) y pointer-events:none: no es un
+   ancestro de .card/.media ni les agrega ningún transform, así que no
+   puede reabrir el bug del scroll trabado sobre las imágenes. La
+   posición la actualiza app.js con requestAnimationFrame, escribiendo
+   sólo --mx/--my (nunca el style completo).
+   Oculto por defecto: sólo se muestra con mouse real (hover:hover);
+   con prefers-reduced-motion queda tapado más abajo, junto con el
+   resto de las excepciones de movimiento.
+   ===================================================================== */
+.resplandor {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  display: none;
+  background: radial-gradient(480px circle at var(--mx, 50%) var(--my, 50%),
+              rgba(93, 202, 165, 0.06), transparent 70%);
+}
+
+@media (hover: hover) {
+  .resplandor { display: block; }
+}
+
+/* =========================== RESPONSIVE ============================ */
+@media (min-width: 560px) {
+  .detalle__fila {
+    grid-template-columns: 160px 1fr;
+    gap: 16px;
+    align-items: baseline;
+  }
+}
+
+/* ============================ RESPONSIVE =========================== */
+@media (min-width: 620px) {
+  .confianza { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+  .destacado-card { padding: 22px; }
+  .opciones--horarios { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 900px) {
+  :root { --gutter: 32px; }
+
+  /* vuelve a ser una sola fila: brand — nav — carrito */
+  .header__inner { flex-wrap: nowrap; height: 64px; padding-block: 0; }
+  .nav {
+    order: 0;
+    flex: 0 1 auto;
+    overflow-x: visible;
+    white-space: normal;
+  }
+  .cart-btn { order: 0; }
+
+  .hero {
+    min-height: 85vh;
+    display: flex;
+    align-items: center;
+    padding-block: 40px 70px;
+  }
+
+  /* composición asimétrica: texto ancho a la izquierda, producto a la derecha */
+  .hero__grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 60px;
+    width: 100%;
+  }
+
+  .hero__producto { justify-self: end; width: 100%; max-width: 400px; }
+
+  .seccion { padding-block: 88px; }
+
+  .carrusel__flecha { display: grid; place-items: center; }
+  .carrusel__slide { padding: 26px; }
+
+  .secciones { gap: 86px; }
+  .cat__head { padding-bottom: 16px; margin-bottom: 28px; }
+}
+
+@media (min-width: 1120px) {
+  .hero__titulo { font-size: 4.6rem; }
+  .datos { gap: 14px 48px; }
+}
+
+/* ===================== PREFERS-REDUCED-MOTION =====================
+   Sin animaciones ni scroll animado si el sistema lo pide.
+   ================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .btn--primario:active { transform: none; }
+
+  /* el estado final se aplica igual, sólo que sin recorrido */
+  .card { opacity: 1; }
+  .linea-wrap--sale > .linea { transform: none; }
+  .toast[data-visible="true"] { transform: translate(-50%, 0) scale(1); }
+  .link-sub:hover::after,
+  .link-sub:focus-visible::after { transform: scaleX(1); }
+
+  /* si está activo, directamente no se renderiza */
+  .resplandor { display: none; }
+}
