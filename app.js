@@ -122,7 +122,9 @@
 
   var productos = [];
   var carrito = leerCarrito();       // [{ id, cantidad }]
-  var categoriaActiva = 'Todos';
+  // Siempre hay una categoría activa (nunca "ver todas"); se fija al
+  // cargar productos.json — ver el .then() del fetch, más abajo.
+  var categoriaActiva = null;
   var subcategoriaActiva = null;     // sólo aplica dentro de Accesorios
   var busqueda = '';
   var slideActivo = 0;
@@ -313,6 +315,11 @@
       productos = data;
       destacados = productos.filter(function (p) { return p.destacado; });
       if (!destacados.length) destacados = productos.slice(0, 3);
+
+      // iPhone por defecto; si por algún motivo no hubiera productos de
+      // iPhone, cae a la primera categoría real que sí tenga.
+      var catsDisponibles = categoriasConProductos();
+      categoriaActiva = catsDisponibles.indexOf('iPhone') !== -1 ? 'iPhone' : catsDisponibles[0];
 
       pintarHero();
       pintarCarrusel();
@@ -525,9 +532,8 @@
     return n + ' ' + palabra + (n === 1 ? '' : 's');
   }
 
-  // Sin botón "Todos": las pastillas son sólo las categorías reales. Sin
-  // ningún filtro tocado (categoriaActiva === 'Todos'), ninguna queda
-  // marcada y se ven todas las secciones — ver aplicarFiltro().
+  // Sin botón "Todos": las pastillas son las categorías reales, y siempre
+  // hay una marcada — nunca se ven todas las secciones juntas.
   function pintarFiltros() {
     var cats = categoriasConProductos();
 
@@ -538,10 +544,11 @@
   }
 
   // Punto único para cambiar el filtro: lo usan las pastillas del catálogo
-  // y el desplegable "Productos" del menú. Deja el estado coherente
+  // y el desplegable "Productos" del menú. `categoria` siempre es una
+  // categoría real (no existe "Todos"). Deja el estado coherente
   // (categoría + subcategoría), sincroniza las pastillas y repinta.
   function aplicarFiltro(categoria, subcategoria) {
-    categoriaActiva = categoria || 'Todos';
+    categoriaActiva = categoria;
     subcategoriaActiva = subcategoria || null;
 
     Array.prototype.forEach.call($('#filtros').children, function (f) {
@@ -551,13 +558,12 @@
     pintarCatalogo(true); // [16] las secciones entran al cambiar de filtro
   }
 
+  // Sin toggle-off: no existe el estado "ver todas", así que tocar la
+  // pastilla ya activa simplemente la deja como está.
   $('#filtros').addEventListener('click', function (e) {
     var b = e.target.closest('[data-cat]');
     if (!b) return;
-    // Sin botón "Todos": tocar el filtro ya activo lo desactiva y vuelve
-    // a mostrar todas las secciones (reemplaza lo que hacía ese botón).
-    var yaActivo = b.dataset.cat === categoriaActiva;
-    aplicarFiltro(yaActivo ? 'Todos' : b.dataset.cat, null);
+    aplicarFiltro(b.dataset.cat, null);
   });
 
   // [32] buscador que se abre desde la lupa
@@ -663,11 +669,13 @@
     });
   }
 
-  // Una sección por categoría. Con un filtro activo se renderiza sólo esa;
-  // las categorías sin productos no generan encabezado.
+  // Siempre se renderiza una sola categoría (la activa); nunca todas
+  // juntas. Si esa categoría no tuviera productos (no debería pasar:
+  // sólo se activan categorías con al menos un producto) no generaría
+  // encabezado, igual que antes.
   function pintarCatalogo(animarSecciones) {
     var visibles = categoriasConProductos().filter(function (c) {
-      return categoriaActiva === 'Todos' || c === categoriaActiva;
+      return c === categoriaActiva;
     });
 
     var claseSeccion = 'cat' + (animarSecciones && !sinMovimiento() ? ' cat--entra' : '');
@@ -1833,14 +1841,21 @@
   // dispara ese .focus() reabriría el panel de inmediato.
   var reabrirBloqueado = false;
 
-  // Filtra el catálogo y baja hasta él. Núcleo compartido por el menú.
-  function irACatalogoFiltrado(categoria, subcategoria) {
-    aplicarFiltro(categoria || 'Todos', subcategoria || null);
-    // scroll suave hasta el catálogo (respeta scroll-padding-top del header)
+  // Scroll suave hasta el catálogo (respeta scroll-padding-top del header).
+  function scrollAlCatalogo() {
     $('#catalogo').scrollIntoView({ behavior: sinMovimiento() ? 'auto' : 'smooth', block: 'start' });
   }
 
-  // Botón "Productos": en desktop baja al catálogo (sin filtro extra); en
+  // Filtra el catálogo por una categoría real y baja hasta él. Núcleo
+  // compartido por los ítems del menú (no existe "Todos": siempre hay
+  // una categoría activa).
+  function irACatalogoFiltrado(categoria, subcategoria) {
+    aplicarFiltro(categoria, subcategoria);
+    scrollAlCatalogo();
+  }
+
+  // Botón "Productos": en desktop baja al catálogo SIN tocar el filtro
+  // (siempre hay una categoría activa, no hace falta forzar ninguna); en
   // mobile funciona como acordeón (abre/cierra el panel).
   btnProductos.addEventListener('click', function () {
     if (mqMobile.matches) {
@@ -1849,7 +1864,7 @@
       return;
     }
     cerrarMenu();
-    irACatalogoFiltrado('Todos', null);
+    scrollAlCatalogo();
   });
 
   // Elegir una categoría o subcategoría del panel.
