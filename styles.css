@@ -17,6 +17,11 @@
   --acento:       #111418;
   --acento-fuerte:#111418;
   --acento-suave: #F0F1F3;
+  /* Sólo para la celda ganadora del comparador: --acento-suave (#F0F1F3)
+     queda casi idéntico al header de tabla (#EFF1F3) y a la fila cebra
+     (#F7F8F9), así que ahí no alcanza como resaltado. Este tono más oscuro
+     se separa de ambos sin competir con el texto #111418 encima. */
+  --comparador-gana: #E2E5E9;
   --texto:        #1A1F24;
   --texto-suave:  #5A646E;
   --texto-tenue:  #8A939C;
@@ -1908,7 +1913,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
    no es la Ãºnica seÃ±al: comparadorCeldaValor() agrega "(mejor valor)" en
    texto sÃ³lo para lectores de pantalla. */
 .comparador__tabla td.comparador__gana {
-  background: var(--acento-suave);
+  background: var(--comparador-gana);
   color: var(--acento);
   font-weight: 600;
 }
