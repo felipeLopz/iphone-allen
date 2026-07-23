@@ -331,8 +331,12 @@
      ===================================================================== */
 
   var mainEl = document.querySelector('main');
+  // data-categoria="iPhone" => página de una categoría
+  // data-catalogo="completo" => productos.html, las cuatro juntas
+  // sin ninguno de los dos => portada
   var categoriaPagina = mainEl ? (mainEl.dataset.categoria || null) : null;
-  var esInicio = !categoriaPagina;
+  var catalogoCompleto = mainEl ? mainEl.dataset.catalogo === 'completo' : false;
+  var esInicio = !categoriaPagina && !catalogoCompleto;
 
   /* =====================================================================
      ARMAZÓN COMPARTIDO (header, footer, carrito, modal, toast)
@@ -527,9 +531,9 @@
 
   /* ---------------------------- CARGA DE DATOS ---------------------- */
 
-  // La grilla sólo existe en las páginas de categoría; en la portada no
+  // La grilla sólo existe en las páginas de catálogo; en la portada no
   // hay catálogo, así que tampoco hay esqueletos que mostrar.
-  if (!esInicio) montarPaginaCategoria();
+  if (!esInicio) montarPaginaCatalogo();
 
   hidratarIconos();
   pintarRedes();
@@ -559,7 +563,7 @@
         iniciarCarrusel();
         iniciarComparador();
       } else {
-        pintarCategoria();
+        pintarCatalogo();
       }
     })
     .catch(function (err) {
@@ -777,23 +781,44 @@
     return n + ' ' + palabra + (n === 1 ? '' : 's');
   }
 
-  /* --------------------- PÁGINA DE CATEGORÍA -------------------------
-     La página ES el filtro: no hay pastillas de categoría. El armazón
-     (título, buscador, contenedor de la grilla) se arma acá para no
-     repetirlo en los cuatro HTML.
+  /* --------------------- PÁGINAS DE CATÁLOGO -------------------------
+     Las cuatro de categoría y productos.html (todas juntas). El armazón
+     —título, fila de pastillas, buscador, contenedor de la grilla— se
+     arma acá para no repetirlo en los cinco HTML.
      ------------------------------------------------------------------ */
 
   var buscador, campoBusqueda, lupa;
 
-  function montarPaginaCategoria() {
+  // Fila de pastillas: navegación entre las páginas del catálogo, no un
+  // filtro que repinta. Sale de ORDEN_CATEGORIAS y no de productos.json
+  // para poder pintarse junto al armazón, antes de que llegue el fetch.
+  function htmlFiltrosNavegacion() {
+    var pastillas = ORDEN_CATEGORIAS.map(function (c) {
+      var activa = c === categoriaPagina;
+      return '<a class="filtro" href="' + esc(paginaDe(c)) + '"' +
+             (activa ? ' aria-current="page"' : '') + '>' + esc(c) + '</a>';
+    });
+
+    pastillas.push('<a class="filtro" href="productos.html"' +
+                   (catalogoCompleto ? ' aria-current="page"' : '') + '>Ver todo</a>');
+
+    return '<nav class="filtros" aria-label="Categorías del catálogo">' +
+             pastillas.join('') +
+           '</nav>';
+  }
+
+  function montarPaginaCatalogo() {
+    var titulo = catalogoCompleto ? 'Todos los productos' : categoriaPagina;
+
     mainEl.innerHTML =
       '<section class="seccion" id="catalogo">' +
         '<div class="wrap">' +
           '<header class="seccion__head seccion__head--catalogo">' +
-            '<h1 class="seccion__titulo">' + esc(categoriaPagina) + '</h1>' +
+            '<h1 class="seccion__titulo">' + esc(titulo) + '</h1>' +
             '<p class="seccion__sub" id="conteoCategoria">Precios finales en pesos. Consultá por financiación.</p>' +
           '</header>' +
           '<div class="barra-catalogo">' +
+            htmlFiltrosNavegacion() +
             '<div class="buscador" id="buscador" data-abierto="false">' +
               '<button class="buscador__lupa" type="button" id="buscadorToggle" ' +
                       'aria-expanded="false" aria-controls="busqueda" aria-label="Buscar productos">' +
@@ -826,7 +851,7 @@
 
     campoBusqueda.addEventListener('input', function () {
       busqueda = this.value.trim();
-      pintarCategoria();
+      pintarCatalogo();
     });
 
     campoBusqueda.addEventListener('keydown', function (e) {
@@ -848,7 +873,7 @@
     if (campoBusqueda.value) {
       campoBusqueda.value = '';
       busqueda = '';
-      pintarCategoria();
+      pintarCatalogo();
     }
     if (devolverFoco) lupa.focus();
   }
@@ -907,27 +932,28 @@
     return marcados[0] || lista[0];
   }
 
-  // Productos de la categoría de la página, aplicando la búsqueda. El
-  // filtro de categoría no es opcional: la página ya es la categoría.
-  function productosDeCategoria() {
+  // Productos visibles en la página, aplicando la búsqueda. En una
+  // página de categoría el filtro por categoría no es opcional; en
+  // productos.html no hay filtro y el buscador busca en todo el catálogo.
+  function productosVisibles() {
     return productos.filter(function (p) {
-      if (p.categoria !== categoriaPagina) return false;
+      if (categoriaPagina && p.categoria !== categoriaPagina) return false;
       if (!busqueda) return true;
       return normalizar(p.nombre).indexOf(normalizar(busqueda)) !== -1;
     });
   }
 
-  // Una sección con su grilla (principal + resto). El encabezado sólo va
-  // cuando hay más de una sección en la página (las subcategorías de
-  // accesorios): en iPhone, Mac o iPad repetiría el título de la página.
-  function seccionGrilla(titulo, lista, idAncla, conEncabezado) {
+  // Una sección con su grilla (principal + resto). El encabezado se
+  // omite sólo cuando la página tiene una sección única (iPhone, Mac,
+  // iPad): ahí repetiría el título de la página.
+  function seccionGrilla(titulo, lista, idAncla, conEncabezado, categoria) {
     var principal = elegirPrincipal(lista, titulo);
     var resto = lista.filter(function (p) { return p !== principal; });
 
     var encabezado = conEncabezado
       ? '<header class="cat__head">' +
           '<h2 class="cat__titulo" id="tit-' + esc(idAncla) + '">' + esc(titulo) + '</h2>' +
-          '<p class="cat__conteo">' + conteo(categoriaPagina, lista.length) + '</p>' +
+          '<p class="cat__conteo">' + conteo(categoria, lista.length) + '</p>' +
         '</header>'
       : '';
 
@@ -941,32 +967,52 @@
            '</section>';
   }
 
-  // Accesorios se parte en una sección por subcategoría, cada una con su
-  // ancla (accesorios.html#auriculares). Las subcategorías salen del JSON
-  // y una que quede sin productos —o sin resultados de búsqueda— no se
-  // muestra. Las demás categorías van en una sola grilla.
-  function pintarCategoria() {
-    var lista = productosDeCategoria();
-    var html;
+  // Cuenta para el subtítulo de la página. En productos.html se mezclan
+  // equipos y accesorios, así que ahí la palabra tiene que ser neutra.
+  function conteoPagina(n) {
+    if (catalogoCompleto) return n + ' producto' + (n === 1 ? '' : 's');
+    return conteo(categoriaPagina, n);
+  }
 
-    var subs = subcategoriasDe(categoriaPagina);
-    if (subs.length) {
-      html = subs.map(function (sub) {
-        var deLaSub = lista.filter(function (p) { return p.subcategoria === sub; });
-        if (!deLaSub.length) return '';
-        return seccionGrilla(sub, deLaSub, slug(sub), true);
-      }).join('');
+  // Una sección por categoría; las que tienen subcategorías (accesorios)
+  // se parten en una sección por subcategoría, cada una con su ancla
+  // (accesorios.html#auriculares). Una subcategoría sin productos —o sin
+  // resultados de búsqueda— no se muestra. En una página de categoría
+  // esto rinde una sola categoría; en productos.html, las cuatro.
+  function pintarCatalogo() {
+    var lista = productosVisibles();
+    var cats = catalogoCompleto ? categoriasConProductos() : [categoriaPagina];
+
+    // Con varias categorías en pantalla cada una necesita su encabezado
+    // para saber dónde empieza; con una sola lo pone el <h1> de arriba.
+    var conEncabezado = catalogoCompleto;
+    var html = '';
+
+    cats.forEach(function (c) {
+      var deLaCat = lista.filter(function (p) { return p.categoria === c; });
+      if (!deLaCat.length) return;
+
+      var subs = subcategoriasDe(c);
+      if (!subs.length) {
+        html += seccionGrilla(c, deLaCat, slug(c), conEncabezado, c);
+        return;
+      }
+
+      // Las subcategorías siempre llevan encabezado: son varias secciones
+      // dentro de la misma categoría.
+      subs.forEach(function (sub) {
+        var deLaSub = deLaCat.filter(function (p) { return p.subcategoria === sub; });
+        if (deLaSub.length) html += seccionGrilla(sub, deLaSub, slug(sub), true, c);
+      });
 
       // Un accesorio sin subcategoría quedaría fuera de todas las
       // secciones: va al final, agrupado, en vez de desaparecer.
-      var sueltos = lista.filter(function (p) { return !p.subcategoria; });
-      if (sueltos.length) html += seccionGrilla('Otros', sueltos, 'otros', true);
-    } else {
-      html = lista.length ? seccionGrilla(categoriaPagina, lista, slug(categoriaPagina), false) : '';
-    }
+      var sueltos = deLaCat.filter(function (p) { return !p.subcategoria; });
+      if (sueltos.length) html += seccionGrilla('Otros', sueltos, slug(c) + '-otros', true, c);
+    });
 
     $('#catalogoSecciones').innerHTML = html;
-    $('#conteoCategoria').textContent = conteo(categoriaPagina, lista.length) +
+    $('#conteoCategoria').textContent = conteoPagina(lista.length) +
       (busqueda ? ' que coinciden con la búsqueda' : ' · precios finales en pesos');
 
     pintarVacio(html === '');
@@ -2128,6 +2174,10 @@
         html += '</div>';
       }
     });
+
+    // Catálogo completo, al final de la lista.
+    html += '<a class="nav-drop__item' + (catalogoCompleto ? ' is-activo" aria-current="page' : '') +
+            '" role="menuitem" href="productos.html">Ver todo</a>';
 
     menuProductos.innerHTML = html;
   }

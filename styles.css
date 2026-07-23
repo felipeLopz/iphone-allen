@@ -796,6 +796,53 @@ button {
   color: var(--texto-suave);
 }
 
+/* ---------------------------- FILTROS -----------------------------
+   Navegación entre las páginas del catálogo: cada pastilla es un enlace
+   a otra página, no un filtro que repinta la grilla. La activa se marca
+   con aria-current="page".
+   ------------------------------------------------------------------ */
+.filtros {
+  display: flex;
+  gap: 9px;
+  /* Las cinco pastillas no entran en 375px: la fila scrollea en
+     horizontal en vez de apilarse o cortarse. El scroll es sólo
+     horizontal, así que la rueda vertical sigue pasando a la página. */
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  /* Una caja con overflow recorta lo que sobresale, y el foco de teclado
+     se dibuja 3px por fuera de la pastilla: sin este aire el anillo de
+     foco queda cortado arriba y abajo. El margen negativo devuelve el
+     espacio para que la fila siga alineada con el resto de la sección.
+     Va sólo en vertical: un margen negativo horizontal empujaría la fila
+     fuera del contenedor y desbordaría la página en mobile. */
+  padding-block: 6px;
+  margin-block: -6px;
+}
+.filtros::-webkit-scrollbar { display: none; }
+
+.filtro {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 9px 17px;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  color: var(--texto-suave);
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: color var(--transicion), border-color var(--transicion), background var(--transicion);
+}
+.filtro:hover { color: var(--texto); border-color: var(--texto-suave); }
+
+/* Página actual: negro pleno. Es la señal más fuerte de la fila, y no
+   depende del color (el sitio es monocromático). */
+.filtro[aria-current="page"] {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #FFFFFF;
+}
+
 /* ------------------- SECCIONES POR CATEGORÍA ----------------------
    El catálogo se lee como bloques distintos, no como una grilla
    partida: de ahí el gap grande entre secciones.
@@ -1445,6 +1492,10 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   flex-wrap: wrap;
   margin-bottom: 28px;
 }
+/* min-width:0 es lo que deja que la fila se achique por debajo del ancho
+   de sus pastillas; sin eso el flex item no encoge y el scroll interno
+   de .filtros nunca llega a activarse (desborda la página en su lugar). */
+.barra-catalogo .filtros { flex: 1 1 auto; min-width: 0; }
 .buscador {
   display: flex;
   align-items: center;
