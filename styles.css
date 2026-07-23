@@ -1050,71 +1050,25 @@ button {
 }
 .promo__sub { margin-top: 6px; color: var(--texto-tenue); font-size: 0.9rem; }
 
-/* ------------------------- UBICACIÓN DEL LOCAL -------------------- */
-.ubicacion {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 22px;
-  background: var(--superficie);
-  border: 1px solid var(--borde);
-  border-radius: var(--radio);
-}
-.ubicacion__ico {
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: var(--acento-suave);
-  color: var(--acento);
-}
-.ubicacion__ico svg { width: 24px; height: 24px; }
-.ubicacion__titulo { font-family: var(--display); font-size: 1.2rem; font-weight: 600; }
-.ubicacion__dir { margin-top: 4px; color: var(--texto-suave); font-size: 0.95rem; }
-.ubicacion__envios { margin-top: 2px; color: var(--texto-tenue); font-size: 0.9rem; }
-
-/* ---------------------------- CONTACTO ---------------------------- */
+/* ---------------------------- CONTACTO ----------------------------
+   Sólo título + dos botones (WhatsApp e Instagram), centrado. Sin
+   formulario, sin dirección: ese contenido ya está en el hero. */
 .contacto { border-top: 1px solid var(--borde); }
 
-.contacto__grid {
+.contacto__inner {
+  text-align: center;
   display: grid;
-  gap: 28px;
+  justify-items: center;
+  gap: 6px;
 }
 
-.contacto__redes-fila {
+.contacto__botones {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 18px;
-}
-
-.contacto__ubic {
-  margin-top: 18px;
-  color: var(--texto-suave);
-  font-size: 0.92rem;
-  line-height: 1.7;
-}
-
-.contacto__form {
-  display: grid;
-  gap: 16px;
-  background: var(--superficie);
-  border: 1px solid var(--borde);
-  border-radius: var(--radio);
-  padding: 20px;
-}
-.contacto__textarea {
-  resize: vertical;
-  min-height: 96px;
-  font-family: var(--cuerpo);
-  line-height: 1.5;
-}
-
-@media (min-width: 820px) {
-  .contacto__grid { grid-template-columns: 1fr 1fr; align-items: start; gap: 40px; }
 }
 
 /* Agrupa un enlace de WhatsApp de "contacto general" (hero, FAQ,

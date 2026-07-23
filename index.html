@@ -167,46 +167,6 @@
     </div>
   </section>
 
-  <!-- ===================== UBICACIÓN DEL LOCAL ===================== -->
-  <section class="seccion" id="ubicacion">
-    <div class="wrap">
-      <div class="ubicacion">
-        <span class="ubicacion__ico" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"></path>
-            <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z"></path>
-          </svg>
-        </span>
-        <div>
-          <h2 class="ubicacion__titulo">Estamos en Allen, Río Negro</h2>
-          <!-- Sin dirección exacta confirmada: dejar el placeholder hasta tenerla -->
-          <p class="ubicacion__dir">[DIRECCIÓN — completar] · Allen, Río Negro</p>
-          <p class="ubicacion__envios">Local físico y envíos a ciudades vecinas.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ======================== PREGUNTAS FRECUENTES ==================
-       Parte de la zona de Inicio: va antes del catálogo. -->
-  <section class="seccion" id="preguntas">
-    <div class="wrap wrap--angosto">
-      <header class="seccion__head">
-        <h2 class="seccion__titulo">Preguntas frecuentes</h2>
-      </header>
-
-      <div class="acordeon" id="acordeonFaq"><!-- desde FAQ en app.js --></div>
-
-      <p class="faq__mas">
-        ¿Otra consulta?
-        <span class="contacto-redes">
-          <a class="link-sub" href="#contacto" data-scroll>Escribinos</a>
-          <span id="instaFaq"></span>
-        </span>
-      </p>
-    </div>
-  </section>
-
   <!-- ========================== CATÁLOGO ========================== -->
   <section class="seccion" id="catalogo">
     <div class="wrap">
@@ -297,66 +257,42 @@
     </div>
   </section>
 
+  <!-- ======================== PREGUNTAS FRECUENTES ================== -->
+  <section class="seccion" id="preguntas">
+    <div class="wrap wrap--angosto">
+      <header class="seccion__head">
+        <h2 class="seccion__titulo">Preguntas frecuentes</h2>
+      </header>
+
+      <div class="acordeon" id="acordeonFaq"><!-- desde FAQ en app.js --></div>
+
+      <p class="faq__mas">
+        ¿Otra consulta?
+        <span class="contacto-redes">
+          <a class="link-sub" href="#contacto" data-scroll>Escribinos</a>
+          <span id="instaFaq"></span>
+        </span>
+      </p>
+    </div>
+  </section>
+
   <!-- =========================== CONTACTO =========================
-       Redes + formulario de consulta que arma un WhatsApp (no se envía a
-       ningún servidor, mismo patrón que el checkout). -->
+       Sólo los dos botones de redes: WhatsApp e Instagram. El contacto
+       se resuelve por ahí, sin formulario. -->
   <section class="seccion contacto" id="contacto">
-    <div class="wrap contacto__grid">
+    <div class="wrap contacto__inner">
+      <h2 class="seccion__titulo">Escribinos</h2>
+      <p class="seccion__sub">Te respondemos con el stock y los precios del día.</p>
 
-      <div class="contacto__col">
-        <h2 class="seccion__titulo">Escribinos</h2>
-        <p class="seccion__sub">Te respondemos con el stock y los precios del día.</p>
-
-        <div class="contacto__redes-fila">
-          <a class="btn" href="#" id="ctaWhatsapp2" target="_blank" rel="noopener">
-            <span class="btn__ico" data-ico="whatsapp"></span><span class="btn__txt">Escribinos por WhatsApp</span>
-          </a>
-          <!-- Instagram / correo: los arma app.js desde CONTACTO. El
-               correo sólo aparece si dejó de ser placeholder. -->
-          <span class="contacto-redes" id="contactoRedes"></span>
-        </div>
-
-        <p class="contacto__ubic">
-          <span aria-hidden="true">📍</span>
-          Allen, Río Negro · Local físico y envíos a ciudades vecinas.
-          <a class="link-sub" href="#ubicacion" data-scroll>Ver ubicación</a>
-        </p>
+      <div class="contacto__botones">
+        <a class="btn" href="#" id="ctaWhatsapp2" target="_blank" rel="noopener">
+          <span class="btn__ico" data-ico="whatsapp"></span><span class="btn__txt">Escribinos por WhatsApp</span>
+        </a>
+        <!-- Instagram: lo arma app.js. Si el usuario sigue en placeholder,
+             el contenedor queda vacío (mismo criterio que en el resto del
+             sitio: un botón a una cuenta que no existe es peor que nada). -->
+        <span id="ctaInstagramWrap"></span>
       </div>
-
-      <form class="contacto__form" id="formContacto" novalidate>
-        <div class="campo">
-          <label class="campo__label" for="contactoNombre">Nombre <span class="req" aria-hidden="true">*</span></label>
-          <input class="input" type="text" id="contactoNombre" name="nombre" placeholder="Ej: Juan Pérez" autocomplete="name">
-          <p class="campo__error" id="errorContactoNombre" hidden></p>
-        </div>
-
-        <div class="campo">
-          <label class="campo__label" for="contactoMedio">Correo o teléfono <span class="req" aria-hidden="true">*</span></label>
-          <input class="input" type="text" id="contactoMedio" name="medio" placeholder="Ej: tu@email.com o 2985551234" autocomplete="email">
-          <p class="campo__error" id="errorContactoMedio" hidden></p>
-        </div>
-
-        <div class="campo">
-          <label class="campo__label" for="contactoMensaje">Mensaje <span class="req" aria-hidden="true">*</span></label>
-          <textarea class="input contacto__textarea" id="contactoMensaje" name="mensaje" rows="4" placeholder="¿Qué equipo estás buscando?"></textarea>
-          <p class="campo__error" id="errorContactoMensaje" hidden></p>
-        </div>
-
-        <button class="btn btn--bloque" type="submit">
-          <span class="btn__ico" data-ico="whatsapp"></span><span class="btn__txt">Enviar consulta</span>
-        </button>
-
-        <!-- tilde que se traza tras abrir WhatsApp (mismo efecto [36]) -->
-        <p class="enviado" id="contactoEnviado" hidden>
-          <svg class="enviado__tilde" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M5 12l5 5l10 -10"></path>
-          </svg>
-          <span>Te abrimos WhatsApp con la consulta</span>
-        </p>
-
-        <p class="form-entrega__privacidad">Tu consulta se envía sólo por WhatsApp, no se guarda en el sitio.</p>
-      </form>
-
     </div>
   </section>
 

@@ -525,8 +525,11 @@
     return n + ' ' + palabra + (n === 1 ? '' : 's');
   }
 
+  // Sin botón "Todos": las pastillas son sólo las categorías reales. Sin
+  // ningún filtro tocado (categoriaActiva === 'Todos'), ninguna queda
+  // marcada y se ven todas las secciones — ver aplicarFiltro().
   function pintarFiltros() {
-    var cats = ['Todos'].concat(categoriasConProductos());
+    var cats = categoriasConProductos();
 
     $('#filtros').innerHTML = cats.map(function (c) {
       return '<button class="filtro" type="button" data-cat="' + esc(c) + '" ' +
@@ -551,8 +554,10 @@
   $('#filtros').addEventListener('click', function (e) {
     var b = e.target.closest('[data-cat]');
     if (!b) return;
-    // una pastilla siempre limpia cualquier subcategoría del menú
-    aplicarFiltro(b.dataset.cat, null);
+    // Sin botón "Todos": tocar el filtro ya activo lo desactiva y vuelve
+    // a mostrar todas las secciones (reemplaza lo que hacía ese botón).
+    var yaActivo = b.dataset.cat === categoriaActiva;
+    aplicarFiltro(yaActivo ? 'Todos' : b.dataset.cat, null);
   });
 
   // [32] buscador que se abre desde la lupa
@@ -1733,15 +1738,24 @@
     $('#footerRedes').innerHTML = enlaces.join('');
   }
 
-  // Instagram al lado de los WhatsApp de "contacto general". El hero y el
-  // FAQ muestran sólo Instagram; la sección de Contacto suma el correo si
-  // está definido. Si algo está en placeholder, ese contenedor queda
-  // vacío y no se nota que falta.
+  // Botón de Instagram con el mismo tratamiento de bloque que el resto de
+  // los botones del sitio (a diferencia de enlaceInstagram(), que es el
+  // ícono circular chico del footer/hero/FAQ). Placeholder sin reemplazar
+  // => no se renderiza, igual que el resto de los enlaces de CONTACTO.
+  function botonInstagram(clase) {
+    if (esPlaceholder(CONTACTO.instagram)) return '';
+    return '<a class="btn ' + (clase || '') + '" href="https://instagram.com/' + encodeURIComponent(CONTACTO.instagram) + '" ' +
+           'target="_blank" rel="noopener">' + btnPartes('instagram', 'Seguinos en Instagram') + '</a>';
+  }
+
+  // Instagram al lado de los WhatsApp de "contacto general" (hero y FAQ:
+  // ícono chico). La sección de Contacto usa el botón completo en vez del
+  // ícono circular. Si Instagram está en placeholder, ambos quedan vacíos.
   function pintarRedesContacto() {
     var insta = enlaceInstagram();
     $('#instaHero').innerHTML = insta;
     $('#instaFaq').innerHTML = insta;
-    $('#contactoRedes').innerHTML = insta + enlaceCorreo();
+    $('#ctaInstagramWrap').innerHTML = botonInstagram('btn--sec');
   }
 
   /* =====================================================================
@@ -1893,84 +1907,5 @@
   document.addEventListener('click', function (e) {
     if (menuAbierto() && !navDrop.contains(e.target)) cerrarMenu();
   });
-
-  /* =====================================================================
-     FORMULARIO DE CONTACTO
-     Valida (sin alert) y arma un WhatsApp, igual que el checkout. No se
-     envía a ningún servidor.
-     ===================================================================== */
-
-  var formContacto = $('#formContacto');
-
-  var CAMPO_CONTACTO = {
-    nombre:  { input: $('#contactoNombre'),  error: $('#errorContactoNombre') },
-    medio:   { input: $('#contactoMedio'),   error: $('#errorContactoMedio') },
-    mensaje: { input: $('#contactoMensaje'), error: $('#errorContactoMensaje') }
-  };
-
-  function limpiarErroresContacto() {
-    Object.keys(CAMPO_CONTACTO).forEach(function (k) {
-      var c = CAMPO_CONTACTO[k];
-      c.input.removeAttribute('aria-invalid');
-      c.input.removeAttribute('aria-describedby');
-      c.error.hidden = true;
-      c.error.textContent = '';
-    });
-  }
-
-  function marcarErrorContacto(campo, mensaje) {
-    var c = CAMPO_CONTACTO[campo];
-    c.input.setAttribute('aria-invalid', 'true');
-    c.input.setAttribute('aria-describedby', c.error.id);
-    c.error.textContent = mensaje;
-    c.error.hidden = false;
-  }
-
-  // "medio" es válido si parece un correo o si tiene al menos 8 dígitos
-  // (un teléfono). Alcanza con uno de los dos.
-  function medioValido(v) {
-    var esCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-    var esTel = /^[\d\s()+-]+$/.test(v) && v.replace(/\D/g, '').length >= 8;
-    return esCorreo || esTel;
-  }
-
-  formContacto.addEventListener('submit', function (e) {
-    e.preventDefault();
-    limpiarErroresContacto();
-
-    var nombre = $('#contactoNombre').value.trim();
-    var medio = $('#contactoMedio').value.trim();
-    var mensaje = $('#contactoMensaje').value.trim();
-
-    var errores = [];
-    if (!nombre) errores.push({ campo: 'nombre', mensaje: 'Falta tu nombre.' });
-    if (!medio) errores.push({ campo: 'medio', mensaje: 'Dejanos un correo o teléfono para responderte.' });
-    else if (!medioValido(medio)) errores.push({ campo: 'medio', mensaje: 'Poné un correo válido o un teléfono de al menos 8 dígitos.' });
-    if (!mensaje) errores.push({ campo: 'mensaje', mensaje: 'Escribí tu consulta.' });
-
-    if (errores.length) {
-      errores.forEach(function (err) { marcarErrorContacto(err.campo, err.mensaje); });
-      CAMPO_CONTACTO[errores[0].campo].input.focus();
-      return;
-    }
-
-    var texto = ['¡Hola ' + NEGOCIO + '! Tengo una consulta:', '',
-                 'Nombre: ' + nombre,
-                 'Contacto: ' + medio,
-                 '', mensaje].join('\n');
-    window.open(urlWhatsapp(texto), '_blank', 'noopener');
-    trazarEnviado($('#contactoEnviado'));
-  });
-
-  // [36] tilde que se traza tras abrir WhatsApp — versión reutilizable.
-  function trazarEnviado(el) {
-    var trazo = el.querySelector('path');
-    el.hidden = false;
-    trazo.style.animation = 'none';
-    void trazo.offsetWidth;
-    trazo.style.animation = '';
-    clearTimeout(el._t);
-    el._t = setTimeout(function () { el.hidden = true; }, 5000);
-  }
 
 })();
