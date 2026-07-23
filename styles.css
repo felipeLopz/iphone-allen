@@ -2434,6 +2434,12 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
     min-width: 0;
     top: calc(100% + 6px);
   }
+
+  /* En celular el botón flotante pisaba el borde derecho del "Agregar al
+     carrito" de las tarjetas al scrollear: un toque ahí abría WhatsApp en
+     vez de agregar. display:none (no opacity/visibility) para que deje de
+     existir para el toque y para los lectores de pantalla. */
+  .wa-flotante { display: none; }
 }
 
 @media (min-width: 900px) {
