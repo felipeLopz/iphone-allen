@@ -31,6 +31,14 @@
   --gutter:   20px;
 
   --transicion: 220ms cubic-bezier(.4, .1, .2, 1);
+
+  /* Sombras para separar las superficies elevadas (blanco) del fondo gris:
+     con sólo el borde #DFE3E7 el contraste es demasiado bajo (1.05:1) y
+     los bloques parecen flotar sin apoyo. */
+  --sombra-superficie:       0 1px 2px rgba(26, 31, 36, .06), 0 4px 12px rgba(26, 31, 36, .08);
+  --sombra-superficie-hover: 0 2px 4px rgba(26, 31, 36, .08), 0 8px 20px rgba(26, 31, 36, .12);
+  /* un poco más marcada: refuerza la jerarquía de la tarjeta principal */
+  --sombra-principal:        0 2px 4px rgba(26, 31, 36, .08), 0 8px 20px rgba(26, 31, 36, .10);
 }
 
 /* ------------------------------ BASE ------------------------------ */
@@ -237,7 +245,7 @@ button {
   gap: 10px 14px;
   background: var(--superficie);
   border: 1px solid var(--borde);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+  box-shadow: var(--sombra-superficie);
   /* mobile: los links caen a una 2da fila; la de arriba mantiene el
      redondeo de píldora y abajo se corta para no hacer un arco enorme */
   border-radius: 99px 99px 22px 22px;
@@ -659,6 +667,7 @@ button {
   background: var(--superficie);
   border: 1px solid var(--borde);
   border-radius: var(--radio);
+  box-shadow: var(--sombra-superficie);
   display: grid;
   gap: 18px;
   /* evita que el gesto de swipe arrastre la imagen/el texto */
@@ -854,8 +863,9 @@ button {
   background: var(--superficie);
   border: 1px solid var(--borde);
   border-radius: var(--radio);
+  box-shadow: var(--sombra-superficie);
   opacity: 0; /* [10] la revela el IntersectionObserver */
-  transition: border-color 300ms ease, transform var(--transicion);
+  transition: border-color 300ms ease, box-shadow 250ms ease;
 }
 
 /* [10] entrada escalonada. `backwards` mantiene el estado inicial durante
@@ -873,9 +883,12 @@ button {
    .card a su propia capa de composición exactamente al entrar el mouse,
    y esa capa puede "tragarse" la rueda del mouse sobre el área recortada
    hasta que el cursor sale de la tarjeta (bug real, ya reportado). El
-   cambio de borde no compone capa nueva, así que es seguro. */
+   cambio de borde no compone capa nueva, así que es seguro. Lo mismo
+   vale para box-shadow: anima el valor de la sombra, nunca la posición
+   ni el tamaño de la caja. */
 .card.is-visible:hover {
   border-color: var(--acento);
+  box-shadow: var(--sombra-superficie-hover);
 }
 
 @keyframes entrarTarjeta {
@@ -976,7 +989,12 @@ button {
    ------------------------------------------------------------------ */
 .card--principal {
   border-color: var(--borde-fuerte);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+  box-shadow: var(--sombra-principal);
+}
+/* el hover de .card ya sube la sombra; acá el punto de partida es más
+   marcado, así que el hover sube un escalón más para no perder jerarquía */
+.card--principal.is-visible:hover {
+  box-shadow: 0 3px 6px rgba(26, 31, 36, .10), 0 10px 24px rgba(26, 31, 36, .14);
 }
 .card--principal .card__nombre { font-size: 1.32rem; }
 .card--principal .card__precios .precio { font-size: 1.62rem; }
@@ -1024,6 +1042,7 @@ button {
   text-align: center;
   background: var(--superficie);
   border: 1px solid var(--borde);
+  box-shadow: var(--sombra-superficie);
 }
 .promo--placeholder {
   border: 2px dashed var(--borde-fuerte);
@@ -1256,6 +1275,7 @@ button {
   background: var(--superficie);
   border: 1px solid var(--borde);
   border-radius: 5px;
+  box-shadow: var(--sombra-superficie);
 }
 
 /* la foto del carrito es de 44px de ancho: el padding base (10px por
@@ -1330,6 +1350,7 @@ button {
   background: var(--fondo);
   border-top: 1px solid var(--borde);
   border-radius: 5px;
+  box-shadow: var(--sombra-superficie);
   padding: 9px;
 }
 
@@ -1591,7 +1612,11 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   transition: grid-template-rows 400ms cubic-bezier(.4, .1, .2, 1),
               opacity 400ms ease;
 }
-.linea-wrap > .linea { overflow: hidden; }
+/* min-height:0 (no overflow:hidden): un grid item mide "auto" como
+   mínimo por defecto y no deja que la fila 1fr→0fr lo colapse del todo;
+   min-height:0 saca ese piso sin recortar nada. overflow:hidden lograba
+   lo mismo, pero también recortaría el box-shadow de .linea. */
+.linea-wrap > .linea { min-height: 0; }
 
 .linea-wrap--sale {
   grid-template-rows: 0fr;
@@ -1824,6 +1849,16 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   color: var(--texto-suave);
 }
 
+/* La sombra va en el contenedor de afuera (#comparadorTabla), no en
+   .comparador__scroll: éste tiene overflow-x:auto para el scroll
+   horizontal de seguridad, y cualquier overflow distinto de "visible"
+   recorta el box-shadow del propio elemento. El :has() la limita a
+   cuando hay tabla (no en el estado vacío, que no tiene esta forma). */
+#comparadorTabla:has(.comparador__scroll) {
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-superficie);
+}
+
 .comparador__scroll {
   overflow-x: auto;    /* red de seguridad si algún nombre muy largo no entra */
   border: 1px solid var(--borde);
@@ -1957,6 +1992,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   background: var(--superficie);
   border: 0;
   border-radius: 5px;
+  box-shadow: var(--sombra-superficie);
 }
 
 .pago-card__ico {
@@ -1977,7 +2013,18 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 /* =====================================================================
    PREGUNTAS FRECUENTES — acordeón con <details>/<summary> nativos
    ===================================================================== */
-.acordeon { display: grid; }
+/* Los ítems de por sí no tienen fondo propio (sólo divisores entre
+   filas), así que el acordeón entero se trata como UN bloque elevado,
+   no cada pregunta por separado — eso sí se vería mal, superficies
+   elevadas solapadas fila por fila. */
+.acordeon {
+  display: grid;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-superficie);
+  padding: 0 20px;
+}
 
 /* La abierta se marca con una barra vertical jade sobre el borde
    izquierdo. El borde de 2px existe siempre (transparente) para que al
@@ -1988,7 +2035,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   padding-left: 12px;
   transition: border-left-color 300ms ease;
 }
-.faq__item:first-child { border-top: 1px solid var(--borde); }
+.faq__item:last-child { border-bottom: 0; }
 .faq__item[open] { border-left-color: var(--acento-fuerte); background: var(--fondo); }
 
 .faq__pregunta {
