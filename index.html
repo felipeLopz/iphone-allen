@@ -11,6 +11,21 @@
      placeholder sin completar (ver README.md). -->
 <meta name="robots" content="noindex, nofollow">
 
+<!-- Vista previa al compartir el link (WhatsApp, redes).
+     OJO 1: og:url y og:image apuntan a https://iphone-allen.vercel.app/.
+     Si el sitio pasa a un dominio propio hay que actualizarlas en los
+     SEIS HTML y en la constante SITIO de app.js.
+     OJO 2: og:image usa por ahora una foto de producto de img/. Conviene
+     reemplazarla por una imagen propia de 1200x630px (el formato que
+     esperan WhatsApp y las redes) cuando la tengan. -->
+<meta property="og:title" content="IPHONE ALLEN — iPhones y productos Apple en Allen, Río Negro">
+<meta property="og:description" content="Equipos liberados y soporte real después de la venta. Local en Allen, Río Negro y envíos a ciudades vecinas.">
+<meta property="og:image" content="https://iphone-allen.vercel.app/img/iphone-16-pro-max-256.jpg">
+<meta property="og:url" content="https://iphone-allen.vercel.app/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_AR">
+<meta name="twitter:card" content="summary_large_image">
+
 <!--
   ============================================================
   CÓMO PERSONALIZAR ESTA PÁGINA
@@ -66,15 +81,13 @@
         </div>
 
         <ul class="datos">
-          <li class="dato">
-            <span class="dato__valor">Equipos</span>
-            <span class="dato__label">liberados</span>
-          </li>
-          <li class="dato">
-            <span class="dato__valor">Local</span>
-            <span class="dato__label">en Allen</span>
-          </li>
+          <li class="dato"><span class="dato__ico" data-ico="check"></span>Liberados</li>
+          <li class="dato"><span class="dato__ico" data-ico="check"></span>Originales</li>
+          <li class="dato"><span class="dato__ico" data-ico="check"></span>Buenas condiciones</li>
         </ul>
+
+        <!-- DIRECCIÓN PROVISORIA - confirmar con el cliente antes de publicar -->
+        <p class="hero__direccion">Río Cuarto 2341, Allen, Río Negro</p>
       </div>
 
       <!-- Producto destacado del hero: lo inyecta app.js -->
@@ -127,21 +140,9 @@
     </div>
   </section>
 
-  <!-- ===================== CONFIANZA ============================== -->
-  <section class="seccion" id="confianza">
-    <div class="wrap">
-      <ul class="confianza">
-        <li class="confianza__item">
-          <span class="confianza__valor">Liberados</span>
-          <span class="confianza__label">Funcionan con cualquier compañía</span>
-        </li>
-        <li class="confianza__item">
-          <span class="confianza__valor">Allen</span>
-          <span class="confianza__label">Local físico y envíos a ciudades vecinas</span>
-        </li>
-      </ul>
-    </div>
-  </section>
+<!-- La barra de confianza que estaba acá se sacó: repetía tal cual los
+     tres tildes del hero ("Liberados") y la ubicación, que ahora vive
+     arriba con la dirección. Los envíos siguen figurando en el footer. -->
 
   <!-- ========================== COMPARADOR ========================= -->
   <section class="seccion" id="comparar">

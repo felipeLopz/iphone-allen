@@ -70,8 +70,19 @@
   // WhatsApp en formato internacional, sin + ni espacios.
   var WHATSAPP = '5492613900039';
 
-  // Mensaje del botón "Escribinos" (consulta general).
+  // Mensaje del botón "Escribinos" (consulta general). Lo usan también el
+  // botón flotante de WhatsApp y los enlaces de redes.
   var MENSAJE_CONSULTA = '¡Hola ' + NEGOCIO + '! Quería hacerles una consulta sobre los equipos.';
+
+  // DIRECCIÓN PROVISORIA - confirmar con el cliente antes de publicar
+  // (aparece también en index.html, con el mismo comentario)
+  var DIRECCION = 'Río Cuarto 2341, Allen, Río Negro';
+
+  // URL pública del sitio. Se usa para armar el link que se comparte desde
+  // el modal de producto.
+  // OJO: si el sitio pasa a un dominio propio hay que cambiarla acá Y en
+  // las etiquetas og:url / og:image de los seis HTML.
+  var SITIO = 'https://iphone-allen.vercel.app/';
 
   var STORAGE_KEY = 'nombre-carrito-v1';
   var ENTREGA_STORAGE_KEY = 'nombre-entrega-v1';
@@ -215,7 +226,10 @@
     tarjeta: '<path d="M3 5m0 3a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3z"></path>' +
              '<path d="M3 10l18 0"></path><path d="M7 15l.01 0"></path><path d="M11 15l2 0"></path>',
     lupa: '<circle cx="10" cy="10" r="7"></circle><path d="M21 21l-6 -6"></path>',
-    volver: '<path d="M15 6l-6 6l6 6"></path>'
+    volver: '<path d="M15 6l-6 6l6 6"></path>',
+    compartir: '<circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="6" r="3"></circle>' +
+               '<circle cx="18" cy="18" r="3"></circle>' +
+               '<path d="M8.7 10.7l6.6 -3.4"></path><path d="M8.7 13.3l6.6 3.4"></path>'
   };
 
   function icono(nombre, clase) {
@@ -387,7 +401,9 @@
     return '<footer class="footer">' +
       '<div class="wrap footer__inner">' +
         '<p class="footer__brand"><span class="logo">' + esc(NEGOCIO) + '</span></p>' +
-        '<p class="footer__nota">Allen, Río Negro · Envíos a ciudades vecinas</p>' +
+        // DIRECCIÓN PROVISORIA - confirmar con el cliente antes de publicar
+        // (sale de la constante DIRECCION, arriba de este archivo)
+        '<p class="footer__nota">' + esc(DIRECCION) + ' · Envíos a ciudades vecinas</p>' +
         '<div class="footer__redes" id="footerRedes"></div>' +
         '<p class="footer__legal">No somos revendedor oficial de Apple. Apple, iPhone, iPad y Mac ' +
           'son marcas registradas de Apple Inc.</p>' +
@@ -511,6 +527,16 @@
       '</aside>';
   }
 
+  // Botón circular fijo abajo a la derecha, en las seis páginas. Su
+  // z-index (30) queda por debajo del header, del velo, del drawer y del
+  // modal, así que nunca se dibuja encima de una capa abierta; además se
+  // oculta del todo mientras haya alguna (ver ocultarWhatsappFlotante).
+  function htmlBotonWhatsapp() {
+    return '<a class="wa-flotante" id="waFlotante" href="' + urlWhatsapp(MENSAJE_CONSULTA) + '" ' +
+           'target="_blank" rel="noopener" ' +
+           'aria-label="Escribinos por WhatsApp">' + icono('whatsapp') + '</a>';
+  }
+
   function htmlModal() {
     return '<div class="overlay" id="overlayModal" hidden></div>' +
       '<div class="modal" id="modalProducto" role="dialog" aria-modal="true" aria-labelledby="modalNombre" hidden>' +
@@ -527,7 +553,7 @@
   // formulario en el nivel superior, y todos viven acá adentro.
   document.getElementById('app-header').innerHTML = htmlHeader();
   document.getElementById('app-footer').innerHTML = htmlFooter();
-  document.body.insertAdjacentHTML('beforeend', htmlDrawer() + htmlModal());
+  document.body.insertAdjacentHTML('beforeend', htmlDrawer() + htmlModal() + htmlBotonWhatsapp());
 
   /* ---------------------------- CARGA DE DATOS ---------------------- */
 
@@ -564,6 +590,9 @@
         iniciarComparador();
       } else {
         pintarCatalogo();
+        // sólo al cargar: pintarCatalogo() vuelve a correr con cada tecla
+        // del buscador y no corresponde reabrir el modal cada vez.
+        abrirProductoDeLaUrl();
       }
     })
     .catch(function (err) {
@@ -883,13 +912,18 @@
   // Tarjeta normal: imagen, nombre y precio. Sin specs y con el botón
   // de agregar compacto — la ficha completa está en el modal.
   function tarjeta(p) {
+    // El nombre va envuelto en un <span> propio porque el recorte a dos
+    // líneas necesita overflow:hidden, y eso no puede ir en .card__abrir
+    // ni en ningún ancestro: recortaría también su ::after, que es lo que
+    // hace clickeable toda la tarjeta. En el span, hermano del ::after,
+    // el recorte alcanza sólo al texto.
     return '<article class="card' + (hayStock(p) ? '' : ' card--agotado') + '">' +
              media(p, '', badgeStock(p)) +
              '<div>' +
                '<p class="card__cat">' + esc(p.categoria) + '</p>' +
                '<h4 class="card__nombre">' +
                  '<button class="card__abrir" type="button" data-modal="' + esc(p.id) + '">' +
-                   esc(p.nombre) +
+                   '<span class="card__nombre-txt">' + esc(p.nombre) + '</span>' +
                  '</button>' +
                '</h4>' +
              '</div>' +
@@ -1361,8 +1395,85 @@
       '<div class="modal__acciones">' +
         '<a class="btn btn--sec btn--bloque" href="' + urlWhatsapp(msgConsulta(p)) + '" ' +
         'target="_blank" rel="noopener">' + btnPartes('whatsapp', 'Consultar por WhatsApp') + '</a>' +
+        '<button class="btn btn--sec btn--bloque" type="button" data-compartir="' + esc(p.id) + '">' +
+          btnPartes('compartir', 'Compartir') + '</button>' +
         primario +
       '</div>';
+  }
+
+  /* --------------------------- COMPARTIR -----------------------------
+     No hay una página por producto, así que el link apunta a la página de
+     su categoría con ?producto=<id>: al abrirla, abrirProductoDeLaUrl()
+     levanta el modal de ese producto.
+     ------------------------------------------------------------------ */
+
+  function linkProducto(p) {
+    return SITIO + paginaDe(p.categoria) + '?producto=' + encodeURIComponent(p.id);
+  }
+
+  function compartirProducto(id) {
+    var p = buscarProducto(id);
+    if (!p) return;
+
+    var url = linkProducto(p);
+
+    // navigator.share sólo existe en contexto seguro y sobre todo en
+    // mobile; donde no está, el plan B es copiar el link.
+    if (navigator.share) {
+      navigator.share({
+        title: p.nombre,
+        text: p.nombre + ' — ' + precio(p.precio),
+        url: url
+      }).catch(function () {
+        // cancelar el diálogo del sistema no es un error que haya que avisar
+      });
+      return;
+    }
+
+    copiarLink(url);
+  }
+
+  function copiarLink(url) {
+    // La API moderna necesita HTTPS (o localhost); si no está disponible
+    // o falla, se cae al textarea + execCommand de siempre.
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () {
+        avisar('Link copiado');
+      }).catch(function () {
+        avisar(copiarConTextarea(url) ? 'Link copiado' : 'No se pudo copiar el link');
+      });
+      return;
+    }
+    avisar(copiarConTextarea(url) ? 'Link copiado' : 'No se pudo copiar el link');
+  }
+
+  function copiarConTextarea(texto) {
+    var ta = document.createElement('textarea');
+    ta.value = texto;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    document.body.appendChild(ta);
+    ta.select();
+
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  // ?producto=<id> — lo pone el botón "Compartir". Un id que no existe, o
+  // que es de otra categoría, se ignora: la página carga normal.
+  function abrirProductoDeLaUrl() {
+    var id = new URLSearchParams(location.search).get('producto');
+    if (!id) return;
+
+    var p = buscarProducto(id);
+    if (!p) return;
+    if (categoriaPagina && p.categoria !== categoriaPagina) return;
+
+    abrirModal(id);
   }
 
   function abrirModal(id, disparador) {
@@ -1605,6 +1716,12 @@
       return;
     }
 
+    var compartir = e.target.closest('[data-compartir]');
+    if (compartir) {
+      compartirProducto(compartir.dataset.compartir);
+      return;
+    }
+
     var irDestacados = e.target.closest('[data-ir-destacados]');
     if (irDestacados) cerrarDrawer();
   });
@@ -1630,11 +1747,25 @@
   var overlay = $('#overlayCarrito');
   var ultimoFoco = null;
 
-  function bloquearScroll() { document.body.style.overflow = 'hidden'; }
+  // El botón flotante de WhatsApp se esconde mientras hay una capa
+  // abierta: aunque su z-index ya lo deja por debajo, con el velo puesto
+  // seguiría siendo clickeable y compite con las acciones del carrito.
+  function ocultarWhatsappFlotante(ocultar) {
+    var fab = $('#waFlotante');
+    if (fab) fab.hidden = ocultar;
+  }
+
+  function bloquearScroll() {
+    document.body.style.overflow = 'hidden';
+    ocultarWhatsappFlotante(true);
+  }
 
   function liberarScroll() {
     // sólo se libera si no queda ninguna capa abierta
-    if (drawer.hidden && modal.hidden) document.body.style.overflow = '';
+    if (drawer.hidden && modal.hidden) {
+      document.body.style.overflow = '';
+      ocultarWhatsappFlotante(false);
+    }
   }
 
   function abrirDrawer() {
