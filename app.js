@@ -80,6 +80,18 @@
   // en productos.json y no esté acá se agrega al final.
   var ORDEN_CATEGORIAS = ['iPhone', 'Mac', 'iPad', 'Accesorios'];
 
+  // Cada categoría tiene su propia página. El nombre del archivo no se
+  // puede derivar del nombre de la categoría ("iPhone" -> iphones.html),
+  // así que el mapa es explícito: si mañana se agrega una categoría a
+  // productos.json hay que crear su HTML y sumarla acá, o el ítem del
+  // menú va a apuntar a un archivo que no existe.
+  var PAGINA_DE_CATEGORIA = {
+    'iPhone': 'iphones.html',
+    'Mac': 'mac.html',
+    'iPad': 'ipad.html',
+    'Accesorios': 'accesorios.html'
+  };
+
   // Redes del footer. Un valor que quede con el placeholder ("[ALGO]")
   // sencillamente no se renderiza: un ícono que lleva a una cuenta que
   // no existe es peor que no tenerlo.
@@ -122,10 +134,6 @@
 
   var productos = [];
   var carrito = leerCarrito();       // [{ id, cantidad }]
-  // Siempre hay una categoría activa (nunca "ver todas"); se fija al
-  // cargar productos.json — ver el .then() del fetch, más abajo.
-  var categoriaActiva = null;
-  var subcategoriaActiva = null;     // sólo aplica dentro de Accesorios
   var busqueda = '';
   var slideActivo = 0;
   var destacados = [];
@@ -167,6 +175,16 @@
     return String(txt).toLowerCase().normalize('NFD').replace(DIACRITICOS, '');
   }
 
+  // "Auriculares" -> "auriculares". Se usa para las anclas de las
+  // subcategorías de accesorios (accesorios.html#auriculares).
+  function slug(txt) {
+    return normalizar(txt).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  function paginaDe(categoria) {
+    return PAGINA_DE_CATEGORIA[categoria] || (slug(categoria) + '.html');
+  }
+
   /* ------------------------------- ICONOS ---------------------------
      Trazos estilo Tabler embebidos: sin CDN ni webfont de íconos.
      ------------------------------------------------------------------ */
@@ -195,7 +213,9 @@
              '<path d="M17 9v-2a2 2 0 0 0 -2 -2h-10a2 2 0 0 0 -2 2v6a2 2 0 0 0 2 2h2"></path>',
     transferencia: '<path d="M7 10h14l-4 -4"></path><path d="M17 14h-14l4 4"></path>',
     tarjeta: '<path d="M3 5m0 3a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3z"></path>' +
-             '<path d="M3 10l18 0"></path><path d="M7 15l.01 0"></path><path d="M11 15l2 0"></path>'
+             '<path d="M3 10l18 0"></path><path d="M7 15l.01 0"></path><path d="M11 15l2 0"></path>',
+    lupa: '<circle cx="10" cy="10" r="7"></circle><path d="M21 21l-6 -6"></path>',
+    volver: '<path d="M15 6l-6 6l6 6"></path>'
   };
 
   function icono(nombre, clase) {
@@ -283,28 +303,243 @@
            btnPartes('campana', 'Avisame cuando llegue', sr) + '</a>';
   }
 
+  // El comparador está en index.html. Desde una página de categoría el
+  // botón no puede cargar nada en pantalla: cruza de página llevando el
+  // id en la URL, y del otro lado aplicarCompararDeLaUrl() lo carga.
   function botonComparar(p) {
-    return '<button class="btn btn--sec btn--comparar" type="button" data-comparar="' + esc(p.id) + '">' +
-           btnPartes('lista', 'Comparar', '<span class="sr-only"> — ' + esc(p.nombre) + '</span>') +
-           '</button>';
+    var sr = '<span class="sr-only"> — ' + esc(p.nombre) + '</span>';
+
+    if (esInicio) {
+      return '<button class="btn btn--sec btn--comparar" type="button" data-comparar="' + esc(p.id) + '">' +
+             btnPartes('lista', 'Comparar', sr) + '</button>';
+    }
+    return '<a class="btn btn--sec btn--comparar" href="index.html?comparar=' + encodeURIComponent(p.id) + '">' +
+           btnPartes('lista', 'Comparar', sr) + '</a>';
   }
 
   function badgeStock(p) {
     return hayStock(p) ? '' : '<span class="badge-stock">Sin stock</span>';
   }
 
+  /* =====================================================================
+     PÁGINA ACTUAL
+     El sitio son cinco HTML que comparten este archivo. index.html es la
+     portada; las otras cuatro son una categoría cada una y se identifican
+     con data-categoria en su <main>. Todo lo que cambia entre páginas
+     (qué se pinta, a dónde apuntan los enlaces del menú, cuál se marca
+     como activo) sale de acá.
+     ===================================================================== */
+
+  var mainEl = document.querySelector('main');
+  var categoriaPagina = mainEl ? (mainEl.dataset.categoria || null) : null;
+  var esInicio = !categoriaPagina;
+
+  /* =====================================================================
+     ARMAZÓN COMPARTIDO (header, footer, carrito, modal, toast)
+     No se escribe en los cinco HTML: se genera acá y se inyecta. Cada
+     página sólo trae los contenedores vacíos #app-header y #app-footer
+     más su contenido propio. Cambiar el menú se hace en un solo lugar.
+     ===================================================================== */
+
+  function htmlHeader() {
+    // "Inicio" y el logotipo siempre van a la portada. "Contacto" vive en
+    // index.html: desde una categoría hay que saltar de página.
+    var hrefContacto = esInicio ? '#contacto' : 'index.html#contacto';
+    var anclaSalto = esInicio ? '#destacados' : '#catalogo';
+
+    return '<a class="skip-link" href="' + anclaSalto + '">Saltar al contenido</a>' +
+      '<header class="header">' +
+        '<div class="wrap">' +
+          '<div class="navbar">' +
+            '<a class="brand" href="index.html"><span class="logo">' + esc(NEGOCIO) + '</span></a>' +
+            '<span class="navbar__sep" aria-hidden="true"></span>' +
+            '<nav class="nav" aria-label="Principal">' +
+              '<a class="link-sub nav__link' + (esInicio ? ' is-activo' : '') + '" href="index.html"' +
+                (esInicio ? ' aria-current="page"' : '') + '>Inicio</a>' +
+              '<div class="nav-drop" id="navProductos">' +
+                '<button class="link-sub nav__link nav-drop__btn' + (esInicio ? '' : ' is-activo') + '" ' +
+                        'type="button" id="btnProductos" aria-haspopup="true" aria-expanded="false" ' +
+                        'aria-controls="menuProductos">' +
+                  'Productos' + icono('chevron', 'nav-drop__chevron') +
+                '</button>' +
+                '<div class="nav-drop__panel" id="menuProductos" role="menu" aria-label="Categorías de productos"></div>' +
+              '</div>' +
+              '<a class="link-sub nav__link" href="' + hrefContacto + '">Contacto</a>' +
+            '</nav>' +
+            '<button class="cart-btn" type="button" id="abrirCarrito" aria-haspopup="dialog" aria-controls="carrito">' +
+              '<svg class="ico cart-btn__ico" id="iconoCarrito" viewBox="0 0 24 24" fill="none" ' +
+                   'stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+                   'stroke-linejoin="round" aria-hidden="true">' + ICONOS.carrito + '</svg>' +
+              '<span class="sr-only">Carrito</span>' +
+              '<span class="cart-btn__count" id="contadorCarrito" aria-hidden="true">0</span>' +
+              '<span class="sr-only" id="contadorCarritoTexto">0 productos en el carrito</span>' +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+      '</header>';
+  }
+
+  function htmlFooter() {
+    return '<footer class="footer">' +
+      '<div class="wrap footer__inner">' +
+        '<p class="footer__brand"><span class="logo">' + esc(NEGOCIO) + '</span></p>' +
+        '<p class="footer__nota">Allen, Río Negro · Envíos a ciudades vecinas</p>' +
+        '<div class="footer__redes" id="footerRedes"></div>' +
+        '<p class="footer__legal">No somos revendedor oficial de Apple. Apple, iPhone, iPad y Mac ' +
+          'son marcas registradas de Apple Inc.</p>' +
+      '</div>' +
+    '</footer>';
+  }
+
+  function htmlPasoCarrito(n, etiqueta, activo) {
+    return '<li class="paso" data-activo="' + (activo ? 'true' : 'false') + '">' +
+             '<span class="paso__barra" aria-hidden="true"></span>' +
+             '<span class="paso__label">' + n + ' · ' + etiqueta + '</span>' +
+           '</li>';
+  }
+
+  function htmlHorario(rango) {
+    return '<label class="opcion"><input type="radio" name="horario" value="' + rango + '">' +
+           '<span>' + rango + '</span></label>';
+  }
+
+  function htmlDrawer() {
+    var horarios = ['08:00 - 10:00', '10:00 - 12:00', '12:00 - 14:00',
+                    '14:00 - 16:00', '16:00 - 18:00', '18:00 - 20:00'];
+
+    return '<div class="overlay" id="overlayCarrito" hidden></div>' +
+      '<aside class="drawer" id="carrito" role="dialog" aria-modal="true" aria-labelledby="carritoTitulo" hidden>' +
+        '<div class="drawer__head">' +
+          '<h2 class="drawer__titulo" id="carritoTitulo">Tu carrito</h2>' +
+          '<button class="drawer__cerrar" type="button" id="cerrarCarrito" aria-label="Cerrar carrito">' +
+            '<span aria-hidden="true">✕</span>' +
+          '</button>' +
+        '</div>' +
+
+        '<ol class="pasos" id="pasosCarrito" aria-label="Pasos de la compra">' +
+          htmlPasoCarrito(1, 'Carrito', true) +
+          htmlPasoCarrito(2, 'Datos', false) +
+          htmlPasoCarrito(3, 'WhatsApp', false) +
+        '</ol>' +
+
+        '<div class="drawer__body">' +
+          '<div class="carrito-lista" id="carritoLista"><div id="carritoItems"></div></div>' +
+
+          '<form class="form-entrega" id="formEntrega" novalidate hidden>' +
+            '<button class="form-entrega__volver" type="button" id="volverAlCarrito">' +
+              icono('volver') + 'Volver al carrito' +
+            '</button>' +
+
+            '<h3 class="form-entrega__titulo" id="formEntregaTitulo" tabindex="-1">Datos de entrega</h3>' +
+            '<p class="form-entrega__bajada">Completá tus datos para confirmar la compra.</p>' +
+
+            '<fieldset class="campo">' +
+              '<legend class="campo__label">Método de entrega <span class="req" aria-hidden="true">*</span></legend>' +
+              '<div class="opciones" role="radiogroup" aria-label="Método de entrega">' +
+                '<label class="opcion"><input type="radio" name="metodoEntrega" value="Envío" id="metodoEnvio" checked><span>Envío</span></label>' +
+                '<label class="opcion"><input type="radio" name="metodoEntrega" value="Retiro" id="metodoRetiro"><span>Retiro</span></label>' +
+              '</div>' +
+            '</fieldset>' +
+
+            '<div class="campo">' +
+              '<label class="campo__label" for="entregaNombre">Nombre y apellido <span class="req" aria-hidden="true">*</span></label>' +
+              '<input class="input" type="text" id="entregaNombre" name="nombre" placeholder="Ej: Juan Pérez" autocomplete="name">' +
+              '<p class="campo__error" id="errorNombre" hidden></p>' +
+            '</div>' +
+
+            '<div class="campo" id="campoDireccion">' +
+              '<label class="campo__label" for="entregaDireccion">Dirección completa <span class="req" aria-hidden="true">*</span></label>' +
+              '<input class="input" type="text" id="entregaDireccion" name="direccion" placeholder="Calle, número, piso, ciudad, CP" autocomplete="street-address">' +
+              '<p class="campo__error" id="errorDireccion" hidden></p>' +
+            '</div>' +
+
+            '<div class="campo">' +
+              '<label class="campo__label" for="entregaTelefono">Número de teléfono <span class="req" aria-hidden="true">*</span></label>' +
+              '<input class="input" type="tel" id="entregaTelefono" name="telefono" placeholder="Ej: 2985551234" autocomplete="tel" inputmode="tel">' +
+              '<p class="campo__error" id="errorTelefono" hidden></p>' +
+            '</div>' +
+
+            '<div class="campo">' +
+              '<label class="campo__label" for="entregaEmail">Correo electrónico <span class="campo__opcional">(opcional)</span></label>' +
+              '<input class="input" type="email" id="entregaEmail" name="email" placeholder="Ej: tu@email.com" autocomplete="email">' +
+              '<p class="campo__error" id="errorEmail" hidden></p>' +
+            '</div>' +
+
+            '<fieldset class="campo">' +
+              '<legend class="campo__label">' +
+                '<span id="horarioLabelTexto">Horario de entrega</span> <span class="req" aria-hidden="true">*</span>' +
+              '</legend>' +
+              '<div class="opciones opciones--horarios" id="grupoHorario" role="radiogroup" aria-labelledby="horarioLabelTexto">' +
+                horarios.map(htmlHorario).join('') +
+              '</div>' +
+              '<p class="campo__error" id="errorHorario" hidden></p>' +
+            '</fieldset>' +
+
+            '<button class="btn btn--bloque" type="submit">' +
+              btnPartes('whatsapp', 'Confirmar compra por WhatsApp') +
+            '</button>' +
+
+            '<p class="enviado" id="pedidoEnviado" hidden>' +
+              '<svg class="enviado__tilde" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+                   'stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+                '<path d="M5 12l5 5l10 -10"></path>' +
+              '</svg>' +
+              '<span>Te abrimos WhatsApp con el pedido</span>' +
+            '</p>' +
+
+            '<p class="form-entrega__nota">Se abrirá WhatsApp con los productos del carrito para coordinar el pago y la entrega.</p>' +
+            '<p class="form-entrega__privacidad">Tus datos se envían sólo por WhatsApp, no se guardan en el sitio.</p>' +
+          '</form>' +
+        '</div>' +
+
+        '<div class="drawer__foot" id="pieCarrito">' +
+          '<div class="drawer__anclado">' +
+            '<div class="drawer__total">' +
+              '<span>Total</span>' +
+              '<strong class="precio precio--total" id="carritoTotal">$ 0</strong>' +
+            '</div>' +
+            '<button class="btn btn--bloque" type="button" id="pedirWhatsapp">' +
+              btnPartes('flecha', 'Continuar') +
+            '</button>' +
+          '</div>' +
+          '<button class="btn-plano" type="button" id="vaciarCarrito">Vaciar carrito</button>' +
+        '</div>' +
+      '</aside>';
+  }
+
+  function htmlModal() {
+    return '<div class="overlay" id="overlayModal" hidden></div>' +
+      '<div class="modal" id="modalProducto" role="dialog" aria-modal="true" aria-labelledby="modalNombre" hidden>' +
+        '<button class="modal__cerrar" type="button" id="modalCerrar" aria-label="Cerrar detalle del producto">' +
+          '<span aria-hidden="true">✕</span>' +
+        '</button>' +
+        '<div class="modal__scroll" id="modalContenido"></div>' +
+      '</div>' +
+      '<div class="toast" id="toast" role="status" aria-live="polite"></div>';
+  }
+
+  // El armazón se inyecta ANTES de cualquier otra cosa: el resto del
+  // archivo consulta #carrito, #modalProducto, #toast y los campos del
+  // formulario en el nivel superior, y todos viven acá adentro.
+  document.getElementById('app-header').innerHTML = htmlHeader();
+  document.getElementById('app-footer').innerHTML = htmlFooter();
+  document.body.insertAdjacentHTML('beforeend', htmlDrawer() + htmlModal());
+
   /* ---------------------------- CARGA DE DATOS ---------------------- */
 
-  pintarEsqueletos();
+  // La grilla sólo existe en las páginas de categoría; en la portada no
+  // hay catálogo, así que tampoco hay esqueletos que mostrar.
+  if (!esInicio) montarPaginaCategoria();
 
-  // Estas tres secciones son contenido estático (no dependen de
-  // productos.json), así que se pintan de una y siguen ahí aunque
-  // el fetch de productos falle.
   hidratarIconos();
-  pintarPagos();
-  pintarFaq();
   pintarRedes();
-  pintarRedesContacto();
+  // Estas tres son contenido estático de la portada: se pintan de una y
+  // siguen ahí aunque el fetch de productos falle.
+  if (esInicio) {
+    pintarPagos();
+    pintarFaq();
+    pintarRedesContacto();
+  }
 
   fetch('productos.json')
     .then(function (r) {
@@ -316,29 +551,29 @@
       destacados = productos.filter(function (p) { return p.destacado; });
       if (!destacados.length) destacados = productos.slice(0, 3);
 
-      // iPhone por defecto; si por algún motivo no hubiera productos de
-      // iPhone, cae a la primera categoría real que sí tenga.
-      var catsDisponibles = categoriasConProductos();
-      categoriaActiva = catsDisponibles.indexOf('iPhone') !== -1 ? 'iPhone' : catsDisponibles[0];
-
-      pintarHero();
-      pintarCarrusel();
-      pintarFiltros();
       construirMenuProductos();
-      pintarCatalogo();
       pintarCarrito();
-      pintarSelectsComparador();
-      pintarComparador();
+
+      if (esInicio) {
+        pintarHero();
+        iniciarCarrusel();
+        iniciarComparador();
+      } else {
+        pintarCategoria();
+      }
     })
     .catch(function (err) {
-      // Ocurre al abrir index.html con doble clic (file://): el navegador
+      // Ocurre al abrir el HTML con doble clic (file://): el navegador
       // bloquea fetch. Hay que servirlo por HTTP.
-      $('#catalogoSecciones').innerHTML =
+      var aviso =
         '<div class="aviso"><strong>No se pudieron cargar los productos.</strong><br>' +
         'Si abriste el archivo con doble clic, el navegador bloquea la lectura de ' +
         '<code>productos.json</code>. Levantá un servidor local desde esta carpeta, ' +
         'por ejemplo con <code>python -m http.server</code>, y entrá a ' +
         '<code>http://localhost:8000</code>.<br><small>Detalle: ' + esc(err.message) + '</small></div>';
+
+      var destino = $('#catalogoSecciones') || $('#heroProducto');
+      if (destino) destino.innerHTML = aviso;
       console.error('[tienda] no se pudo cargar productos.json:', err);
     });
 
@@ -384,13 +619,65 @@
       '</article>';
   }
 
-  /* ----------------------------- CARRUSEL --------------------------- */
+  /* ----------------------------- CARRUSEL ---------------------------
+     Sólo existe en la portada: las variables se resuelven dentro de
+     iniciarCarrusel(), que se llama nada más si el markup está presente.
+     ------------------------------------------------------------------ */
 
-  var track = $('#carruselTrack');
-  var barras = $('#carruselBarras');
-  var viewport = $('#carruselViewport');
-  var btnPrev = $('#carruselPrev');
-  var btnNext = $('#carruselNext');
+  var track, barras, viewport, btnPrev, btnNext;
+
+  function iniciarCarrusel() {
+    track = $('#carruselTrack');
+    barras = $('#carruselBarras');
+    viewport = $('#carruselViewport');
+    btnPrev = $('#carruselPrev');
+    btnNext = $('#carruselNext');
+    if (!track) return;
+
+    btnPrev.addEventListener('click', function () { irASlide(slideActivo - 1); });
+    btnNext.addEventListener('click', function () { irASlide(slideActivo + 1); });
+
+    barras.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-slide]');
+      if (b) irASlide(Number(b.dataset.slide));
+    });
+
+    // Flechas del teclado sobre el carrusel
+    $('#carrusel').addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight') { irASlide(slideActivo + 1); enfocarBarra(); }
+      if (e.key === 'ArrowLeft')  { irASlide(slideActivo - 1); enfocarBarra(); }
+    });
+
+    // Swipe táctil (pointer events: sirve para dedo y mouse)
+    viewport.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      arrastre = { x: e.clientX, y: e.clientY, dx: 0, decidido: false, horizontal: false };
+    });
+
+    viewport.addEventListener('pointermove', function (e) {
+      if (!arrastre) return;
+      arrastre.dx = e.clientX - arrastre.x;
+      var dy = e.clientY - arrastre.y;
+
+      // Primer movimiento: decidir si el gesto es horizontal (swipe) o vertical (scroll)
+      if (!arrastre.decidido && (Math.abs(arrastre.dx) > 8 || Math.abs(dy) > 8)) {
+        arrastre.decidido = true;
+        arrastre.horizontal = Math.abs(arrastre.dx) > Math.abs(dy);
+      }
+      if (!arrastre.horizontal) return;
+
+      var ancho = viewport.offsetWidth || 1;
+      var pct = (arrastre.dx / ancho) * 100;
+      track.style.transition = 'none';
+      track.style.transform = 'translateX(' + (-slideActivo * 100 + pct) + '%)';
+    });
+
+    viewport.addEventListener('pointerup', terminarArrastre);
+    viewport.addEventListener('pointercancel', terminarArrastre);
+    viewport.addEventListener('pointerleave', terminarArrastre);
+
+    pintarCarrusel();
+  }
 
   function pintarCarrusel() {
     track.innerHTML = destacados.map(function (p, i) {
@@ -442,51 +729,13 @@
     btnNext.disabled = slideActivo === destacados.length - 1;
   }
 
-  btnPrev.addEventListener('click', function () { irASlide(slideActivo - 1); });
-  btnNext.addEventListener('click', function () { irASlide(slideActivo + 1); });
-
-  barras.addEventListener('click', function (e) {
-    var b = e.target.closest('[data-slide]');
-    if (b) irASlide(Number(b.dataset.slide));
-  });
-
-  // Flechas del teclado sobre el carrusel
-  $('#carrusel').addEventListener('keydown', function (e) {
-    if (e.key === 'ArrowRight') { irASlide(slideActivo + 1); enfocarBarra(); }
-    if (e.key === 'ArrowLeft')  { irASlide(slideActivo - 1); enfocarBarra(); }
-  });
-
   function enfocarBarra() {
     if (document.activeElement && document.activeElement.classList.contains('barra')) {
       barras.children[slideActivo].focus();
     }
   }
 
-  // Swipe táctil (pointer events: sirve para dedo y mouse)
   var arrastre = null;
-
-  viewport.addEventListener('pointerdown', function (e) {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    arrastre = { x: e.clientX, y: e.clientY, dx: 0, decidido: false, horizontal: false };
-  });
-
-  viewport.addEventListener('pointermove', function (e) {
-    if (!arrastre) return;
-    arrastre.dx = e.clientX - arrastre.x;
-    var dy = e.clientY - arrastre.y;
-
-    // Primer movimiento: decidir si el gesto es horizontal (swipe) o vertical (scroll)
-    if (!arrastre.decidido && (Math.abs(arrastre.dx) > 8 || Math.abs(dy) > 8)) {
-      arrastre.decidido = true;
-      arrastre.horizontal = Math.abs(arrastre.dx) > Math.abs(dy);
-    }
-    if (!arrastre.horizontal) return;
-
-    var ancho = viewport.offsetWidth || 1;
-    var pct = (arrastre.dx / ancho) * 100;
-    track.style.transition = 'none';
-    track.style.transform = 'translateX(' + (-slideActivo * 100 + pct) + '%)';
-  });
 
   function terminarArrastre() {
     if (!arrastre) return;
@@ -506,11 +755,7 @@
     else irASlide(slideActivo);
   }
 
-  viewport.addEventListener('pointerup', terminarArrastre);
-  viewport.addEventListener('pointercancel', terminarArrastre);
-  viewport.addEventListener('pointerleave', terminarArrastre);
-
-  /* ------------------------- FILTROS Y BUSCADOR --------------------- */
+  /* ------------------------- CATEGORÍAS Y BUSCADOR ------------------ */
 
   function categoriasConProductos() {
     var presentes = [];
@@ -532,44 +777,62 @@
     return n + ' ' + palabra + (n === 1 ? '' : 's');
   }
 
-  // Sin botón "Todos": las pastillas son las categorías reales, y siempre
-  // hay una marcada — nunca se ven todas las secciones juntas.
-  function pintarFiltros() {
-    var cats = categoriasConProductos();
+  /* --------------------- PÁGINA DE CATEGORÍA -------------------------
+     La página ES el filtro: no hay pastillas de categoría. El armazón
+     (título, buscador, contenedor de la grilla) se arma acá para no
+     repetirlo en los cuatro HTML.
+     ------------------------------------------------------------------ */
 
-    $('#filtros').innerHTML = cats.map(function (c) {
-      return '<button class="filtro" type="button" data-cat="' + esc(c) + '" ' +
-             'aria-pressed="' + (c === categoriaActiva) + '">' + esc(c) + '</button>';
-    }).join('');
+  var buscador, campoBusqueda, lupa;
+
+  function montarPaginaCategoria() {
+    mainEl.innerHTML =
+      '<section class="seccion" id="catalogo">' +
+        '<div class="wrap">' +
+          '<header class="seccion__head seccion__head--catalogo">' +
+            '<h1 class="seccion__titulo">' + esc(categoriaPagina) + '</h1>' +
+            '<p class="seccion__sub" id="conteoCategoria">Precios finales en pesos. Consultá por financiación.</p>' +
+          '</header>' +
+          '<div class="barra-catalogo">' +
+            '<div class="buscador" id="buscador" data-abierto="false">' +
+              '<button class="buscador__lupa" type="button" id="buscadorToggle" ' +
+                      'aria-expanded="false" aria-controls="busqueda" aria-label="Buscar productos">' +
+                icono('lupa') +
+              '</button>' +
+              '<input class="buscador__campo" id="busqueda" type="search" placeholder="Buscar equipo…" ' +
+                     'aria-label="Buscar productos por nombre" tabindex="-1" autocomplete="off">' +
+            '</div>' +
+          '</div>' +
+          '<div class="secciones" id="catalogoSecciones" aria-live="polite"></div>' +
+          '<div id="catalogoVacio" hidden></div>' +
+        '</div>' +
+      '</section>';
+
+    pintarEsqueletos();
+    iniciarBuscador();
   }
 
-  // Punto único para cambiar el filtro: lo usan las pastillas del catálogo
-  // y el desplegable "Productos" del menú. `categoria` siempre es una
-  // categoría real (no existe "Todos"). Deja el estado coherente
-  // (categoría + subcategoría), sincroniza las pastillas y repinta.
-  function aplicarFiltro(categoria, subcategoria) {
-    categoriaActiva = categoria;
-    subcategoriaActiva = subcategoria || null;
+  // [32] buscador que se abre desde la lupa. Acotado a la categoría de
+  // la página: filtra sobre productosDeCategoria(), no sobre todo el JSON.
+  function iniciarBuscador() {
+    buscador = $('#buscador');
+    campoBusqueda = $('#busqueda');
+    lupa = $('#buscadorToggle');
 
-    Array.prototype.forEach.call($('#filtros').children, function (f) {
-      f.setAttribute('aria-pressed', f.dataset.cat === categoriaActiva ? 'true' : 'false');
+    lupa.addEventListener('click', function () {
+      if (buscador.dataset.abierto === 'true') cerrarBuscador(true);
+      else abrirBuscador();
     });
 
-    pintarCatalogo(true); // [16] las secciones entran al cambiar de filtro
+    campoBusqueda.addEventListener('input', function () {
+      busqueda = this.value.trim();
+      pintarCategoria();
+    });
+
+    campoBusqueda.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') cerrarBuscador(true);
+    });
   }
-
-  // Sin toggle-off: no existe el estado "ver todas", así que tocar la
-  // pastilla ya activa simplemente la deja como está.
-  $('#filtros').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-cat]');
-    if (!b) return;
-    aplicarFiltro(b.dataset.cat, null);
-  });
-
-  // [32] buscador que se abre desde la lupa
-  var buscador = $('#buscador');
-  var campoBusqueda = $('#busqueda');
-  var lupa = $('#buscadorToggle');
 
   function abrirBuscador() {
     buscador.dataset.abierto = 'true';
@@ -585,24 +848,10 @@
     if (campoBusqueda.value) {
       campoBusqueda.value = '';
       busqueda = '';
-      pintarCatalogo();
+      pintarCategoria();
     }
     if (devolverFoco) lupa.focus();
   }
-
-  lupa.addEventListener('click', function () {
-    if (buscador.dataset.abierto === 'true') cerrarBuscador(true);
-    else abrirBuscador();
-  });
-
-  campoBusqueda.addEventListener('input', function () {
-    busqueda = this.value.trim();
-    pintarCatalogo();
-  });
-
-  campoBusqueda.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') cerrarBuscador(true);
-  });
 
   /* ---------------------------- CATÁLOGO ---------------------------- */
 
@@ -658,74 +907,115 @@
     return marcados[0] || lista[0];
   }
 
-  function productosDe(categoria) {
+  // Productos de la categoría de la página, aplicando la búsqueda. El
+  // filtro de categoría no es opcional: la página ya es la categoría.
+  function productosDeCategoria() {
     return productos.filter(function (p) {
-      if (p.categoria !== categoria) return false;
-      // subcategoría: sólo se setea junto a Accesorios, y sólo esos
-      // productos la tienen, así que este chequeo no afecta a las demás.
-      if (subcategoriaActiva && p.subcategoria !== subcategoriaActiva) return false;
+      if (p.categoria !== categoriaPagina) return false;
       if (!busqueda) return true;
       return normalizar(p.nombre).indexOf(normalizar(busqueda)) !== -1;
     });
   }
 
-  // Siempre se renderiza una sola categoría (la activa); nunca todas
-  // juntas. Si esa categoría no tuviera productos (no debería pasar:
-  // sólo se activan categorías con al menos un producto) no generaría
-  // encabezado, igual que antes.
-  function pintarCatalogo(animarSecciones) {
-    var visibles = categoriasConProductos().filter(function (c) {
-      return c === categoriaActiva;
-    });
+  // Una sección con su grilla (principal + resto). El encabezado sólo va
+  // cuando hay más de una sección en la página (las subcategorías de
+  // accesorios): en iPhone, Mac o iPad repetiría el título de la página.
+  function seccionGrilla(titulo, lista, idAncla, conEncabezado) {
+    var principal = elegirPrincipal(lista, titulo);
+    var resto = lista.filter(function (p) { return p !== principal; });
 
-    var claseSeccion = 'cat' + (animarSecciones && !sinMovimiento() ? ' cat--entra' : '');
+    var encabezado = conEncabezado
+      ? '<header class="cat__head">' +
+          '<h2 class="cat__titulo" id="tit-' + esc(idAncla) + '">' + esc(titulo) + '</h2>' +
+          '<p class="cat__conteo">' + conteo(categoriaPagina, lista.length) + '</p>' +
+        '</header>'
+      : '';
 
-    var html = visibles.map(function (c) {
-      var lista = productosDe(c);
-      if (!lista.length) return '';
-
-      var idTitulo = 'cat-' + c.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-
-      // Con una subcategoría activa el título muestra la subcategoría
-      // (ej. "Auriculares") en vez de la categoría a secas.
-      var tituloSeccion = (subcategoriaActiva && c === 'Accesorios') ? subcategoriaActiva : c;
-
-      // El principal va primero en el DOM y ocupa la columna ancha;
-      // el resto entra en las dos columnas de la derecha.
-      var principal = elegirPrincipal(lista, c);
-      var resto = lista.filter(function (p) { return p !== principal; });
-
-      return '<section class="' + claseSeccion + '" aria-labelledby="' + idTitulo + '">' +
-               '<header class="cat__head">' +
-                 '<h3 class="cat__titulo" id="' + idTitulo + '">' + esc(tituloSeccion) + '</h3>' +
-                 '<p class="cat__conteo">' + conteo(c, lista.length) + '</p>' +
-               '</header>' +
-               '<div class="grilla">' +
-                 tarjetaPrincipal(principal) +
-                 resto.map(tarjeta).join('') +
-               '</div>' +
-             '</section>';
-    }).join('');
-
-    $('#catalogoSecciones').innerHTML = html;
-    pintarVacio(html === '');
-    revelarTarjetas();
+    return '<section class="cat" id="' + esc(idAncla) + '"' +
+             (conEncabezado ? ' aria-labelledby="tit-' + esc(idAncla) + '"' : '') + '>' +
+             encabezado +
+             '<div class="grilla">' +
+               tarjetaPrincipal(principal) +
+               resto.map(tarjeta).join('') +
+             '</div>' +
+           '</section>';
   }
 
-  // [13] sin resultados
+  // Accesorios se parte en una sección por subcategoría, cada una con su
+  // ancla (accesorios.html#auriculares). Las subcategorías salen del JSON
+  // y una que quede sin productos —o sin resultados de búsqueda— no se
+  // muestra. Las demás categorías van en una sola grilla.
+  function pintarCategoria() {
+    var lista = productosDeCategoria();
+    var html;
+
+    var subs = subcategoriasDe(categoriaPagina);
+    if (subs.length) {
+      html = subs.map(function (sub) {
+        var deLaSub = lista.filter(function (p) { return p.subcategoria === sub; });
+        if (!deLaSub.length) return '';
+        return seccionGrilla(sub, deLaSub, slug(sub), true);
+      }).join('');
+
+      // Un accesorio sin subcategoría quedaría fuera de todas las
+      // secciones: va al final, agrupado, en vez de desaparecer.
+      var sueltos = lista.filter(function (p) { return !p.subcategoria; });
+      if (sueltos.length) html += seccionGrilla('Otros', sueltos, 'otros', true);
+    } else {
+      html = lista.length ? seccionGrilla(categoriaPagina, lista, slug(categoriaPagina), false) : '';
+    }
+
+    $('#catalogoSecciones').innerHTML = html;
+    $('#conteoCategoria').textContent = conteo(categoriaPagina, lista.length) +
+      (busqueda ? ' que coinciden con la búsqueda' : ' · precios finales en pesos');
+
+    pintarVacio(html === '');
+    revelarTarjetas();
+    irAlAncla();
+  }
+
+  // El ancla de una subcategoría no puede resolverla el navegador solo:
+  // cuando llega el hash, la sección todavía no existe (la pinta este
+  // archivo después del fetch). Por eso el salto se hace a mano acá.
+  //
+  // El salto va en 'instant' a propósito, aunque el resto del sitio use
+  // scroll suave: con 'smooth' la animación dura mientras las fotos de
+  // arriba todavía se están cargando, cada una empuja el contenido hacia
+  // abajo y el scroll termina lejos del destino. Un salto de ancla al
+  // entrar tampoco es animado en el navegador.
+  function irAlAncla() {
+    if (!location.hash) return;
+    var destino = document.getElementById(location.hash.slice(1));
+    if (destino) destino.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }
+
+  // Elegir otra subcategoría del menú estando ya en accesorios.html sólo
+  // cambia el hash: no hay recarga, así que hay que mover el scroll.
+  window.addEventListener('hashchange', irAlAncla);
+
+  // [13] sin resultados. En una página de categoría el caso habitual ya
+  // no es "categoría vacía" sino "la búsqueda no encontró nada": el texto
+  // cambia para que la salida sugerida tenga sentido en cada caso.
   function pintarVacio(vacio) {
     var cont = $('#catalogoVacio');
     cont.hidden = !vacio;
-    cont.innerHTML = vacio
-      ? '<div class="estado-vacio">' +
-          icono('sinResultados', 'ico--grande') +
-          '<p class="estado-vacio__titulo">No hay equipos en esta categoría</p>' +
-          '<p class="estado-vacio__texto">Probá con otra o ' +
-            '<a class="enlace link-sub" href="' + urlWhatsapp(MENSAJE_CONSULTA) + '" ' +
-            'target="_blank" rel="noopener">escribinos</a>' +
-          '</p>' +
-        '</div>'
-      : '';
+
+    if (!vacio) { cont.innerHTML = ''; return; }
+
+    var titulo = busqueda
+      ? 'Ningún resultado para “' + esc(busqueda) + '”'
+      : 'Todavía no hay productos en esta sección';
+    var salida = busqueda ? 'Probá con otro nombre o ' : 'Mirá otra categoría en el menú o ';
+
+    cont.innerHTML =
+      '<div class="estado-vacio">' +
+        icono('sinResultados', 'ico--grande') +
+        '<p class="estado-vacio__titulo">' + titulo + '</p>' +
+        '<p class="estado-vacio__texto">' + salida +
+          '<a class="enlace link-sub" href="' + urlWhatsapp(MENSAJE_CONSULTA) + '" ' +
+          'target="_blank" rel="noopener">escribinos</a>' +
+        '</p>' +
+      '</div>';
   }
 
   /* ------------------ [10] ENTRADA ESCALONADA (IO) ------------------ */
@@ -769,8 +1059,48 @@
      tabla es una clave, cada columna un producto.
      ------------------------------------------------------------------ */
 
-  var selectA = $('#compararA');
-  var selectB = $('#compararB');
+  var selectA, selectB;
+
+  // El comparador vive sólo en index.html. Desde una página de categoría
+  // el botón "Comparar" es un enlace a index.html?comparar=<id>, que se
+  // resuelve acá al terminar de montar la tabla.
+  function iniciarComparador() {
+    selectA = $('#compararA');
+    selectB = $('#compararB');
+    if (!selectA) return;
+
+    selectA.addEventListener('change', function () {
+      comparadorA = this.value || null;
+      actualizarDisponibilidadComparador();
+      pintarComparador();
+    });
+    selectB.addEventListener('change', function () {
+      comparadorB = this.value || null;
+      actualizarDisponibilidadComparador();
+      pintarComparador();
+    });
+
+    $('#compararLimpiar').addEventListener('click', function () {
+      comparadorA = null;
+      comparadorB = null;
+      selectA.value = '';
+      selectB.value = '';
+      actualizarDisponibilidadComparador(); // rehabilita las dos opciones
+      pintarComparador();
+    });
+
+    pintarSelectsComparador();
+    pintarComparador();
+    aplicarCompararDeLaUrl();
+  }
+
+  // ?comparar=<id> — lo pone el botón "Comparar" de las tarjetas, que
+  // desde una categoría tiene que cruzar de página para llegar acá.
+  function aplicarCompararDeLaUrl() {
+    var id = new URLSearchParams(location.search).get('comparar');
+    if (!id || !buscarProducto(id)) return;
+    cargarEnComparador(id);
+  }
 
   function pintarSelectsComparador() {
     var optgroups = categoriasConProductos().map(function (c) {
@@ -932,26 +1262,6 @@
         '</table>' +
       '</div>';
   }
-
-  selectA.addEventListener('change', function () {
-    comparadorA = this.value || null;
-    actualizarDisponibilidadComparador();
-    pintarComparador();
-  });
-  selectB.addEventListener('change', function () {
-    comparadorB = this.value || null;
-    actualizarDisponibilidadComparador();
-    pintarComparador();
-  });
-
-  $('#compararLimpiar').addEventListener('click', function () {
-    comparadorA = null;
-    comparadorB = null;
-    selectA.value = '';
-    selectB.value = '';
-    actualizarDisponibilidadComparador(); // rehabilita las dos opciones
-    pintarComparador();
-  });
 
   // Botón "Comparar" de cada tarjeta: ocupa la primera columna libre y,
   // si las dos ya están ocupadas, reemplaza la segunda. Si el producto
@@ -1398,10 +1708,12 @@
     return partes.join('\n');
   }
 
+  // Los dos botones "Escribinos" (hero y sección de contacto) sólo
+  // existen en la portada; pintarCarrito() corre en las cinco páginas.
   function actualizarEnlacesWhatsapp() {
     var consulta = urlWhatsapp(MENSAJE_CONSULTA);
-    $('#ctaWhatsapp').href = consulta;
-    $('#ctaWhatsapp2').href = consulta;
+    var botones = document.querySelectorAll('#ctaWhatsapp, #ctaWhatsapp2');
+    Array.prototype.forEach.call(botones, function (b) { b.href = consulta; });
   }
 
   var enviadoTimer = null;
@@ -1695,12 +2007,15 @@
 
   // 'toggle' no burbujea, pero sí atraviesa la fase de captura: por eso
   // el listener va en el contenedor con el tercer argumento en true.
-  $('#acordeonFaq').addEventListener('toggle', function (e) {
-    if (e.target.tagName !== 'DETAILS' || !e.target.open) return;
-    Array.prototype.forEach.call($('#acordeonFaq').querySelectorAll('details[open]'), function (d) {
-      if (d !== e.target) d.open = false;
-    });
-  }, true);
+  // El acordeón sólo existe en la portada.
+  if ($('#acordeonFaq')) {
+    $('#acordeonFaq').addEventListener('toggle', function (e) {
+      if (e.target.tagName !== 'DETAILS' || !e.target.open) return;
+      Array.prototype.forEach.call($('#acordeonFaq').querySelectorAll('details[open]'), function (d) {
+        if (d !== e.target) d.open = false;
+      });
+    }, true);
+  }
 
   /* ------------------------------- REDES ------------------------------ */
 
@@ -1789,23 +2104,26 @@
   var navDrop = $('#navProductos');
   var mqMobile = window.matchMedia('(max-width: 719px)');
 
+  // Cada categoría es ahora una página propia, así que los ítems son
+  // enlaces y no botones que filtran. Las subcategorías van a la misma
+  // página de accesorios con el ancla de su sección.
   function construirMenuProductos() {
     var html = '';
 
     categoriasConProductos().forEach(function (c) {
       var subs = subcategoriasDe(c);
+      var pagina = paginaDe(c);
+      var actual = c === categoriaPagina;
+      var marca = actual ? ' is-activo" aria-current="page' : '';
 
-      if (!subs.length) {
-        // categoría sin subcategorías: un ítem que filtra por categoría
-        html += '<button class="nav-drop__item" type="button" role="menuitem" ' +
-                'data-cat="' + esc(c) + '">' + esc(c) + '</button>';
-      } else {
-        // categoría con subcategorías: encabezado de grupo + un ítem por sub
-        html += '<div class="nav-drop__grupo" role="group" aria-label="' + esc(c) + '">' +
-                  '<p class="nav-drop__grupo-tit">' + esc(c) + '</p>';
+      html += '<a class="nav-drop__item' + marca + '" role="menuitem" href="' + esc(pagina) + '">' +
+              esc(c) + '</a>';
+
+      if (subs.length) {
+        html += '<div class="nav-drop__grupo" role="group" aria-label="' + esc(c) + '">';
         subs.forEach(function (sub) {
-          html += '<button class="nav-drop__item nav-drop__item--sub" type="button" role="menuitem" ' +
-                  'data-cat="' + esc(c) + '" data-sub="' + esc(sub) + '">' + esc(sub) + '</button>';
+          html += '<a class="nav-drop__item nav-drop__item--sub" role="menuitem" ' +
+                  'href="' + esc(pagina) + '#' + esc(slug(sub)) + '">' + esc(sub) + '</a>';
         });
         html += '</div>';
       }
@@ -1841,38 +2159,19 @@
   // dispara ese .focus() reabriría el panel de inmediato.
   var reabrirBloqueado = false;
 
-  // Scroll suave hasta el catálogo (respeta scroll-padding-top del header).
-  function scrollAlCatalogo() {
-    $('#catalogo').scrollIntoView({ behavior: sinMovimiento() ? 'auto' : 'smooth', block: 'start' });
-  }
-
-  // Filtra el catálogo por una categoría real y baja hasta él. Núcleo
-  // compartido por los ítems del menú (no existe "Todos": siempre hay
-  // una categoría activa).
-  function irACatalogoFiltrado(categoria, subcategoria) {
-    aplicarFiltro(categoria, subcategoria);
-    scrollAlCatalogo();
-  }
-
-  // Botón "Productos": en desktop baja al catálogo SIN tocar el filtro
-  // (siempre hay una categoría activa, no hace falta forzar ninguna); en
-  // mobile funciona como acordeón (abre/cierra el panel).
+  // "Productos" ya no baja a ningún catálogo: no hay catálogo en la
+  // portada. Es sólo el disparador del panel, que ahora contiene los
+  // enlaces a las páginas de categoría.
   btnProductos.addEventListener('click', function () {
-    if (mqMobile.matches) {
-      if (menuAbierto()) cerrarMenu();
-      else abrirMenu();
-      return;
-    }
-    cerrarMenu();
-    scrollAlCatalogo();
+    if (menuAbierto()) cerrarMenu();
+    else abrirMenu();
   });
 
-  // Elegir una categoría o subcategoría del panel.
+  // Los ítems son enlaces: navegan solos. Sólo hay que cerrar el panel
+  // (importante cuando el destino es un ancla de la página actual, que
+  // no recarga y dejaría el menú abierto).
   menuProductos.addEventListener('click', function (e) {
-    var item = e.target.closest('[role="menuitem"]');
-    if (!item) return;
-    irACatalogoFiltrado(item.dataset.cat, item.dataset.sub || null);
-    cerrarMenu();
+    if (e.target.closest('[role="menuitem"]')) cerrarMenu();
   });
 
   // Teclado del desplegable: flechas mueven entre ítems, Escape cierra y

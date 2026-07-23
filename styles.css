@@ -1,5 +1,5 @@
-﻿/* =====================================================================
-   IPHONE ALLEN â€” hoja de estilos Ãºnica
+/* =====================================================================
+   IPHONE ALLEN — hoja de estilos única
    Mobile primero. Sin dependencias salvo las fuentes de Fontshare.
    ===================================================================== */
 
@@ -10,9 +10,9 @@
   --superficie2:  #EFF1F3;
   --borde:        #DFE3E7;
   --borde-fuerte: #C5CCD3;
-  /* Paleta monocromÃ¡tica: --acento y --acento-fuerte comparten el mismo
-     negro (#111418) â€” antes eran dos tonos de jade con roles distintos
-     (texto vs. fondo de botÃ³n), ahora ambos casos usan el mismo negro,
+  /* Paleta monocromática: --acento y --acento-fuerte comparten el mismo
+     negro (#111418) — antes eran dos tonos de jade con roles distintos
+     (texto vs. fondo de botón), ahora ambos casos usan el mismo negro,
      que pasa de sobra el contraste 4.5:1 en cualquiera de los dos usos. */
   --acento:       #111418;
   --acento-fuerte:#111418;
@@ -39,18 +39,18 @@
   --transicion: 220ms cubic-bezier(.4, .1, .2, 1);
 
   /* Sombras para separar las superficies elevadas (blanco) del fondo gris:
-     con sÃ³lo el borde #DFE3E7 el contraste es demasiado bajo (1.05:1) y
+     con sólo el borde #DFE3E7 el contraste es demasiado bajo (1.05:1) y
      los bloques parecen flotar sin apoyo. Tienen que notarse en reposo,
-     no sÃ³lo al pasar el mouse. */
+     no sólo al pasar el mouse. */
   --sombra-superficie:       0 2px 4px rgba(26, 31, 36, .10), 0 8px 24px rgba(26, 31, 36, .14);
   --sombra-superficie-hover: 0 4px 8px rgba(26, 31, 36, .12), 0 12px 32px rgba(26, 31, 36, .18);
-  /* un poco mÃ¡s marcada: refuerza la jerarquÃ­a de la tarjeta principal */
+  /* un poco más marcada: refuerza la jerarquía de la tarjeta principal */
   --sombra-principal:        0 4px 8px rgba(26, 31, 36, .12), 0 16px 40px rgba(26, 31, 36, .18);
 
   /* Borde para las mismas superficies con sombra: --borde (#DFE3E7) queda
      demasiado tenue al lado de una sombra este marcada y se ve redundante;
-     este tono un poco mÃ¡s oscuro se distingue sin competir. SÃ³lo se usa en
-     el borde exterior de tarjetas/bloques con sombra â€” el resto de los
+     este tono un poco más oscuro se distingue sin competir. Sólo se usa en
+     el borde exterior de tarjetas/bloques con sombra — el resto de los
      divisores (inputs, filas de tabla, chips) se quedan con --borde. */
   --borde-superficie: #D3D9DF;
 }
@@ -77,7 +77,7 @@ body {
 
 /* Fondo plano #F7F8F9 (lo pone `body { background }` arriba).
    Sobre tema claro, incluso manchas muy tenues tienden a leerse como un
-   tinte sucio en las esquinas, que es justo lo que se querÃ­a evitar; el
+   tinte sucio en las esquinas, que es justo lo que se quería evitar; el
    plano es limpio y sin riesgo. Si se prefiere el efecto, basta con volver
    a poner un body::before con dos radial-gradient muy suaves:
    rgba(17,20,24,.05) y rgba(17,20,24,.03). */
@@ -156,18 +156,18 @@ button {
 }
 
 /* ----------------------------- BOTONES ----------------------------
-   Tratamiento Ãºnico para todos los botones de acciÃ³n: bloque de color
-   con el Ã­cono a la izquierda y el texto sobre fondo oscuro a la
+   Tratamiento único para todos los botones de acción: bloque de color
+   con el ícono a la izquierda y el texto sobre fondo oscuro a la
    derecha, unidos por un solo contorno.
 
    El markup lo arma btnPartes() en app.js:
      <button class="btn"><span class="btn__ico">svg</span>
                          <span class="btn__txt">Texto</span></button>
-   Sigue siendo un <button>/<a> real; el Ã­cono va con aria-hidden y el
+   Sigue siendo un <button>/<a> real; el ícono va con aria-hidden y el
    texto queda accesible.
 
    OJO: no poner transform en :hover de .btn. Los botones de las
-   tarjetas son descendientes de .card y un transform ahÃ­ puede
+   tarjetas son descendientes de .card y un transform ahí puede
    reabrir el bug del scroll trabado sobre .media.
    ------------------------------------------------------------------ */
 .btn {
@@ -206,7 +206,7 @@ button {
 }
 .btn:hover .btn__txt { background: var(--superficie2); }
 
-/* Variante secundaria: el bloque del Ã­cono va en superficie2 con el
+/* Variante secundaria: el bloque del ícono va en superficie2 con el
    trazo en jade, en vez del bloque jade lleno. */
 .btn--sec .btn__ico {
   background: var(--superficie2);
@@ -223,7 +223,7 @@ button {
 
 .btn--comparar { width: 100%; }
 
-/* BotÃ³n sin tratamiento de bloque: acciÃ³n menor, sÃ³lo texto.
+/* Botón sin tratamiento de bloque: acción menor, sólo texto.
    Hoy lo usa "Vaciar carrito". */
 .btn-plano {
   color: var(--texto-suave);
@@ -236,9 +236,9 @@ button {
 .btn-plano:hover { color: var(--texto); }
 
 /* ----------------------------- HEADER -----------------------------
-   CÃ¡psula flotante centrada, separada de los bordes de la pantalla.
-   El <header> en sÃ­ es transparente y no recibe clicks: sÃ³lo la
-   cÃ¡psula los recibe, asÃ­ el hueco de alrededor no tapa el contenido
+   Cápsula flotante centrada, separada de los bordes de la pantalla.
+   El <header> en sí es transparente y no recibe clicks: sólo la
+   cápsula los recibe, así el hueco de alrededor no tapa el contenido
    que pasa por debajo al scrollear.
    ------------------------------------------------------------------ */
 .header {
@@ -261,7 +261,7 @@ button {
   border: 1px solid var(--borde-superficie);
   box-shadow: var(--sombra-superficie);
   /* mobile: los links caen a una 2da fila; la de arriba mantiene el
-     redondeo de pÃ­ldora y abajo se corta para no hacer un arco enorme */
+     redondeo de píldora y abajo se corta para no hacer un arco enorme */
   border-radius: 99px 99px 22px 22px;
   padding: 6px 8px 6px 12px;
   backdrop-filter: blur(12px);
@@ -274,7 +274,7 @@ button {
 }
 
 /* --------------------------- LOGOTIPO ------------------------------
-   SÃ³lo texto en negro, sin recuadro. Mismo tratamiento en el header
+   Sólo texto en negro, sin recuadro. Mismo tratamiento en el header
    (.brand) y en el footer (.footer__brand).
    ------------------------------------------------------------------ */
 .logo {
@@ -288,7 +288,7 @@ button {
   line-height: 1.2;
 }
 
-/* separador entre logotipo y links: sÃ³lo cuando van en la misma fila */
+/* separador entre logotipo y links: sólo cuando van en la misma fila */
 .navbar__sep {
   order: 1;
   display: none;
@@ -300,8 +300,8 @@ button {
 
 .cart-btn { order: 2; }
 
-/* Con sÃ³lo tres entradas (Inicio Â· Productos Â· Contacto) entran en una
-   fila sin scroll horizontal, asÃ­ que el nav puede tener overflow visible
+/* Con sólo tres entradas (Inicio · Productos · Contacto) entran en una
+   fila sin scroll horizontal, así que el nav puede tener overflow visible
    y dejar que el panel del desplegable se salga. */
 .nav {
   order: 3;
@@ -349,8 +349,8 @@ button {
   padding: 6px;
   z-index: 50;
 }
-/* puente invisible que cubre el hueco de 10px entre botÃ³n y panel, para
-   que el hover no se corte al bajar del botÃ³n al panel */
+/* puente invisible que cubre el hueco de 10px entre botón y panel, para
+   que el hover no se corte al bajar del botón al panel */
 .nav-drop__panel::before {
   content: "";
   position: absolute;
@@ -363,15 +363,6 @@ button {
 .nav-drop[data-abierto="true"] > .nav-drop__panel { display: block; }
 
 .nav-drop__grupo { display: block; }
-.nav-drop__grupo-tit {
-  margin: 0;
-  padding: 8px 12px 3px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--texto-tenue);
-}
 
 .nav-drop__item {
   display: block;
@@ -396,6 +387,15 @@ button {
   color: var(--acento);
 }
 
+/* Página actual: cada categoría es una página, así que el ítem del menú
+   que corresponde a la que se está viendo queda marcado. En una paleta
+   monocromática el color no alcanza como señal: va también el peso. */
+.nav-drop__item.is-activo {
+  background: var(--acento-suave);
+  font-weight: 600;
+}
+.nav__link.is-activo { color: var(--texto); font-weight: 600; }
+
 /* pastilla jade */
 .cart-btn {
   display: inline-flex;
@@ -405,7 +405,7 @@ button {
   border: 0;
   border-radius: 99px;
   background: var(--acento-fuerte);
-  color: #FFFFFF;              /* Ã­cono y contador en blanco sobre la pastilla */
+  color: #FFFFFF;              /* ícono y contador en blanco sobre la pastilla */
   font-size: 0.85rem;
   font-weight: 600;
   transition: background var(--transicion);
@@ -433,7 +433,7 @@ button {
 
 /* ------------------------------ HERO ------------------------------
    Sin fondo propio ni halo: las manchas jade ahora las pone body::before
-   y tienen que verse a travÃ©s de toda la secciÃ³n.
+   y tienen que verse a través de toda la sección.
    ------------------------------------------------------------------ */
 .hero {
   position: relative;
@@ -562,25 +562,25 @@ button {
    ------------------------------------------------------------------ */
 .media {
   position: relative;
-  /* Blanco puro: las fotos de producto ya vienen con fondo blanco, asÃ­
-     que con object-fit:contain la uniÃ³n entre foto y marco desaparece
-     en vez de notarse como una franja vacÃ­a oscura. */
+  /* Blanco puro: las fotos de producto ya vienen con fondo blanco, así
+     que con object-fit:contain la unión entre foto y marco desaparece
+     en vez de notarse como una franja vacía oscura. */
   background: #FFFFFF;
   border: 1px solid var(--borde);
   border-radius: var(--radio-sm);
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  /* con object-fit:contain (mÃ¡s abajo) la foto puede no llenar el marco;
+  /* con object-fit:contain (más abajo) la foto puede no llenar el marco;
      este padding evita que toque el borde y hace que el aire alrededor
      se vea intencional, no como un recorte fallado. box-sizing:border-box
-     (regla global) hace que el padding no altere el aspect-ratio de acÃ¡
-     arriba: el marco mantiene su proporciÃ³n exacta, quien se ajusta es
+     (regla global) hace que el padding no altere el aspect-ratio de acá
+     arriba: el marco mantiene su proporción exacta, quien se ajusta es
      el espacio interno para la imagen. */
   padding: 10px;
-  /* explÃ­cito a propÃ³sito: el recorte de la imagen no debe retener la
+  /* explícito a propósito: el recorte de la imagen no debe retener la
      rueda del mouse ni encadenarla de forma distinta al resto de la
-     pÃ¡gina. overscroll-behavior sÃ³lo debe existir en .modal__scroll
-     (ahÃ­ sÃ­ el scroll interno tiene que contenerse). */
+     página. overscroll-behavior sólo debe existir en .modal__scroll
+     (ahí sí el scroll interno tiene que contenerse). */
   overscroll-behavior: auto;
 }
 
@@ -608,8 +608,8 @@ button {
   width: 100%;
   height: 100%;
   /* contain, no cover: la foto entra completa, sin recortar los bordes
-     del equipo. Si sobra espacio queda vacÃ­o (el padding de .media hace
-     que ese aire se vea a propÃ³sito). */
+     del equipo. Si sobra espacio queda vacío (el padding de .media hace
+     que ese aire se vea a propósito). */
   object-fit: contain;
 }
 
@@ -713,7 +713,7 @@ button {
 }
 .carrusel__pie .btn { flex: 1 1 170px; }
 
-/* flechas: sÃ³lo desktop */
+/* flechas: sólo desktop */
 .carrusel__flecha {
   display: none;
   position: absolute;
@@ -737,7 +737,7 @@ button {
 .carrusel__flecha--prev { left: -62px; }
 .carrusel__flecha--next { right: -62px; }
 
-/* barritas de navegaciÃ³n (no puntos) */
+/* barritas de navegación (no puntos) */
 .carrusel__barras {
   display: flex;
   justify-content: center;
@@ -760,7 +760,7 @@ button {
   background: var(--acento-fuerte);
   width: 62px;
 }
-/* Ã¡rea tÃ¡ctil cÃ³moda sin agrandar la barrita visible */
+/* área táctil cómoda sin agrandar la barrita visible */
 .barra { position: relative; }
 .barra::after {
   content: "";
@@ -796,35 +796,10 @@ button {
   color: var(--texto-suave);
 }
 
-/* ---------------------------- FILTROS ----------------------------- */
-.filtros {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-  margin-bottom: 28px;
-}
-
-.filtro {
-  padding: 9px 17px;
-  border-radius: 999px;
-  border: 1px solid var(--borde);
-  background: var(--superficie);
-  color: var(--texto-suave);
-  font-size: 0.88rem;
-  font-weight: 500;
-  transition: color var(--transicion), border-color var(--transicion), background var(--transicion);
-}
-.filtro:hover { color: var(--texto); border-color: var(--texto-suave); }
-.filtro[aria-pressed="true"] {
-  background: var(--acento-suave);
-  border-color: var(--acento-fuerte);
-  color: var(--acento);
-}
-
-/* ------------------- SECCIONES POR CATEGORÃA ----------------------
-   El catÃ¡logo se lee como bloques distintos, no como una grilla
-   partida: de ahÃ­ el gap grande entre secciones.
-   El encabezado vive en el mismo contenedor que la grilla, asÃ­ que su
+/* ------------------- SECCIONES POR CATEGORÍA ----------------------
+   El catálogo se lee como bloques distintos, no como una grilla
+   partida: de ahí el gap grande entre secciones.
+   El encabezado vive en el mismo contenedor que la grilla, así que su
    borde inferior queda alineado con el ancho de las tarjetas.
    ------------------------------------------------------------------ */
 .secciones {
@@ -857,10 +832,10 @@ button {
 }
 
 /* ----------------------------- GRILLA -----------------------------
-   Mobile: una sola columna. El principal va primero en el DOM, asÃ­ que
-   queda arriba conservando su tamaÃ±o mayor.
+   Mobile: una sola columna. El principal va primero en el DOM, así que
+   queda arriba conservando su tamaño mayor.
    Desde 720px pasa a 1.5fr 1fr 1fr con el principal ocupando dos filas
-   de la primera columna (ver mÃ¡s abajo).
+   de la primera columna (ver más abajo).
    ------------------------------------------------------------------ */
 .grilla {
   display: grid;
@@ -869,7 +844,7 @@ button {
 }
 
 .card {
-  /* position: relative lo declara la regla del enlace estirado, mÃ¡s abajo */
+  /* position: relative lo declara la regla del enlace estirado, más abajo */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -891,15 +866,15 @@ button {
 }
 
 /* [4] borde que enciende.
-   Ojo: NO agregar transform acÃ¡ (ni translateY ni scale). .media es hijo
+   Ojo: NO agregar transform acá (ni translateY ni scale). .media es hijo
    directo de .card y tiene overflow:hidden + border-radius (el recorte
    de la imagen); un transform en :hover sobre este ancestro promueve
-   .card a su propia capa de composiciÃ³n exactamente al entrar el mouse,
-   y esa capa puede "tragarse" la rueda del mouse sobre el Ã¡rea recortada
+   .card a su propia capa de composición exactamente al entrar el mouse,
+   y esa capa puede "tragarse" la rueda del mouse sobre el área recortada
    hasta que el cursor sale de la tarjeta (bug real, ya reportado). El
-   cambio de borde no compone capa nueva, asÃ­ que es seguro. Lo mismo
-   vale para box-shadow: anima el valor de la sombra, nunca la posiciÃ³n
-   ni el tamaÃ±o de la caja. */
+   cambio de borde no compone capa nueva, así que es seguro. Lo mismo
+   vale para box-shadow: anima el valor de la sombra, nunca la posición
+   ni el tamaño de la caja. */
 .card.is-visible:hover {
   border-color: var(--acento);
   box-shadow: var(--sombra-superficie-hover);
@@ -909,17 +884,17 @@ button {
   from { opacity: 0; transform: translateY(10px); }
 }
 
-/* el nombre es el Ãºnico foco de la tarjeta y su ::after la cubre entera,
-   asÃ­ todo el bloque abre el modal con un solo elemento en el tab order.
+/* el nombre es el único foco de la tarjeta y su ::after la cubre entera,
+   así todo el bloque abre el modal con un solo elemento en el tab order.
 
    OJO: estas tres reglas van juntas y valen para los DOS contenedores que
    usan .card__abrir (tarjeta de grilla y slide del carrusel):
      1. el contenedor debe ser position:relative, si no el ::after se
-        ancla al ancestro posicionado mÃ¡s cercano y se desborda;
-     2. el botÃ³n de acciÃ³n necesita position + z-index para quedar
+        ancla al ancestro posicionado más cercano y se desborda;
+     2. el botón de acción necesita position + z-index para quedar
         por encima del ::after;
      3. el foco se dibuja sobre el contenedor entero.
-   Si maÃ±ana aparece otro contenedor con .card__abrir, hay que sumarlo
+   Si mañana aparece otro contenedor con .card__abrir, hay que sumarlo
    a los tres selectores. */
 .card__abrir {
   display: block;
@@ -950,7 +925,7 @@ button {
   outline-offset: 3px;
 }
 
-/* [14] sin stock: se atenÃºa el contenido, no el badge ni el botÃ³n */
+/* [14] sin stock: se atenúa el contenido, no el badge ni el botón */
 .card--agotado .media,
 .card--agotado .card__cat,
 .card--agotado .card__nombre,
@@ -986,7 +961,7 @@ button {
   font-size: 1.02rem;
   /* peso normal (no 600): con el precio y el nombre ya en el mismo negro
      (--acento), la diferencia de peso es lo que marca cuál es el dato
-     principal de la tarjeta [ver .card__precios .precio, mÃ¡s abajo] */
+     principal de la tarjeta [ver .card__precios .precio, más abajo] */
   font-weight: 400;
   line-height: 1.25;
 }
@@ -1001,26 +976,26 @@ button {
 .card__precios .precio { font-size: 1.38rem; }
 
 /* ------------------------- TARJETA PRINCIPAL -----------------------
-   Un producto por categorÃ­a con el doble de espacio. Sobre fondo claro
-   el borde solo no alcanza: se distingue con borde mÃ¡s fuerte + sombra.
+   Un producto por categoría con el doble de espacio. Sobre fondo claro
+   el borde solo no alcanza: se distingue con borde más fuerte + sombra.
    ------------------------------------------------------------------ */
 .card--principal {
   border-color: var(--borde-fuerte);
   box-shadow: var(--sombra-principal);
 }
-/* el hover de .card ya sube la sombra; acÃ¡ el punto de partida es mÃ¡s
-   marcado, asÃ­ que el hover sube un escalÃ³n mÃ¡s para no perder jerarquÃ­a
-   (misma proporciÃ³n baseâ†’hover que --sombra-superficie â†’ -hover) */
+/* el hover de .card ya sube la sombra; acá el punto de partida es más
+   marcado, así que el hover sube un escalón más para no perder jerarquía
+   (misma proporción base→hover que --sombra-superficie → -hover) */
 .card--principal.is-visible:hover {
   box-shadow: 0 6px 12px rgba(26, 31, 36, .14), 0 20px 48px rgba(26, 31, 36, .22);
 }
 .card--principal .card__nombre { font-size: 1.32rem; }
 .card--principal .card__precios .precio { font-size: 1.86rem; }
 
-/* La imagen del principal queda bastante mÃ¡s alta que la de una normal.
+/* La imagen del principal queda bastante más alta que la de una normal.
    Va fuera de cualquier media query: en mobile, donde todo se apila en
-   una columna, la diferencia de alto es lo Ãºnico que distingue al
-   principal, asÃ­ que ahÃ­ tambiÃ©n tiene que notarse. */
+   una columna, la diferencia de alto es lo único que distingue al
+   principal, así que ahí también tiene que notarse. */
 .media--principal { aspect-ratio: 4 / 3; }
 .card:not(.card--principal) .media { aspect-ratio: 16 / 10; }
 
@@ -1088,8 +1063,8 @@ button {
 .promo__sub { margin-top: 6px; color: var(--texto-tenue); font-size: 0.9rem; }
 
 /* ---------------------------- CONTACTO ----------------------------
-   SÃ³lo tÃ­tulo + dos botones (WhatsApp e Instagram), centrado. Sin
-   formulario, sin direcciÃ³n: ese contenido ya estÃ¡ en el hero. */
+   Sólo título + dos botones (WhatsApp e Instagram), centrado. Sin
+   formulario, sin dirección: ese contenido ya está en el hero. */
 .contacto { border-top: 1px solid var(--borde); }
 
 .contacto__inner {
@@ -1109,11 +1084,11 @@ button {
 }
 
 /* Agrupa un enlace de WhatsApp de "contacto general" (hero, FAQ,
-   secciÃ³n de contacto) con el Ã­cono de Instagram al lado, para que se
+   sección de contacto) con el ícono de Instagram al lado, para que se
    vean juntos. inline-flex: funciona tanto suelto como incrustado en
-   un pÃ¡rrafo (el "Â¿Otra consulta?" del FAQ). VacÃ­o si Instagram queda
-   en placeholder: el <span> del Ã­cono no tiene borde ni fondo propio,
-   asÃ­ que no deja hueco. */
+   un párrafo (el "¿Otra consulta?" del FAQ). Vacío si Instagram queda
+   en placeholder: el <span> del ícono no tiene borde ni fondo propio,
+   así que no deja hueco. */
 .contacto-redes {
   display: inline-flex;
   align-items: center;
@@ -1130,7 +1105,7 @@ button {
 .footer__brand { margin-bottom: 9px; }
 .footer__legal { margin-top: 12px; max-width: 62ch; font-size: 0.78rem; opacity: 0.75; }
 
-/* WhatsApp / Instagram / correo. VacÃ­o si los tres son placeholder:
+/* WhatsApp / Instagram / correo. Vacío si los tres son placeholder:
    el contenedor no colapsa raro porque no tiene borde ni fondo propio. */
 .footer__redes {
   display: flex;
@@ -1138,9 +1113,9 @@ button {
   margin: 16px 0;
 }
 
-/* Ãcono circular para un enlace de red/contacto. Se usa en el footer
+/* Ícono circular para un enlace de red/contacto. Se usa en el footer
    (WhatsApp, Instagram, correo) y en cualquier otro lugar donde el
-   Instagram acompaÃ±e a un WhatsApp de contacto general (.contacto-redes). */
+   Instagram acompañe a un WhatsApp de contacto general (.contacto-redes). */
 .red-link {
   display: grid;
   place-items: center;
@@ -1214,8 +1189,8 @@ button {
 }
 
 /* ------------------------- BARRA DE PASOS --------------------------
-   1 Â· Carrito â†’ 2 Â· Datos â†’ 3 Â· WhatsApp. La marca activa la mueve
-   marcarPaso() en app.js. Info secundaria: etiquetas chicas a propÃ³sito.
+   1 · Carrito → 2 · Datos → 3 · WhatsApp. La marca activa la mueve
+   marcarPaso() en app.js. Info secundaria: etiquetas chicas a propósito.
    ------------------------------------------------------------------ */
 .pasos {
   display: grid;
@@ -1247,9 +1222,9 @@ button {
 .paso[data-activo="true"] .paso__label { color: var(--acento); }
 
 /* --------------------------- LISTA DEL CARRITO ---------------------
-   Scrollea en su propia caja: asÃ­ el bloque del total queda siempre a
+   Scrollea en su propia caja: así el bloque del total queda siempre a
    la vista sin depender del scroll del drawer. El degradado del borde
-   inferior se enciende sÃ³lo cuando hay contenido de sobra.
+   inferior se enciende sólo cuando hay contenido de sobra.
    ------------------------------------------------------------------ */
 .carrito-lista { position: relative; }
 
@@ -1273,7 +1248,7 @@ button {
   align-content: start;
   max-height: calc(100dvh - 340px);
   overflow-y: auto;
-  /* que el scroll de la lista no se filtre a la pÃ¡gina de atrÃ¡s */
+  /* que el scroll de la lista no se filtre a la página de atrás */
   overscroll-behavior: contain;
 }
 
@@ -1297,7 +1272,7 @@ button {
 }
 
 /* la foto del carrito es de 44px de ancho: el padding base (10px por
-   lado) dejarÃ­a casi nada de imagen, asÃ­ que acÃ¡ va mÃ¡s chico */
+   lado) dejaría casi nada de imagen, así que acá va más chico */
 .linea .media { aspect-ratio: 44 / 52; padding: 4px; }
 .linea .media__ph { font-size: 0.58rem; padding: 4px; line-height: 1.15; }
 
@@ -1361,7 +1336,7 @@ button {
   gap: 6px;
 }
 
-/* bloque anclado: total + acciÃ³n principal */
+/* bloque anclado: total + acción principal */
 .drawer__anclado {
   display: grid;
   gap: 9px;
@@ -1381,7 +1356,7 @@ button {
   font-size: 0.92rem;
 }
 
-/* --------------------- [25] CONFIRMACIÃ“N (TOAST) ------------------ */
+/* --------------------- [25] CONFIRMACIÓN (TOAST) ------------------ */
 .toast {
   position: fixed;
   z-index: 70;
@@ -1418,7 +1393,7 @@ button {
 /* =====================================================================
    ICONOS
    SVG estilo Tabler embebidos en el markup (ti-shopping-cart, ti-check,
-   ti-search-offâ€¦). Van inline para no sumar dependencias externas.
+   ti-search-off…). Van inline para no sumar dependencias externas.
    ===================================================================== */
 .ico {
   width: 20px;
@@ -1449,7 +1424,7 @@ button {
 .link-sub:focus-visible::after { transform: scaleX(1); }
 
 /* --------------------- [7] PULSO DEL CTA DEL HERO ------------------
-   Ãšnico botÃ³n con halo. Se pausa mientras la confirmaciÃ³n [25] estÃ¡ en
+   Único botón con halo. Se pausa mientras la confirmación [25] está en
    pantalla para que los dos efectos no compitan.
    ------------------------------------------------------------------ */
 .btn--pulso { animation: pulso 2.6s ease-out infinite; }
@@ -1462,7 +1437,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   100% { box-shadow: 0 0 0 0 rgba(17, 20, 24, 0); }
 }
 
-/* ------------------- BARRA DEL CATÃLOGO + BUSCADOR ----------------- */
+/* ------------------- BARRA DEL CATÁLOGO + BUSCADOR ----------------- */
 .barra-catalogo {
   display: flex;
   align-items: center;
@@ -1470,8 +1445,6 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   flex-wrap: wrap;
   margin-bottom: 28px;
 }
-.barra-catalogo .filtros { margin-bottom: 0; flex: 1 1 auto; }
-
 .buscador {
   display: flex;
   align-items: center;
@@ -1492,7 +1465,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 .buscador__lupa:hover { color: var(--texto); border-color: var(--texto-suave); }
 .buscador[data-abierto="true"] .buscador__lupa { color: var(--acento); border-color: var(--acento-fuerte); }
 
-/* [32] el campo crece desde la lupa. Animar width es la excepciÃ³n
+/* [32] el campo crece desde la lupa. Animar width es la excepción
    aceptada: no hay forma limpia de hacerlo con transform. */
 .buscador__campo {
   width: 0;
@@ -1516,7 +1489,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   opacity: 1;
 }
 
-/* [35] campo con foco: borde en acento, tambiÃ©n por teclado */
+/* [35] campo con foco: borde en acento, también por teclado */
 .buscador__campo:focus-visible {
   outline: none;
   border-color: var(--acento-fuerte);
@@ -1590,7 +1563,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 
 @keyframes aparecer { from { opacity: 0; } }
 
-/* ------------------- [31] CARRITO VACÃO --------------------------- */
+/* ------------------- [31] CARRITO VACÍO --------------------------- */
 .carrito-vacio {
   display: grid;
   justify-items: center;
@@ -1610,7 +1583,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   50%      { transform: scale(1.14); }
 }
 
-/* ------------- [8] SALTO DEL ÃCONO DEL CARRITO -------------------- */
+/* ------------- [8] SALTO DEL ÍCONO DEL CARRITO -------------------- */
 .cart-btn__ico { width: 18px; height: 18px; }
 .cart-btn__ico.is-saltando { animation: salto 550ms cubic-bezier(.34, 1.4, .64, 1); }
 
@@ -1620,9 +1593,9 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   70%      { transform: translateY(1px); }
 }
 
-/* ------------ [27] [28] LÃNEAS DEL CARRITO ------------------------
-   El wrapper colapsa con grid-template-rows 1fr â†’ 0fr: asÃ­ las lÃ­neas
-   de abajo suben acompaÃ±ando la transiciÃ³n en vez de saltar.
+/* ------------ [27] [28] LÍNEAS DEL CARRITO ------------------------
+   El wrapper colapsa con grid-template-rows 1fr → 0fr: así las líneas
+   de abajo suben acompañando la transición en vez de saltar.
    ------------------------------------------------------------------ */
 .linea-wrap {
   display: grid;
@@ -1631,9 +1604,9 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
               opacity 400ms ease;
 }
 /* min-height:0 (no overflow:hidden): un grid item mide "auto" como
-   mÃ­nimo por defecto y no deja que la fila 1frâ†’0fr lo colapse del todo;
+   mínimo por defecto y no deja que la fila 1fr→0fr lo colapse del todo;
    min-height:0 saca ese piso sin recortar nada. overflow:hidden lograba
-   lo mismo, pero tambiÃ©n recortarÃ­a el box-shadow de .linea. */
+   lo mismo, pero también recortaría el box-shadow de .linea. */
 .linea-wrap > .linea { min-height: 0; }
 
 .linea-wrap--sale {
@@ -1680,7 +1653,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 /* =====================================================================
    FORMULARIO DE ENTREGA (paso 2 del carrito)
    Vive dentro de .drawer__body, hermano de #carritoItems. Nunca se
-   destruye/reconstruye: sÃ³lo se alterna [hidden], asÃ­ los valores
+   destruye/reconstruye: sólo se alterna [hidden], así los valores
    cargados no se pierden al volver al carrito.
    ===================================================================== */
 .form-entrega {
@@ -1708,7 +1681,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   font-weight: 600;
   margin-top: -6px;
 }
-.form-entrega__titulo:focus-visible { outline: none; } /* foco programÃ¡tico, no de teclado */
+.form-entrega__titulo:focus-visible { outline: none; } /* foco programático, no de teclado */
 
 .form-entrega__bajada { color: var(--texto-suave); font-size: 0.9rem; margin-top: -10px; }
 
@@ -1748,7 +1721,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   background: var(--superficie);
   color: var(--texto);
   font-family: var(--cuerpo);
-  /* 16px fijo: por debajo de esto, iOS hace zoom automÃ¡tico al enfocar */
+  /* 16px fijo: por debajo de esto, iOS hace zoom automático al enfocar */
   font-size: 16px;
   transition: border-color 200ms ease, box-shadow 200ms ease;
 }
@@ -1761,9 +1734,9 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 .input[aria-invalid="true"] { border-color: var(--rojo-suave); background: var(--error-suave); }
 .input[aria-invalid="true"]:focus-visible { box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.18); }
 
-/* --------------------- OPCIONES TIPO BOTÃ“N (radio) ------------------
+/* --------------------- OPCIONES TIPO BOTÓN (radio) ------------------
    input real, oculto visualmente pero enfocable (nada de display:none,
-   eso lo sacarÃ­a del tab order). Las flechas del teclado entre opciones
+   eso lo sacaría del tab order). Las flechas del teclado entre opciones
    son gratis: es el comportamiento nativo de un grupo de radios con el
    mismo name.
    ------------------------------------------------------------------ */
@@ -1819,7 +1792,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   margin-top: -6px;
 }
 
-/* wrap mÃ¡s angosto para bloques de lectura (FAQ) */
+/* wrap más angosto para bloques de lectura (FAQ) */
 .wrap--angosto { max-width: 760px; }
 
 /* =====================================================================
@@ -1868,17 +1841,17 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 }
 
 /* La sombra va en el contenedor de afuera (#comparadorTabla), no en
-   .comparador__scroll: Ã©ste tiene overflow-x:auto para el scroll
+   .comparador__scroll: éste tiene overflow-x:auto para el scroll
    horizontal de seguridad, y cualquier overflow distinto de "visible"
    recorta el box-shadow del propio elemento. El :has() la limita a
-   cuando hay tabla (no en el estado vacÃ­o, que no tiene esta forma). */
+   cuando hay tabla (no en el estado vacío, que no tiene esta forma). */
 #comparadorTabla:has(.comparador__scroll) {
   border-radius: var(--radio);
   box-shadow: var(--sombra-superficie);
 }
 
 .comparador__scroll {
-  overflow-x: auto;    /* red de seguridad si algÃºn nombre muy largo no entra */
+  overflow-x: auto;    /* red de seguridad si algún nombre muy largo no entra */
   border: 1px solid var(--borde-superficie);
   border-radius: var(--radio);
 }
@@ -1905,13 +1878,13 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 }
 
 /* Filas alternas para facilitar la lectura: la zebra va en la <tr> (no en
-   las celdas), asÃ­ la celda ganadora puede pintar su propio fondo opaco
+   las celdas), así la celda ganadora puede pintar su propio fondo opaco
    por encima sin pelear especificidad con nth-child. */
 .comparador__tabla tbody tr:nth-child(even) { background: var(--fondo); }
 
 /* Celda ganadora: pinta su propio fondo opaco (gana a la zebra). El color
-   no es la Ãºnica seÃ±al: comparadorCeldaValor() agrega "(mejor valor)" en
-   texto sÃ³lo para lectores de pantalla. */
+   no es la única señal: comparadorCeldaValor() agrega "(mejor valor)" en
+   texto sólo para lectores de pantalla. */
 .comparador__tabla td.comparador__gana {
   background: var(--comparador-gana);
   color: var(--acento);
@@ -1945,19 +1918,19 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 }
 
 /* La tabla de 2 columnas no entra en 375px: por debajo de 560px se
-   apila. El <table> sigue siendo el mismo elemento semÃ¡ntico (mismo
-   DOM, mismo th scope="row"/"col"); sÃ³lo cambia cÃ³mo se dibuja.
+   apila. El <table> sigue siendo el mismo elemento semántico (mismo
+   DOM, mismo th scope="row"/"col"); sólo cambia cómo se dibuja.
    La fila de imagen/nombre/precio queda en 2 columnas (cabe igual,
-   son pocos datos); lo que se apila es cada especificaciÃ³n: la clave
+   son pocos datos); lo que se apila es cada especificación: la clave
    arriba y, debajo, los dos valores identificados con el nombre del
-   equipo en texto suave (vÃ­a data-label + ::before). */
+   equipo en texto suave (vía data-label + ::before). */
 @media (max-width: 559px) {
   .comparador__tabla thead tr {
     display: flex;
     align-items: flex-start;
     gap: 10px;
   }
-  .comparador__tabla thead th:first-child { display: none; } /* celda vacÃ­a, sr-only */
+  .comparador__tabla thead th:first-child { display: none; } /* celda vacía, sr-only */
   .comparador__tabla thead th { flex: 1 1 0; padding: 12px 8px; }
   .comparador__prod { min-width: 0; }
   .comparador__prod .media__ph { font-size: 0.68rem; padding: 6px; }
@@ -2000,8 +1973,8 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   gap: 16px;
 }
 
-/* Ãcono en bloque jade a la izquierda, nombre a la derecha. Sin borde:
-   la tarjeta se apoya sÃ³lo en su fondo blanco sobre el gris de la pÃ¡gina. */
+/* Ícono en bloque jade a la izquierda, nombre a la derecha. Sin borde:
+   la tarjeta se apoya sólo en su fondo blanco sobre el gris de la página. */
 .pago-card {
   display: flex;
   align-items: center;
@@ -2029,11 +2002,11 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 .pago-card__detalle { margin-top: 6px; color: var(--texto-suave); font-size: 0.9rem; }
 
 /* =====================================================================
-   PREGUNTAS FRECUENTES â€” acordeÃ³n con <details>/<summary> nativos
+   PREGUNTAS FRECUENTES — acordeón con <details>/<summary> nativos
    ===================================================================== */
-/* Los Ã­tems de por sÃ­ no tienen fondo propio (sÃ³lo divisores entre
-   filas), asÃ­ que el acordeÃ³n entero se trata como UN bloque elevado,
-   no cada pregunta por separado â€” eso sÃ­ se verÃ­a mal, superficies
+/* Los ítems de por sí no tienen fondo propio (sólo divisores entre
+   filas), así que el acordeón entero se trata como UN bloque elevado,
+   no cada pregunta por separado — eso sí se vería mal, superficies
    elevadas solapadas fila por fila. */
 .acordeon {
   display: grid;
@@ -2064,7 +2037,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   padding: 18px 4px;
   cursor: pointer;
   font-weight: 500;
-  list-style: none;             /* quita el triÃ¡ngulo por defecto */
+  list-style: none;             /* quita el triángulo por defecto */
 }
 .faq__pregunta::-webkit-details-marker { display: none; }
 .faq__pregunta:hover { color: var(--acento); }
@@ -2148,7 +2121,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   font-family: var(--display);
   font-size: clamp(1.4rem, 5vw, 1.9rem);
   /* normal, no 600: mismo criterio que .card__nombre, para que el precio
-     de abajo siga leyÃ©ndose como el dato principal */
+     de abajo siga leyéndose como el dato principal */
   font-weight: 400;
   margin-top: 4px;
   padding-right: 44px;
@@ -2162,7 +2135,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   margin-top: 12px;
 }
 .modal__precios .precio { font-size: 1.9rem; }
-/* acÃ¡ el precio anterior va al lado, no arriba: como .modal__precios es
+/* acá el precio anterior va al lado, no arriba: como .modal__precios es
    flex, alcanza con sacarle el margen que trae para la tarjeta */
 .modal__precios .precio--anterior { margin: 0; font-size: 0.95rem; }
 
@@ -2215,7 +2188,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   .opciones--horarios { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* La cÃ¡psula entra entera en una sola fila: se encoge al ancho de su
+/* La cápsula entra entera en una sola fila: se encoge al ancho de su
    contenido y queda centrada. Debajo de 720px vuelve a dos filas. */
 @media (min-width: 720px) {
   .navbar {
@@ -2235,14 +2208,14 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   }
   .cart-btn { order: 0; }
 
-  /* CatÃ¡logo: el principal ocupa la columna ancha y dos filas; el resto
+  /* Catálogo: el principal ocupa la columna ancha y dos filas; el resto
      entra en las dos columnas de la derecha. */
   .grilla { grid-template-columns: 1.5fr 1fr 1fr; }
   .card--principal { grid-column: 1; grid-row: span 2; }
 }
 
 /* Mobile (<720px): el panel no es un flotante chico sino un bloque de
-   ancho completo que cae debajo de la cÃ¡psula, como acordeÃ³n. Se ancla a
+   ancho completo que cae debajo de la cápsula, como acordeón. Se ancla a
    .navbar (position:relative) para no quedar recortado por nada. */
 @media (max-width: 719px) {
   .nav-drop { position: static; }
@@ -2264,7 +2237,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
     padding-block: 40px 70px;
   }
 
-  /* composiciÃ³n asimÃ©trica: texto ancho a la izquierda, producto a la derecha */
+  /* composición asimétrica: texto ancho a la izquierda, producto a la derecha */
   .hero__grid {
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
     gap: 60px;
@@ -2302,7 +2275,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 
   .btn--primario:active { transform: none; }
 
-  /* el estado final se aplica igual, sÃ³lo que sin recorrido */
+  /* el estado final se aplica igual, sólo que sin recorrido */
   .card { opacity: 1; }
   .linea-wrap--sale > .linea { transform: none; }
   .toast[data-visible="true"] { transform: translate(-50%, 0) scale(1); }
