@@ -34,11 +34,19 @@
 
   /* Sombras para separar las superficies elevadas (blanco) del fondo gris:
      con sólo el borde #DFE3E7 el contraste es demasiado bajo (1.05:1) y
-     los bloques parecen flotar sin apoyo. */
-  --sombra-superficie:       0 1px 2px rgba(26, 31, 36, .06), 0 4px 12px rgba(26, 31, 36, .08);
-  --sombra-superficie-hover: 0 2px 4px rgba(26, 31, 36, .08), 0 8px 20px rgba(26, 31, 36, .12);
+     los bloques parecen flotar sin apoyo. Tienen que notarse en reposo,
+     no sólo al pasar el mouse. */
+  --sombra-superficie:       0 2px 4px rgba(26, 31, 36, .10), 0 8px 24px rgba(26, 31, 36, .14);
+  --sombra-superficie-hover: 0 4px 8px rgba(26, 31, 36, .12), 0 12px 32px rgba(26, 31, 36, .18);
   /* un poco más marcada: refuerza la jerarquía de la tarjeta principal */
-  --sombra-principal:        0 2px 4px rgba(26, 31, 36, .08), 0 8px 20px rgba(26, 31, 36, .10);
+  --sombra-principal:        0 4px 8px rgba(26, 31, 36, .12), 0 16px 40px rgba(26, 31, 36, .18);
+
+  /* Borde para las mismas superficies con sombra: --borde (#DFE3E7) queda
+     demasiado tenue al lado de una sombra este marcada y se ve redundante;
+     este tono un poco más oscuro se distingue sin competir. Sólo se usa en
+     el borde exterior de tarjetas/bloques con sombra — el resto de los
+     divisores (inputs, filas de tabla, chips) se quedan con --borde. */
+  --borde-superficie: #D3D9DF;
 }
 
 /* ------------------------------ BASE ------------------------------ */
@@ -244,7 +252,7 @@ button {
   align-items: center;
   gap: 10px 14px;
   background: var(--superficie);
-  border: 1px solid var(--borde);
+  border: 1px solid var(--borde-superficie);
   box-shadow: var(--sombra-superficie);
   /* mobile: los links caen a una 2da fila; la de arriba mantiene el
      redondeo de píldora y abajo se corta para no hacer un arco enorme */
@@ -665,7 +673,7 @@ button {
   min-width: 0;
   padding: 22px;
   background: var(--superficie);
-  border: 1px solid var(--borde);
+  border: 1px solid var(--borde-superficie);
   border-radius: var(--radio);
   box-shadow: var(--sombra-superficie);
   display: grid;
@@ -861,7 +869,7 @@ button {
   gap: 12px;
   padding: 14px;
   background: var(--superficie);
-  border: 1px solid var(--borde);
+  border: 1px solid var(--borde-superficie);
   border-radius: var(--radio);
   box-shadow: var(--sombra-superficie);
   opacity: 0; /* [10] la revela el IntersectionObserver */
@@ -992,9 +1000,10 @@ button {
   box-shadow: var(--sombra-principal);
 }
 /* el hover de .card ya sube la sombra; acá el punto de partida es más
-   marcado, así que el hover sube un escalón más para no perder jerarquía */
+   marcado, así que el hover sube un escalón más para no perder jerarquía
+   (misma proporción base→hover que --sombra-superficie → -hover) */
 .card--principal.is-visible:hover {
-  box-shadow: 0 3px 6px rgba(26, 31, 36, .10), 0 10px 24px rgba(26, 31, 36, .14);
+  box-shadow: 0 6px 12px rgba(26, 31, 36, .14), 0 20px 48px rgba(26, 31, 36, .22);
 }
 .card--principal .card__nombre { font-size: 1.32rem; }
 .card--principal .card__precios .precio { font-size: 1.62rem; }
@@ -1041,7 +1050,7 @@ button {
   padding: 26px 22px;
   text-align: center;
   background: var(--superficie);
-  border: 1px solid var(--borde);
+  border: 1px solid var(--borde-superficie);
   box-shadow: var(--sombra-superficie);
 }
 .promo--placeholder {
@@ -1273,7 +1282,7 @@ button {
   gap: 10px;
   padding: 8px;
   background: var(--superficie);
-  border: 1px solid var(--borde);
+  border: 1px solid var(--borde-superficie);
   border-radius: 5px;
   box-shadow: var(--sombra-superficie);
 }
@@ -1348,7 +1357,7 @@ button {
   display: grid;
   gap: 9px;
   background: var(--fondo);
-  border-top: 1px solid var(--borde);
+  border-top: 1px solid var(--borde-superficie);
   border-radius: 5px;
   box-shadow: var(--sombra-superficie);
   padding: 9px;
@@ -1861,7 +1870,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 
 .comparador__scroll {
   overflow-x: auto;    /* red de seguridad si algún nombre muy largo no entra */
-  border: 1px solid var(--borde);
+  border: 1px solid var(--borde-superficie);
   border-radius: var(--radio);
 }
 
@@ -2020,7 +2029,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 .acordeon {
   display: grid;
   background: var(--superficie);
-  border: 1px solid var(--borde);
+  border: 1px solid var(--borde-superficie);
   border-radius: var(--radio);
   box-shadow: var(--sombra-superficie);
   padding: 0 20px;
