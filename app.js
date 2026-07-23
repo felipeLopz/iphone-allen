@@ -113,32 +113,33 @@
   };
 
   // ---------------------------------------------------------------------
-  // FORMAS DE PAGO — los medios ya están confirmados, pero todavía no
-  // hay definición de descuentos, recargos o cuotas: el campo "detalle"
-  // de cada uno queda vacío a propósito y se completa más adelante. Con
-  // "detalle" vacío no se renderiza esa línea (evita un hueco en blanco
-  // en la tarjeta). Se pueden agregar o quitar elementos libremente.
+  // FORMAS DE PAGO — los medios ya están confirmados. Los "detalle" de
+  // abajo son TEXTO PROVISORIO: neutros, sin afirmar descuentos, recargos
+  // ni cuotas. Reemplazar por las condiciones reales cuando estén
+  // definidas. Se pueden agregar o quitar elementos libremente.
   // ---------------------------------------------------------------------
   // "icono" es el nombre de una clave del objeto ICONOS (más abajo).
   var FORMAS_PAGO = [
-    { titulo: 'Efectivo', detalle: '', icono: 'billete' },
-    { titulo: 'Transferencia', detalle: '', icono: 'transferencia' },
-    { titulo: 'Tarjeta', detalle: '', icono: 'tarjeta' }
+    { titulo: 'Efectivo', detalle: 'En el local o contra entrega.', icono: 'billete' },
+    { titulo: 'Transferencia', detalle: 'Te pasamos los datos por WhatsApp.', icono: 'transferencia' },
+    { titulo: 'Tarjeta', detalle: 'Consultanos por las opciones disponibles.', icono: 'tarjeta' }
   ];
 
   // ---------------------------------------------------------------------
-  // PREGUNTAS FRECUENTES — las preguntas están armadas, pero las
-  // respuestas son OBLIGATORIAS DE COMPLETAR antes de publicar la página.
-  // Se pueden agregar o quitar preguntas libremente.
+  // PREGUNTAS FRECUENTES — las respuestas son TEXTO PROVISORIO: neutras y
+  // remiten a consultar, sin afirmar garantías, plazos ni condiciones que
+  // no estén confirmadas. Reemplazar por la información real antes de
+  // publicar. (La de "liberados" sí afirma algo concreto porque ya está
+  // afirmado en el hero.) Se pueden agregar o quitar preguntas libremente.
   // ---------------------------------------------------------------------
   var FAQ = [
-    { p: '¿Los equipos son nuevos o usados?', r: '[RESPUESTA — completar]' },
-    { p: '¿Qué garantía tienen?', r: '[RESPUESTA — completar]' },
-    { p: '¿Los equipos vienen liberados?', r: '[RESPUESTA — completar]' },
-    { p: '¿Cómo puedo pagar?', r: '[RESPUESTA — completar]' },
-    { p: '¿Hacen envíos? ¿A qué zonas?', r: '[RESPUESTA — completar]' },
-    { p: '¿Puedo retirar en persona?', r: '[RESPUESTA — completar]' },
-    { p: '¿Qué pasa si el equipo viene con una falla?', r: '[RESPUESTA — completar]' }
+    { p: '¿Los equipos son nuevos o usados?', r: 'Trabajamos con equipos en distintas condiciones. Consultanos por el estado del modelo que te interesa.' },
+    { p: '¿Qué garantía tienen?', r: 'Consultanos por la garantía disponible según el equipo.' },
+    { p: '¿Los equipos vienen liberados?', r: 'Sí, los equipos vienen liberados para usar con cualquier compañía.' },
+    { p: '¿Cómo puedo pagar?', r: 'Aceptamos efectivo, transferencia y tarjeta. Escribinos para coordinar la forma de pago.' },
+    { p: '¿Hacen envíos? ¿A qué zonas?', r: 'Hacemos envíos a Allen y ciudades vecinas. Consultanos por tu zona.' },
+    { p: '¿Puedo retirar en persona?', r: 'Sí, podés retirar tu pedido en el local. Coordinamos el horario por WhatsApp.' },
+    { p: '¿Qué pasa si el equipo viene con una falla?', r: 'Escribinos apenas lo notes y lo resolvemos juntos.' }
   ];
 
   /* ------------------------------ ESTADO ---------------------------- */
