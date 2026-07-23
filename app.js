@@ -229,7 +229,10 @@
     volver: '<path d="M15 6l-6 6l6 6"></path>',
     compartir: '<circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="6" r="3"></circle>' +
                '<circle cx="18" cy="18" r="3"></circle>' +
-               '<path d="M8.7 10.7l6.6 -3.4"></path><path d="M8.7 13.3l6.6 3.4"></path>'
+               '<path d="M8.7 10.7l6.6 -3.4"></path><path d="M8.7 13.3l6.6 3.4"></path>',
+    sol: '<circle cx="12" cy="12" r="4"></circle>' +
+         '<path d="M3 12h1M20 12h1M12 3v1M12 20v1M5.6 5.6l.7 .7M17.7 17.7l.7 .7M18.4 5.6l-.7 .7M6.3 17.7l-.7 .7"></path>',
+    luna: '<path d="M12 3c.13 0 .26 0 .39 .04a6.5 6.5 0 1 0 8.57 8.57 .5 .5 0 0 1 .87 .38 9 9 0 1 1 -9.83 -9.83Z"></path>'
   };
 
   function icono(nombre, clase) {
@@ -384,6 +387,9 @@
               '</div>' +
               '<a class="link-sub nav__link" href="' + hrefContacto + '">Contacto</a>' +
             '</nav>' +
+            '<button class="tema-btn" type="button" id="temaBtn" aria-label="Cambiar tema">' +
+              '<span class="tema-btn__ico" id="temaBtnIco" aria-hidden="true"></span>' +
+            '</button>' +
             '<button class="cart-btn" type="button" id="abrirCarrito" aria-haspopup="dialog" aria-controls="carrito">' +
               '<svg class="ico cart-btn__ico" id="iconoCarrito" viewBox="0 0 24 24" fill="none" ' +
                    'stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
@@ -395,6 +401,47 @@
           '</div>' +
         '</div>' +
       '</header>';
+  }
+
+  /* ---------------------------- TEMA -------------------------------
+     El atributo data-tema ya lo dejó puesto un script inline en el <head>
+     (antes de pintar, para que no haya destello). Acá sólo sincronizamos
+     el ícono/aria del botón y enganchamos el interruptor. La misma clave
+     de localStorage la lee ese script inline: si cambia una, cambiar la
+     otra (nombre-tema).
+     ------------------------------------------------------------------ */
+  var TEMA_KEY = 'nombre-tema';
+
+  function temaActual() {
+    return document.documentElement.dataset.tema === 'oscuro' ? 'oscuro' : 'claro';
+  }
+
+  // El botón muestra el ícono del tema al que va a cambiar: en claro se ve
+  // la luna (cambiar a oscuro), en oscuro el sol (cambiar a claro).
+  function pintarBotonTema() {
+    var oscuro = temaActual() === 'oscuro';
+    var btn = $('#temaBtn');
+    $('#temaBtnIco').innerHTML = icono(oscuro ? 'sol' : 'luna');
+    btn.setAttribute('aria-label', oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+  }
+
+  function aplicarTema(tema) {
+    var raiz = document.documentElement;
+    // la clase habilita la transición de 200ms sólo durante el cambio
+    raiz.classList.add('cambiando-tema');
+    raiz.dataset.tema = tema;
+    try { localStorage.setItem(TEMA_KEY, tema); } catch (e) {}
+    pintarBotonTema();
+    // sacar la clase después de la transición para no dejarla puesta
+    // (si no, cada hover volvería a animar el color)
+    window.setTimeout(function () { raiz.classList.remove('cambiando-tema'); }, 260);
+  }
+
+  function iniciarTema() {
+    pintarBotonTema();
+    $('#temaBtn').addEventListener('click', function () {
+      aplicarTema(temaActual() === 'oscuro' ? 'claro' : 'oscuro');
+    });
   }
 
   function htmlFooter() {
@@ -554,6 +601,8 @@
   document.getElementById('app-header').innerHTML = htmlHeader();
   document.getElementById('app-footer').innerHTML = htmlFooter();
   document.body.insertAdjacentHTML('beforeend', htmlDrawer() + htmlModal() + htmlBotonWhatsapp());
+
+  iniciarTema();
 
   /* ---------------------------- CARGA DE DATOS ---------------------- */
 

@@ -28,6 +28,24 @@
   --rojo-suave:   #C0392B;
   --error-suave:  #FDEDEA;
 
+  /* Semánticas que antes estaban hardcodeadas en los componentes; se
+     movieron acá para que el tema oscuro pueda redefinirlas.
+     --sobre-acento: texto/ícono que va ENCIMA de un fondo --acento-fuerte
+       (botones, pastilla del carrito, botón flotante). Blanco en los dos
+       temas: sobre el jade del tema oscuro también contrasta.
+     --marco-foto: fondo del recuadro de las fotos (ver decisión abajo).
+     --velo: cortina detrás del modal y el drawer.
+     --foco-glow / --error-glow: el halo de 3px del foco de teclado.
+     --borde-acento: borde de chips tintados en color de acento.
+     --pulso-rgb: color (en tripleta RGB) del latido al agregar al carrito. */
+  --sobre-acento:  #FFFFFF;
+  --marco-foto:    #FFFFFF;
+  --velo:          rgba(26, 31, 36, 0.4);
+  --foco-glow:     rgba(17, 20, 24, 0.16);
+  --error-glow:    rgba(192, 57, 43, 0.18);
+  --borde-acento:  rgba(17, 20, 24, 0.35);
+  --pulso-rgb:     17, 20, 24;
+
   --display: 'Clash Display', 'General Sans', system-ui, sans-serif;
   --cuerpo:  'General Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
@@ -42,10 +60,14 @@
      con sólo el borde #DFE3E7 el contraste es demasiado bajo (1.05:1) y
      los bloques parecen flotar sin apoyo. Tienen que notarse en reposo,
      no sólo al pasar el mouse. */
-  --sombra-superficie:       0 2px 4px rgba(26, 31, 36, .10), 0 8px 24px rgba(26, 31, 36, .14);
-  --sombra-superficie-hover: 0 4px 8px rgba(26, 31, 36, .12), 0 12px 32px rgba(26, 31, 36, .18);
+  /* Color de todas las sombras, en tripleta RGB, para poder apagarlo de
+     una en el tema oscuro (donde una sombra sobre fondo oscuro no se ve y
+     la separación la toman los bordes). */
+  --sombra-rgb: 26, 31, 36;
+  --sombra-superficie:       0 2px 4px rgba(var(--sombra-rgb), .10), 0 8px 24px rgba(var(--sombra-rgb), .14);
+  --sombra-superficie-hover: 0 4px 8px rgba(var(--sombra-rgb), .12), 0 12px 32px rgba(var(--sombra-rgb), .18);
   /* un poco más marcada: refuerza la jerarquía de la tarjeta principal */
-  --sombra-principal:        0 4px 8px rgba(26, 31, 36, .12), 0 16px 40px rgba(26, 31, 36, .18);
+  --sombra-principal:        0 4px 8px rgba(var(--sombra-rgb), .12), 0 16px 40px rgba(var(--sombra-rgb), .18);
 
   /* Borde para las mismas superficies con sombra: --borde (#DFE3E7) queda
      demasiado tenue al lado de una sombra este marcada y se ve redundante;
@@ -53,6 +75,74 @@
      el borde exterior de tarjetas/bloques con sombra — el resto de los
      divisores (inputs, filas de tabla, chips) se quedan con --borde. */
   --borde-superficie: #D3D9DF;
+}
+
+/* ------------------------- TEMA OSCURO ----------------------------
+   Sólo redefine variables: ninguna regla de componente se duplica. El
+   atributo lo pone un script inline en el <head> (antes de pintar) y lo
+   cambia el interruptor del header. El claro vive en :root y también se
+   puede forzar con [data-tema="claro"] (que simplemente no hereda nada
+   de acá).
+
+   ACENTO: en claro --acento y --acento-fuerte eran el mismo negro; en
+   oscuro se separan según su rol —igual que el nombre de cada variable
+   ya sugería—: --acento es el jade CLARO para texto/bordes sobre fondo
+   oscuro, --acento-fuerte el jade saturado para FONDOS de botón (con
+   glifo/texto blanco encima, --sobre-acento).
+
+   SOMBRAS: sobre fondo oscuro una sombra no se ve, así que las tres
+   variables de superficie pasan a `none` y la separación la toma el
+   borde (--borde-superficie, más marcado). Los elementos flotantes
+   (modal, drawer, panel del menú, botón de WhatsApp) sí conservan
+   sombra: --sombra-rgb pasa a negro puro, que sobre el fondo oscuro
+   funciona como una sombra real.
+   ------------------------------------------------------------------ */
+[data-tema="oscuro"] {
+  --fondo:        #12161A;
+  --superficie:   #171B21;
+  --superficie2:  #1F252C;
+  --borde:        #232A31;
+  --borde-fuerte: #3A424C;
+  --borde-superficie: #2A313A;
+
+  --acento:       #5DCAA5;   /* texto/bordes de acento */
+  --acento-fuerte:#1D9E75;   /* fondos de botón */
+  --acento-suave: #1A2A26;
+  --comparador-gana: #1F2E2A;
+
+  --texto:        #F0F0F2;
+  --texto-suave:  #9AA3AC;
+  --texto-tenue:  #79838E;
+
+  --rojo-suave:   #E28275;
+  --error-suave:  #2A1B18;
+
+  /* el marco de las fotos se queda blanco: las fotos vienen con fondo
+     blanco y, si el marco fuese oscuro, se vería un halo blanco de la
+     foto contra el marco. (--sobre-acento también sigue blanco.) */
+  --marco-foto:   #FFFFFF;
+
+  --velo:         rgba(0, 0, 0, 0.6);
+  --foco-glow:    rgba(93, 202, 165, 0.30);
+  --error-glow:   rgba(226, 130, 117, 0.28);
+  --borde-acento: rgba(93, 202, 165, 0.40);
+  --pulso-rgb:    29, 158, 117;
+
+  --sombra-rgb:   0, 0, 0;
+  --sombra-superficie:       none;
+  --sombra-superficie-hover: none;
+  --sombra-principal:        none;
+}
+
+/* Transición del cambio de tema: sólo mientras se conmuta (el JS agrega
+   .cambiando-tema por ~250ms) y sólo sobre color/fondo/borde, nunca
+   `all` —eso haría parpadear transforms y opacidades de toda la página. */
+html.cambiando-tema,
+html.cambiando-tema * {
+  transition: background-color 200ms ease,
+              border-color 200ms ease,
+              color 200ms ease,
+              fill 200ms ease !important;
 }
 
 /* ------------------------------ BASE ------------------------------ */
@@ -140,7 +230,7 @@ button {
   left: 12px; top: -60px;
   z-index: 100;
   background: var(--acento-fuerte);
-  color: #FFFFFF;
+  color: var(--sobre-acento);
   padding: 10px 16px;
   border-radius: var(--radio-sm);
   font-weight: 600;
@@ -193,7 +283,7 @@ button {
   flex: 0 0 auto;
   padding: 9px 11px;
   background: var(--acento-fuerte);
-  color: #FFFFFF;               /* trazo blanco sobre el bloque jade */
+  color: var(--sobre-acento);   /* trazo blanco sobre el bloque jade */
   transition: background var(--transicion);
 }
 .btn__ico .ico { width: 16px; height: 16px; }
@@ -300,6 +390,26 @@ button {
 
 .cart-btn { order: 2; }
 
+/* Interruptor de tema: botón fantasma, a la izquierda de la pastilla del
+   carrito. Mismo order que .cart-btn; queda a su izquierda por orden de
+   fuente (va justo antes en el DOM). */
+.tema-btn {
+  order: 2;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  color: var(--texto-suave);
+  background: transparent;
+  transition: color var(--transicion), border-color var(--transicion), background var(--transicion);
+}
+.tema-btn:hover { color: var(--texto); border-color: var(--texto-suave); background: var(--superficie2); }
+.tema-btn__ico { display: flex; }
+.tema-btn__ico .ico { width: 19px; height: 19px; }
+
 /* Con sólo tres entradas (Inicio · Productos · Contacto) entran en una
    fila sin scroll horizontal, así que el nav puede tener overflow visible
    y dejar que el panel del desplegable se salga. */
@@ -345,7 +455,7 @@ button {
   background: var(--superficie);
   border: 1px solid var(--borde);
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(26, 31, 36, 0.14);
+  box-shadow: 0 10px 30px rgba(var(--sombra-rgb), 0.14);
   padding: 6px;
   z-index: 50;
 }
@@ -405,12 +515,12 @@ button {
   border: 0;
   border-radius: 99px;
   background: var(--acento-fuerte);
-  color: #FFFFFF;              /* ícono y contador en blanco sobre la pastilla */
+  color: var(--sobre-acento);  /* ícono y contador en blanco sobre la pastilla */
   font-size: 0.85rem;
   font-weight: 600;
   transition: background var(--transicion);
 }
-.cart-btn:hover { background: var(--acento); }
+.cart-btn:hover { background: var(--acento-fuerte); filter: brightness(0.92); }
 
 .cart-btn__count {
   min-width: 20px;
@@ -419,15 +529,18 @@ button {
   display: grid;
   place-items: center;
   border-radius: 999px;
+  /* burbuja translúcida sobre la pastilla de acento: el blanco al 22%
+     aclara el jade/negro de fondo en cualquiera de los dos temas, así que
+     va literal a propósito (no depende del tema). */
   background: rgba(255, 255, 255, 0.22);
-  color: #FFFFFF;
+  color: var(--sobre-acento);
   font-size: 0.76rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   transition: background var(--transicion), color var(--transicion);
 }
 .cart-btn[data-lleno="true"] .cart-btn__count {
-  background: #FFFFFF;
+  background: var(--sobre-acento);
   color: var(--acento-fuerte);
 }
 
@@ -538,7 +651,7 @@ button {
   text-transform: uppercase;
   color: var(--acento);
   background: var(--acento-suave);
-  border: 1px solid rgba(17, 20, 24, 0.35);
+  border: 1px solid var(--borde-acento);
   border-radius: 999px;
   padding: 6px 12px;
 }
@@ -573,8 +686,10 @@ button {
   position: relative;
   /* Blanco puro: las fotos de producto ya vienen con fondo blanco, así
      que con object-fit:contain la unión entre foto y marco desaparece
-     en vez de notarse como una franja vacía oscura. */
-  background: #FFFFFF;
+     en vez de notarse como una franja vacía oscura. En tema oscuro se
+     mantiene blanco (ver --marco-foto): si no, quedaría un halo blanco de
+     la foto contra un marco oscuro. */
+  background: var(--marco-foto);
   border: 1px solid var(--borde);
   border-radius: var(--radio-sm);
   aspect-ratio: 4 / 3;
@@ -820,9 +935,9 @@ button {
 /* Página actual: negro pleno. Es la señal más fuerte de la fila, y no
    depende del color (el sitio es monocromático). */
 .filtro[aria-current="page"] {
-  background: var(--acento);
-  border-color: var(--acento);
-  color: #FFFFFF;
+  background: var(--acento-fuerte);
+  border-color: var(--acento-fuerte);
+  color: var(--sobre-acento);
 }
 
 /* ------------------- SECCIONES POR CATEGORÍA ----------------------
@@ -1046,7 +1161,7 @@ button {
    marcado, así que el hover sube un escalón más para no perder jerarquía
    (misma proporción base→hover que --sombra-superficie → -hover) */
 .card--principal.is-visible:hover {
-  box-shadow: 0 6px 12px rgba(26, 31, 36, .14), 0 20px 48px rgba(26, 31, 36, .22);
+  box-shadow: 0 6px 12px rgba(var(--sombra-rgb), .14), 0 20px 48px rgba(var(--sombra-rgb), .22);
 }
 .card--principal .card__nombre { font-size: 1.32rem; }
 .card--principal .card__precios .precio { font-size: 1.86rem; }
@@ -1193,7 +1308,7 @@ button {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: rgba(26, 31, 36, 0.4);
+  background: var(--velo);
   backdrop-filter: blur(2px);
   opacity: 0;
   transition: opacity var(--transicion);
@@ -1209,7 +1324,7 @@ button {
   width: min(420px, 100%);
   background: var(--superficie);
   border-left: 1px solid var(--borde);
-  box-shadow: -12px 0 40px rgba(26, 31, 36, 0.16);
+  box-shadow: -12px 0 40px rgba(var(--sombra-rgb), 0.16);
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
@@ -1431,17 +1546,19 @@ button {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: var(--acento);
-  color: #FFFFFF;
+  background: var(--acento-fuerte);
+  color: var(--sobre-acento);
   /* más marcada que la de las tarjetas: flota sobre cualquier contenido
      y tiene que despegarse también de una foto */
-  box-shadow: 0 4px 10px rgba(26, 31, 36, .20), 0 10px 30px rgba(26, 31, 36, .26);
-  transition: background var(--transicion), box-shadow var(--transicion);
+  box-shadow: 0 4px 10px rgba(var(--sombra-rgb), .20), 0 10px 30px rgba(var(--sombra-rgb), .26);
+  transition: filter var(--transicion), box-shadow var(--transicion);
 }
 .wa-flotante .ico { width: 27px; height: 27px; }
 .wa-flotante:hover {
-  background: var(--texto);
-  box-shadow: 0 6px 14px rgba(26, 31, 36, .24), 0 14px 36px rgba(26, 31, 36, .30);
+  /* oscurece por igual en los dos temas (en oscuro, sobre el jade); no
+     uso --texto porque en tema oscuro es casi blanco y aclararía el botón */
+  filter: brightness(0.92);
+  box-shadow: 0 6px 14px rgba(var(--sombra-rgb), .24), 0 14px 36px rgba(var(--sombra-rgb), .30);
 }
 
 /* --------------------- [25] CONFIRMACIÓN (TOAST) ------------------ */
@@ -1520,9 +1637,9 @@ button {
 body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 
 @keyframes pulso {
-  0%   { box-shadow: 0 0 0 0 rgba(17, 20, 24, 0.4); }
-  70%  { box-shadow: 0 0 0 9px rgba(17, 20, 24, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(17, 20, 24, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(var(--pulso-rgb), 0.4); }
+  70%  { box-shadow: 0 0 0 9px rgba(var(--pulso-rgb), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--pulso-rgb), 0); }
 }
 
 /* ------------------- BARRA DEL CATÁLOGO + BUSCADOR ----------------- */
@@ -1585,7 +1702,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 .buscador__campo:focus-visible {
   outline: none;
   border-color: var(--acento-fuerte);
-  box-shadow: 0 0 0 3px rgba(17, 20, 24, 0.16);
+  box-shadow: 0 0 0 3px var(--foco-glow);
 }
 .buscador__campo::-webkit-search-cancel-button { filter: grayscale(1); }
 
@@ -1821,10 +1938,10 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 .input:focus-visible {
   outline: none;
   border-color: var(--acento-fuerte);
-  box-shadow: 0 0 0 3px rgba(17, 20, 24, 0.16);
+  box-shadow: 0 0 0 3px var(--foco-glow);
 }
 .input[aria-invalid="true"] { border-color: var(--rojo-suave); background: var(--error-suave); }
-.input[aria-invalid="true"]:focus-visible { box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.18); }
+.input[aria-invalid="true"]:focus-visible { box-shadow: 0 0 0 3px var(--error-glow); }
 
 /* --------------------- OPCIONES TIPO BOTÓN (radio) ------------------
    input real, oculto visualmente pero enfocable (nada de display:none,
@@ -1914,7 +2031,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 .select:focus-visible {
   outline: none;
   border-color: var(--acento-fuerte);
-  box-shadow: 0 0 0 3px rgba(17, 20, 24, 0.16);
+  box-shadow: 0 0 0 3px var(--foco-glow);
 }
 
 .comparador__vs {
@@ -2086,7 +2203,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   height: 40px;
   border-radius: 4px;
   background: var(--acento-fuerte);
-  color: #FFFFFF;              /* trazo blanco sobre el bloque jade */
+  color: var(--sobre-acento);  /* trazo blanco sobre el bloque jade */
 }
 .pago-card__ico .ico { width: 19px; height: 19px; }
 
@@ -2166,7 +2283,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   background: var(--superficie);
   border: 1px solid var(--borde);
   border-radius: var(--radio);
-  box-shadow: 0 24px 60px rgba(26, 31, 36, 0.22);
+  box-shadow: 0 24px 60px rgba(var(--sombra-rgb), 0.22);
   transform: translate(-50%, -50%) scale(0.97);
   opacity: 0;
   transition: opacity 220ms ease, transform 220ms cubic-bezier(.4, .1, .2, 1);
@@ -2298,6 +2415,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
     padding-inline: 0;
   }
   .cart-btn { order: 0; }
+  .tema-btn { order: 0; }
 
   /* Catálogo: el principal ocupa la columna ancha y dos filas; el resto
      entra en las dos columnas de la derecha. */

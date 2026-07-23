@@ -3,6 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Tema claro/oscuro: se aplica ANTES de pintar para que no haya un
+     destello del tema claro cuando el guardado es oscuro. Lee la misma
+     clave de localStorage que app.js (nombre-tema); si no hay elección
+     previa usa la preferencia del sistema, y si tampoco hay, claro. -->
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('nombre-tema');
+      if (t !== 'claro' && t !== 'oscuro') {
+        t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'oscuro' : 'claro';
+      }
+      document.documentElement.setAttribute('data-tema', t);
+    } catch (e) {
+      document.documentElement.setAttribute('data-tema', 'claro');
+    }
+  })();
+</script>
+
 <title>Accesorios — IPHONE ALLEN | Allen, Río Negro</title>
 <meta name="description" content="Auriculares, relojes y cargadores Apple en IPHONE ALLEN, Allen, Río Negro. Precios finales en pesos y envíos a ciudades vecinas.">
 
