@@ -307,11 +307,27 @@ button {
 .btn:disabled:hover { border-color: var(--borde); }
 .btn:disabled:hover .btn__txt { background: var(--superficie); }
 
+/* Área de toque cómoda en todos los botones de acción (WCAG 2.5.8 pide
+   24px como mínimo; 44px es el objetivo recomendado para el pulgar). */
+.btn { min-height: 44px; }
+
 /* A ancho completo el texto ocupa el resto de la fila */
 .btn--bloque { width: 100%; }
 .btn--bloque .btn__txt { flex: 1; }
 
-.btn--comparar { width: 100%; }
+/* Ajustado a su contenido: el ícono más el texto y nada más. Lo usan las
+   tarjetas (normal, principal, carrusel) y el modal, donde un botón a
+   todo el ancho dejaba una franja vacía a la derecha del texto.
+   align-self sirve en los contenedores flex-columna (.card) y
+   justify-self en los grid (.modal__acciones): se declaran los dos
+   porque el mismo botón vive en ambos. */
+.btn--compacto {
+  width: auto;
+  align-self: start;
+  justify-self: start;
+}
+
+.btn--comparar { width: auto; }
 
 /* Botón sin tratamiento de bloque: acción menor, sólo texto.
    Hoy lo usa "Vaciar carrito". */
@@ -1257,14 +1273,16 @@ button {
    "Nuevo ingreso" es de contorno (más sobrio). Ambos quedan con buen
    contraste en los dos temas porque se apoyan en --texto/--superficie.
    ------------------------------------------------------------------ */
+/* Mismo tamaño y forma que .badge-stock, para que los dos se lean como
+   marcas discretas de la foto y ninguna domine sobre la otra. */
 .etiqueta {
   position: absolute;
   top: 8px;
   left: 8px;
   z-index: 1;
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 4px 9px;
   border-radius: 999px;
@@ -1300,10 +1318,23 @@ button {
   line-height: 1.25;
 }
 
+/* Descripción corta debajo del nombre: son las specs del JSON unidas.
+   Llena el aire que quedaba entre el nombre y el precio. */
 .card__specs {
+  margin-top: 6px;
   font-size: 0.83rem;
   color: var(--texto-suave);
   line-height: 1.45;
+}
+
+/* Los dos botones de la tarjeta, uno al lado del otro y ajustados a su
+   contenido. Si no entran a lo ancho (columnas angostas) se apilan
+   alineados a la izquierda, que es una caída prolija. */
+.card__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .card__precios { margin-top: auto; padding-top: 4px; }
@@ -1326,6 +1357,26 @@ button {
   -webkit-box-orient: vertical;
   overflow: hidden;
   min-height: 2.5em;
+}
+
+/* Misma idea para la descripción: dos líneas siempre, recortadas con
+   puntos suspensivos, y esa altura reservada aunque el producto tenga
+   menos specs. Sin el min-height, una tarjeta con specs cortas subía su
+   precio y su botón respecto de la de al lado. 2.9em = 2 × 1.45 */
+.card:not(.card--principal) .card__specs {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.9em;
+}
+
+/* La principal tiene más ancho: le entra una línea más antes de recortar */
+.card--principal .card__specs {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Sin descuento no hay <span class="precio--anterior">, así que el
@@ -1447,18 +1498,6 @@ button {
   margin-top: 18px;
 }
 
-/* Agrupa un enlace de WhatsApp de "contacto general" (hero, FAQ,
-   sección de contacto) con el ícono de Instagram al lado, para que se
-   vean juntos. inline-flex: funciona tanto suelto como incrustado en
-   un párrafo (el "¿Otra consulta?" del FAQ). Vacío si Instagram queda
-   en placeholder: el <span> del ícono no tiene borde ni fondo propio,
-   así que no deja hueco. */
-.contacto-redes {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
 /* ----------------------------- FOOTER ----------------------------- */
 .footer {
   border-top: 1px solid var(--borde);
@@ -1469,9 +1508,9 @@ button {
 .footer__brand { margin-bottom: 9px; }
 .footer__legal { margin-top: 12px; max-width: 62ch; font-size: 0.78rem; opacity: 0.75; }
 
-/* Ícono circular para un enlace de red/contacto. Lo usa el Instagram que
-   acompaña a un WhatsApp de contacto general (hero y FAQ, .contacto-redes).
-   El footer ya no lleva redes. */
+/* Ícono circular para un enlace de red/contacto. Hoy lo usa sólo el
+   Instagram que acompaña al WhatsApp del hero: el footer y el "¿Otra
+   consulta?" de las preguntas ya no llevan redes. */
 .red-link {
   display: grid;
   place-items: center;
@@ -1502,43 +1541,96 @@ button {
    el elemento (la lógica de apertura/cierre lo usa) pero sin desenfoque. */
 #overlayCarrito { backdrop-filter: none; }
 
-/* ------------------------ VISTA DEL CARRITO ------------------------
-   Antes era un drawer lateral de 420px. Ahora ocupa toda la pantalla y
-   tapa el header del sitio (z-index 60 > 40): la idea es que mientras se
-   revisa el pedido no haya nada más que el carrito. El ancho de lectura
-   se acota con --carrito-ancho y el contenido queda centrado, así que en
-   escritorio no se estira de borde a borde.
-   Se conservan los nombres .drawer* para no tocar la lógica (ids, foco
-   atrapado, Escape, bloqueo de scroll) que ya estaba probada.
+/* ---------------------- CARRITO (PANEL LATERAL) --------------------
+   El carrito del header abre este panel: entra desde la derecha con la
+   lista, el total y "Finalizar compra". Ese botón abre la vista de
+   checkout a pantalla completa (.checkout, más abajo).
    ------------------------------------------------------------------ */
 .drawer {
-  --carrito-ancho: 720px;
-  /* centra el contenido dejando el borde/fondo a todo lo ancho */
+  position: fixed;
+  z-index: 60;
+  top: 0;
+  right: 0;
+  height: 100dvh;
+  width: min(420px, 100%);
+  background: var(--superficie);
+  border-left: 1px solid var(--borde);
+  box-shadow: -12px 0 40px rgba(var(--sombra-rgb), 0.16);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 300ms cubic-bezier(.4, .1, .2, 1);
+}
+.drawer[data-visible="true"] { transform: translateX(0); }
+
+/* -------------------- CHECKOUT (PANTALLA COMPLETA) -----------------
+   Paso 2 y 3 de la compra. Tapa el header del sitio (z-index 61 > 40)
+   para que no haya nada que distraiga mientras se cargan los datos. El
+   contenido se acota con --carrito-ancho y queda centrado; las bandas
+   (encabezado, pasos) van a todo lo ancho.
+   ------------------------------------------------------------------ */
+.checkout {
+  --carrito-ancho: 1060px;
   --carrito-pad: max(20px, calc((100% - var(--carrito-ancho)) / 2));
 
   position: fixed;
-  z-index: 60;
+  z-index: 61;
   inset: 0;
   background: var(--fondo);
   display: flex;
   flex-direction: column;
-  /* entrada sobria: sube y aparece, sin desplazamiento lateral */
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 200ms ease, transform 260ms cubic-bezier(.4, .1, .2, 1);
 }
-.drawer[data-visible="true"] { opacity: 1; transform: none; }
+.checkout[data-visible="true"] { opacity: 1; transform: none; }
+
+/* la única parte que scrollea: el encabezado y los pasos quedan fijos */
+.checkout__scroll {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 22px var(--carrito-pad) 40px;
+}
+
+/* Formulario a la izquierda y resumen al costado. En una sola columna
+   por debajo de 900px (ver la media query). */
+.checkout__grid {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
 
 .drawer__head {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px var(--carrito-pad);
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
   border-bottom: 1px solid var(--borde);
+}
+/* en el checkout el encabezado sigue el ancho del contenido */
+.checkout .drawer__head {
+  justify-content: flex-start;
+  gap: 14px;
+  padding-inline: var(--carrito-pad);
   background: var(--superficie);
 }
 
 .drawer__titulo { font-size: 1.2rem; }
+
+.drawer__cerrar {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  color: var(--texto-suave);
+  flex: 0 0 auto;
+  transition: color var(--transicion), border-color var(--transicion);
+}
+.drawer__cerrar:hover { color: var(--texto); border-color: var(--texto-suave); }
 
 /* Volver: texto + flecha, alineado a la izquierda del encabezado */
 .drawer__volver {
@@ -1561,7 +1653,7 @@ button {
   flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 20px var(--carrito-pad);
+  padding: 16px 20px;
 }
 
 /* ------------------------- BARRA DE PASOS --------------------------
@@ -1700,7 +1792,7 @@ button {
 
 .drawer__foot {
   border-top: 1px solid var(--borde);
-  padding: 12px var(--carrito-pad) calc(12px + env(safe-area-inset-bottom));
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
   display: grid;
   gap: 6px;
   background: var(--superficie);
@@ -1724,6 +1816,169 @@ button {
   margin-bottom: 4px;
   color: var(--texto-suave);
   font-size: 0.92rem;
+}
+
+/* El botón del bloque anclado se ajusta a su contenido y se alinea con
+   el precio, a la derecha: a todo el ancho del panel dominaba la vista. */
+.drawer__anclado .btn { justify-self: end; }
+
+/* ==================== BLOQUES DE LA VISTA DE CHECKOUT ==============
+   Resumen del pedido (sólo lectura), cuentas + medios de pago, y los
+   productos sugeridos. Existen para que la pantalla completa no quede
+   vacía cuando el pedido tiene uno o dos productos.
+   ================================================================== */
+.resumen__titulo {
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.resumen-pedido { margin-bottom: 26px; }
+
+/* Línea del pedido: foto, nombre + cantidad, y el subtotal a la derecha.
+   Sin controles de cantidad — para editar se vuelve al carrito. */
+.pedido-linea {
+  display: grid;
+  grid-template-columns: 54px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--borde);
+}
+.pedido-linea:last-child { border-bottom: 0; }
+.pedido-linea .media { aspect-ratio: 1 / 1; padding: 4px; }
+.pedido-linea__nombre { font-size: 0.9rem; font-weight: 500; line-height: 1.3; }
+.pedido-linea__cant {
+  margin-top: 2px;
+  font-size: 0.82rem;
+  color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+.pedido-linea__sub {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkout__resumen {
+  background: var(--superficie);
+  border: 1px solid var(--borde-superficie);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-superficie);
+  padding: 18px;
+  /* en escritorio acompaña el scroll del formulario, que es largo */
+  position: sticky;
+  top: 0;
+}
+
+.resumen__cuentas { margin: 0 0 16px; }
+.resumen__fila {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 0.9rem;
+}
+.resumen__fila dt { color: var(--texto-suave); }
+.resumen__fila dd { margin: 0; font-variant-numeric: tabular-nums; }
+.resumen__suave { color: var(--texto-tenue); font-size: 0.85rem; text-align: right; }
+
+.resumen__fila--total {
+  border-top: 1px solid var(--borde);
+  margin-top: 6px;
+  padding-top: 12px;
+}
+.resumen__fila--total dt { color: var(--texto); font-weight: 500; }
+.resumen__fila--total .precio--total { font-size: 1.35rem; }
+
+.resumen__label {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+  margin-bottom: 8px;
+}
+
+.resumen__pagos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.resumen__pago {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+}
+.resumen__pago .ico { width: 15px; height: 15px; }
+
+.resumen__nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding-top: 14px;
+  border-top: 1px solid var(--borde);
+  font-size: 0.83rem;
+  color: var(--texto-suave);
+  line-height: 1.4;
+}
+.resumen__nota .ico {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  stroke-width: 2.5;
+  color: var(--acento);
+}
+
+/* ------------------------- SUGERIDOS ------------------------------ */
+.sugeridos {
+  margin-top: 34px;
+  padding-top: 26px;
+  border-top: 1px solid var(--borde);
+}
+
+.sugeridos__fila {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.sugerido {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--superficie);
+  border: 1px solid var(--borde-superficie);
+  border-radius: var(--radio);
+}
+.sugerido .media { aspect-ratio: 4 / 3; }
+.sugerido__nombre {
+  font-size: 0.86rem;
+  line-height: 1.3;
+  /* dos líneas fijas: mantiene los precios y los botones alineados */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.6em;
+}
+.sugerido__precio {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--acento);
+  margin-top: auto;
 }
 
 /* ---------------------- BOTÓN VOLVER ARRIBA -----------------------
@@ -2149,20 +2404,6 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   display: grid;
   gap: 18px;
 }
-
-.form-entrega__volver {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  justify-self: start;
-  color: var(--texto-suave);
-  font-size: 0.88rem;
-  font-weight: 500;
-  padding: 4px 2px;
-  transition: color var(--transicion);
-}
-.form-entrega__volver .ico { width: 18px; height: 18px; }
-.form-entrega__volver:hover { color: var(--texto); }
 
 .form-entrega__titulo {
   font-family: var(--display);
@@ -2659,8 +2900,14 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   font-size: 0.93rem;
 }
 
+/* Fila, no columna: con los botones ajustados a su contenido, apilados
+   quedaban tres anchos distintos alineados a la izquierda (borde
+   dentado). En fila se leen como un grupo y aprovechan el ancho; si no
+   entran, envuelven. */
 .modal__acciones {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
   margin-top: 22px;
 }
@@ -2672,6 +2919,33 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
     gap: 16px;
     align-items: baseline;
   }
+
+  /* Las dos columnas de producto del comparador, exactamente iguales.
+     Con el ancho automático de una tabla cada columna se dimensiona por
+     su contenido, así que un nombre o una spec más larga de un lado
+     ensanchaba esa columna y las fotos quedaban de distinto tamaño.
+     table-layout:fixed reparte por el ancho declarado y no por el texto.
+     Va sólo de 560px para arriba: por debajo la tabla se apila y deja de
+     comportarse como tabla (ver la media query de abajo). */
+  .comparador__tabla { table-layout: fixed; }
+  .comparador__tabla thead th:first-child { width: 172px; }
+  .comparador__tabla thead th:not(:first-child) { width: auto; }
+
+  /* Con ancho fijo, una etiqueta larga ("Almacenamiento") ya no puede
+     ensanchar su columna: se deja envolver en vez de desbordar. */
+  .comparador__tabla tbody th[scope="row"] { white-space: normal; }
+}
+
+/* -------- CHECKOUT EN PANTALLAS ANCHAS -------- */
+@media (min-width: 900px) {
+  /* formulario a la izquierda, resumen fijo al costado */
+  .checkout__grid { grid-template-columns: minmax(0, 1fr) 330px; gap: 34px; }
+  .sugeridos__fila { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* En pantallas donde el resumen ya cae debajo, deja de estar pegado */
+@media (max-width: 899px) {
+  .checkout__resumen { position: static; }
 }
 
 /* ============================ RESPONSIVE =========================== */

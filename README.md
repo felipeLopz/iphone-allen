@@ -68,6 +68,17 @@ Los textos provisorios ya no se ven como corchetes en pantalla: se reemplazaron 
 
 ---
 
+## Cómo funciona la compra
+
+Son dos pasos, y en ninguno se cobra desde el sitio: todo termina en un WhatsApp con el pedido armado.
+
+1. **El carrito** (el ícono del header) abre un panel lateral con los productos, el total y el botón **"Finalizar compra"**. Ahí se cambian cantidades o se quitan productos.
+2. **"Finalizar compra"** abre una pantalla completa con el resumen del pedido, el formulario de entrega, un bloque con el total y los medios de pago, y una fila de **productos sugeridos** que se pueden agregar sin salir de esa pantalla. El botón "Volver" regresa al carrito sin perder los datos ya cargados.
+
+Los sugeridos se eligen solos: productos **con stock**, que **no estén ya en el carrito**, y priorizando los de **categorías que el carrito no tiene** (a alguien que lleva un iPhone le sirve más ver un accesorio que otro iPhone). Si no alcanzan, completa con los que queden. No hay que configurar nada.
+
+---
+
 ## Los controles del catálogo
 
 Arriba de la grilla, en las cinco páginas de catálogo, hay tres controles que se combinan entre sí:
@@ -96,7 +107,7 @@ Estos son todos los campos que puede tener un producto:
 | `destacado` | No | `true` para que el producto aparezca en el carrusel de "Destacados" de arriba. Lo ideal es que sean 3 o 4 productos en total con `true`. |
 | `etiqueta` | No | `"nuevo"` o `"oferta"`. Muestra un cartelito en la tarjeta. Ver la sección "Etiquetas" más abajo. |
 | `stock` | No | Un número. Ver la nota especial más abajo. |
-| `specs` | Sí | Una lista corta de 2 a 4 datos, entre corchetes, para la tarjeta (ej: `["128 GB", "Negro"]`). |
+| `specs` | Sí | Una lista corta de 2 a 4 datos, entre corchetes (ej: `["128 GB", "Negro"]`). Se muestran unidos con `·` como descripción debajo del nombre en la tarjeta. Entran dos líneas: lo que se pase se recorta con puntos suspensivos. |
 | `detalle` | Sí | La ficha técnica completa que se ve al abrir el producto (el modal). Ver el ejemplo abajo. |
 | `imagen` | No | Casi nunca hace falta escribirlo. Ver la sección "Cómo agregar la foto de un producto" más abajo. |
 
@@ -191,7 +202,7 @@ Hoy están marcados como ejemplo: el iPhone 16 Pro Max y los AirPods Pro 2 con `
 El campo sólo hace falta cuando **no** hay stock: se pone `"stock": 0`, y automáticamente:
 - el producto se muestra más apagado (no se oculta, sigue en el catálogo),
 - aparece un cartel de "Sin stock",
-- el botón cambia de "Agregar al carrito" a "Avisame cuando llegue" (abre WhatsApp con un mensaje ya armado para ese producto puntual).
+- el botón cambia de "Agregar" a "Avisame" (abre WhatsApp con un mensaje ya armado para ese producto puntual). En el detalle del producto, donde hay más lugar, esos botones se leen completos: "Agregar al carrito" y "Avisame cuando llegue".
 
 ---
 

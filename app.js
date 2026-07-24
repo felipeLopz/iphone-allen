@@ -318,7 +318,14 @@
 
   // Con stock agrega al carrito; sin stock abre WhatsApp para que le avisen.
   // `texto` permite la versión compacta ("Agregar") de las tarjetas chicas.
-  function botonAccion(p, clase, texto) {
+  // "texto" y "textoSinStock" son las etiquetas cortas para donde el
+  // espacio manda (las tarjetas de la grilla). Sin ellas se usan las
+  // largas, que son las que van en el modal, el hero y el carrusel.
+  // OJO: el texto corto del caso sin stock no es un detalle estético —
+  // "Avisame cuando llegue" no entra al lado de "Comparar" en una tarjeta
+  // angosta, envuelve a dos filas y esa tarjeta queda más alta que las
+  // demás de la grilla.
+  function botonAccion(p, clase, texto, textoSinStock) {
     var sr = '<span class="sr-only"> — ' + esc(p.nombre) + '</span>';
 
     if (hayStock(p)) {
@@ -327,7 +334,7 @@
     }
     return '<a class="btn btn--sec ' + (clase || '') + '" data-avisar="' + esc(p.id) + '" ' +
            'href="' + urlWhatsapp(msgAviso(p)) + '" target="_blank" rel="noopener">' +
-           btnPartes('campana', 'Avisame cuando llegue', sr) + '</a>';
+           btnPartes('campana', textoSinStock || 'Avisame cuando llegue', sr) + '</a>';
   }
 
   // El comparador está en index.html. Desde una página de categoría el
@@ -572,14 +579,49 @@
 
     return '<div class="overlay" id="overlayCarrito" hidden></div>' +
       '<aside class="drawer" id="carrito" role="dialog" aria-modal="true" aria-labelledby="carritoTitulo" hidden>' +
-        // El botón de volver va primero: es lo primero que recibe el foco
-        // al abrir y lo primero que se lee. Conserva el id #cerrarCarrito
-        // para no duplicar la lógica de cierre (Escape, foco, scroll).
         '<div class="drawer__head">' +
-          '<button class="drawer__volver" type="button" id="cerrarCarrito">' +
+          '<h2 class="drawer__titulo" id="carritoTitulo">Tu carrito</h2>' +
+          '<button class="drawer__cerrar" type="button" id="cerrarCarrito" aria-label="Cerrar carrito">' +
+            '<span aria-hidden="true">✕</span>' +
+          '</button>' +
+        '</div>' +
+
+        '<div class="drawer__body">' +
+          '<div class="carrito-lista" id="carritoLista"><div id="carritoItems"></div></div>' +
+        '</div>' +
+
+        '<div class="drawer__foot" id="pieCarrito">' +
+          '<div class="drawer__anclado">' +
+            '<div class="drawer__total">' +
+              '<span>Total</span>' +
+              '<strong class="precio precio--total" id="carritoTotal">$ 0</strong>' +
+            '</div>' +
+            '<button class="btn btn--compacto" type="button" id="pedirWhatsapp">' +
+              btnPartes('flecha', 'Finalizar compra') +
+            '</button>' +
+          '</div>' +
+          '<button class="btn-plano" type="button" id="vaciarCarrito">Vaciar carrito</button>' +
+        '</div>' +
+      '</aside>';
+  }
+
+  /* ------------------- VISTA DE FINALIZAR COMPRA ---------------------
+     Pantalla completa, se abre desde "Finalizar compra" del drawer. Trae
+     el resumen del pedido, el formulario de entrega, un bloque
+     informativo con el total y los medios de pago, y una fila de
+     productos sugeridos.
+     ------------------------------------------------------------------ */
+  function htmlCheckout() {
+    var horarios = ['08:00 - 10:00', '10:00 - 12:00', '12:00 - 14:00',
+                    '14:00 - 16:00', '16:00 - 18:00', '18:00 - 20:00'];
+
+    return '<div class="checkout" id="checkout" role="dialog" aria-modal="true" ' +
+                'aria-labelledby="checkoutTitulo" hidden>' +
+        '<div class="drawer__head">' +
+          '<button class="drawer__volver" type="button" id="volverAlCarrito">' +
             icono('volver') + '<span>Volver</span>' +
           '</button>' +
-          '<h2 class="drawer__titulo" id="carritoTitulo">Tu carrito</h2>' +
+          '<h2 class="drawer__titulo" id="checkoutTitulo">Finalizar compra</h2>' +
         '</div>' +
 
         '<ol class="pasos" id="pasosCarrito" aria-label="Pasos de la compra">' +
@@ -588,13 +630,16 @@
           htmlPasoCarrito(3, 'WhatsApp', false) +
         '</ol>' +
 
-        '<div class="drawer__body">' +
-          '<div class="carrito-lista" id="carritoLista"><div id="carritoItems"></div></div>' +
+        '<div class="checkout__scroll">' +
+          '<div class="checkout__grid">' +
+            '<div class="checkout__principal">' +
 
-          '<form class="form-entrega" id="formEntrega" novalidate hidden>' +
-            '<button class="form-entrega__volver" type="button" id="volverAlCarrito">' +
-              icono('volver') + 'Volver al carrito' +
-            '</button>' +
+              '<section class="resumen-pedido" aria-labelledby="resumenPedidoTitulo">' +
+                '<h3 class="resumen__titulo" id="resumenPedidoTitulo">Tu pedido</h3>' +
+                '<div id="checkoutPedido"></div>' +
+              '</section>' +
+
+          '<form class="form-entrega" id="formEntrega" novalidate>' +
 
             '<h3 class="form-entrega__titulo" id="formEntregaTitulo" tabindex="-1">Datos de entrega</h3>' +
             '<p class="form-entrega__bajada">Completá tus datos para confirmar la compra.</p>' +
@@ -641,7 +686,7 @@
               '<p class="campo__error" id="errorHorario" hidden></p>' +
             '</fieldset>' +
 
-            '<button class="btn btn--bloque" type="submit">' +
+            '<button class="btn btn--compacto" type="submit">' +
               btnPartes('whatsapp', 'Confirmar compra por WhatsApp') +
             '</button>' +
 
@@ -656,21 +701,39 @@
             '<p class="form-entrega__nota">Se abrirá WhatsApp con los productos del carrito para coordinar el pago y la entrega.</p>' +
             '<p class="form-entrega__privacidad">Tus datos se envían sólo por WhatsApp, no se guardan en el sitio.</p>' +
           '</form>' +
-        '</div>' +
-
-        '<div class="drawer__foot" id="pieCarrito">' +
-          '<div class="drawer__anclado">' +
-            '<div class="drawer__total">' +
-              '<span>Total</span>' +
-              '<strong class="precio precio--total" id="carritoTotal">$ 0</strong>' +
             '</div>' +
-            '<button class="btn btn--bloque" type="button" id="pedirWhatsapp">' +
-              btnPartes('flecha', 'Continuar') +
-            '</button>' +
+
+            // Columna informativa: no agrega campos, sólo cierra las dudas
+            // que suelen frenar la compra (cuánto es, cómo se paga, cómo
+            // llega). En mobile cae debajo del formulario.
+            '<aside class="checkout__resumen" aria-labelledby="resumenTitulo">' +
+              '<h3 class="resumen__titulo" id="resumenTitulo">Resumen de compra</h3>' +
+              '<dl class="resumen__cuentas">' +
+                '<div class="resumen__fila">' +
+                  '<dt>Subtotal</dt><dd id="resumenSubtotal">$ 0</dd>' +
+                '</div>' +
+                '<div class="resumen__fila">' +
+                  '<dt>Envío</dt><dd class="resumen__suave">A coordinar por WhatsApp</dd>' +
+                '</div>' +
+                '<div class="resumen__fila resumen__fila--total">' +
+                  '<dt>Total</dt>' +
+                  '<dd><strong class="precio precio--total" id="resumenTotal">$ 0</strong></dd>' +
+                '</div>' +
+              '</dl>' +
+              '<p class="resumen__label">Medios de pago</p>' +
+              '<ul class="resumen__pagos" id="resumenPagos"></ul>' +
+              '<p class="resumen__nota">' + icono('check') +
+                '<span>Equipos liberados, con soporte después de la venta.</span></p>' +
+            '</aside>' +
           '</div>' +
-          '<button class="btn-plano" type="button" id="vaciarCarrito">Vaciar carrito</button>' +
+
+          // Sugeridos: sólo con stock y fuera del carrito (ver pintarSugeridos)
+          '<section class="sugeridos" id="sugeridos" aria-labelledby="sugeridosTitulo" hidden>' +
+            '<h3 class="resumen__titulo" id="sugeridosTitulo">También te puede interesar</h3>' +
+            '<div class="sugeridos__fila" id="sugeridosFila"></div>' +
+          '</section>' +
         '</div>' +
-      '</aside>';
+      '</div>';
   }
 
   // Único botón flotante del sitio: vuelve al tope. Fijo abajo a la
@@ -700,7 +763,7 @@
   document.getElementById('app-header').innerHTML = htmlHeader();
   document.getElementById('app-footer').innerHTML = htmlFooter();
   document.body.insertAdjacentHTML('beforeend',
-    htmlDrawer() + htmlModal() + htmlBotonArriba());
+    htmlDrawer() + htmlCheckout() + htmlModal() + htmlBotonArriba());
 
   iniciarTema();
   iniciarVolverArriba();
@@ -797,7 +860,7 @@
         '<div class="destacado-card__fila">' +
           bloquePrecios(p) +
         '</div>' +
-        botonAccion(p, 'btn--bloque') +
+        botonAccion(p, 'btn--compacto') +
       '</article>';
   }
 
@@ -875,7 +938,7 @@
                '</div>' +
                '<div class="carrusel__pie">' +
                  bloquePrecios(p) +
-                 botonAccion(p, 'btn--bloque') +
+                 botonAccion(p, 'btn--compacto') +
                '</div>' +
              '</article>';
     }).join('');
@@ -1312,11 +1375,23 @@
                    '<span class="card__nombre-txt">' + esc(p.nombre) + '</span>' +
                  '</button>' +
                '</h4>' +
+               descripcionCorta(p) +
              '</div>' +
              bloquePrecios(p) +
-             botonAccion(p, 'btn--bloque', 'Agregar') +
-             botonComparar(p) +
+             '<div class="card__acciones">' +
+               botonAccion(p, 'btn--compacto', 'Agregar', 'Avisame') +
+               botonComparar(p) +
+             '</div>' +
            '</article>';
+  }
+
+  // Descripción corta de la tarjeta: las mismas specs del JSON unidas en
+  // una línea. El CSS la recorta a dos líneas y le reserva esa altura
+  // siempre, para que todas las tarjetas de la grilla sigan midiendo lo
+  // mismo aunque un producto tenga menos specs que otro.
+  function descripcionCorta(p) {
+    var specs = (p.specs || []).join(' · ');
+    return '<p class="card__specs">' + esc(specs) + '</p>';
   }
 
   // Tarjeta principal: ocupa el doble de alto en la primera columna.
@@ -1331,11 +1406,13 @@
                    esc(p.nombre) +
                  '</button>' +
                '</h4>' +
+               descripcionCorta(p) +
              '</div>' +
-             '<p class="card__specs">' + esc((p.specs || []).join(' · ')) + '</p>' +
              bloquePrecios(p) +
-             botonAccion(p, 'btn--bloque') +
-             botonComparar(p) +
+             '<div class="card__acciones">' +
+               botonAccion(p, 'btn--compacto') +
+               botonComparar(p) +
+             '</div>' +
            '</article>';
   }
 
@@ -1809,9 +1886,9 @@
       : '';
 
     var primario = hayStock(p)
-      ? '<button class="btn btn--bloque" type="button" data-agregar="' + esc(p.id) + '">' +
+      ? '<button class="btn btn--compacto" type="button" data-agregar="' + esc(p.id) + '">' +
         btnPartes('carrito', 'Agregar al carrito') + '</button>'
-      : '<a class="btn btn--sec btn--bloque" href="' + urlWhatsapp(msgAviso(p)) + '" ' +
+      : '<a class="btn btn--sec btn--compacto" href="' + urlWhatsapp(msgAviso(p)) + '" ' +
         'target="_blank" rel="noopener">' + btnPartes('campana', 'Avisame cuando llegue') + '</a>';
 
     return media(p, '', marcasSobreFoto(p)) +
@@ -1827,9 +1904,9 @@
       (hayStock(p) ? '' : '<p class="modal__agotado">Sin stock por ahora. Dejanos tu mensaje y te avisamos apenas entre.</p>') +
       (filas ? '<dl class="detalle">' + filas + '</dl>' : '') +
       '<div class="modal__acciones">' +
-        '<a class="btn btn--sec btn--bloque" href="' + urlWhatsapp(msgConsulta(p)) + '" ' +
+        '<a class="btn btn--sec btn--compacto" href="' + urlWhatsapp(msgConsulta(p)) + '" ' +
         'target="_blank" rel="noopener">' + btnPartes('whatsapp', 'Consultar por WhatsApp') + '</a>' +
-        '<button class="btn btn--sec btn--bloque" type="button" data-compartir="' + esc(p.id) + '">' +
+        '<button class="btn btn--sec btn--compacto" type="button" data-compartir="' + esc(p.id) + '">' +
           btnPartes('compartir', 'Compartir') + '</button>' +
         primario +
       '</div>';
@@ -2198,6 +2275,94 @@
 
     actualizarFade();
     actualizarEnlacesWhatsapp();
+    pintarCheckout();     // si está abierto, el total y los sugeridos se recalculan
+  }
+
+  /* ------------------ CONTENIDO DE LA VISTA DE CHECKOUT --------------
+     Tres bloques que se recalculan cada vez que cambia el carrito: el
+     resumen del pedido, las cuentas + medios de pago, y los sugeridos.
+     Todo es informativo salvo el botón de agregar de los sugeridos.
+     ------------------------------------------------------------------ */
+  function pintarCheckout() {
+    if (checkout.hidden) return;    // no vale la pena calcular a puertas cerradas
+    pintarPedidoCheckout();
+    pintarResumenCheckout();
+    pintarSugeridos();
+  }
+
+  // Resumen del pedido: mismas líneas que el carrito pero de sólo lectura
+  // (acá no se editan cantidades; para eso está el botón "Volver").
+  function pintarPedidoCheckout() {
+    var ls = lineas();
+    $('#checkoutPedido').innerHTML = ls.map(function (l) {
+      var p = l.producto;
+      return '<div class="pedido-linea">' +
+               media(p) +
+               '<div class="pedido-linea__datos">' +
+                 '<p class="pedido-linea__nombre">' + esc(p.nombre) + '</p>' +
+                 '<p class="pedido-linea__cant">' + l.cantidad + ' × ' + precio(p.precio) + '</p>' +
+               '</div>' +
+               '<p class="pedido-linea__sub">' + precio(p.precio * l.cantidad) + '</p>' +
+             '</div>';
+    }).join('');
+  }
+
+  function pintarResumenCheckout() {
+    // Subtotal y total coinciden: el envío se coordina aparte y todavía no
+    // hay costos ni descuentos definidos. Se muestran los dos igual porque
+    // es la lectura que espera cualquiera que compró alguna vez online.
+    $('#resumenSubtotal').textContent = precio(total());
+    $('#resumenTotal').textContent = precio(total());
+
+    $('#resumenPagos').innerHTML = FORMAS_PAGO.map(function (f) {
+      var ico = ICONOS[f.icono] ? icono(f.icono) : '';
+      return '<li class="resumen__pago">' + ico + '<span>' + esc(f.titulo) + '</span></li>';
+    }).join('');
+  }
+
+  var MAX_SUGERIDOS = 4;
+
+  // Criterio: con stock, que no esté ya en el carrito, y primero los de
+  // categorías que el carrito NO tiene (agregar otro iPhone al lado de un
+  // iPhone es peor sugerencia que ofrecer el accesorio que le falta).
+  // Si no alcanzan, completa con los que queden.
+  function elegirSugeridos() {
+    var enCarrito = carrito.map(function (i) { return i.id; });
+    var catsEnCarrito = lineas().map(function (l) { return l.producto.categoria; });
+
+    var candidatos = productos.filter(function (p) {
+      return hayStock(p) && enCarrito.indexOf(p.id) === -1;
+    });
+
+    var otraCategoria = candidatos.filter(function (p) {
+      return catsEnCarrito.indexOf(p.categoria) === -1;
+    });
+    var mismaCategoria = candidatos.filter(function (p) {
+      return catsEnCarrito.indexOf(p.categoria) !== -1;
+    });
+
+    return otraCategoria.concat(mismaCategoria).slice(0, MAX_SUGERIDOS);
+  }
+
+  function pintarSugeridos() {
+    var lista = elegirSugeridos();
+    var seccion = $('#sugeridos');
+
+    // sin candidatos (carrito con todo el catálogo) la sección no se muestra
+    seccion.hidden = lista.length === 0;
+    if (!lista.length) return;
+
+    $('#sugeridosFila').innerHTML = lista.map(function (p) {
+      return '<article class="sugerido">' +
+               media(p) +
+               '<p class="sugerido__nombre">' + esc(p.nombre) + '</p>' +
+               '<p class="sugerido__precio">' + precio(p.precio) + '</p>' +
+               '<button class="btn btn--compacto" type="button" data-agregar="' + esc(p.id) + '">' +
+                 btnPartes('carrito', 'Agregar',
+                           '<span class="sr-only"> — ' + esc(p.nombre) + '</span>') +
+               '</button>' +
+             '</article>';
+    }).join('');
   }
 
   // El degradado del borde inferior sólo si la lista tiene más contenido
@@ -2279,8 +2444,14 @@
   /* --------------------------- DRAWER (UI) -------------------------- */
 
   var drawer = $('#carrito');
+  var checkout = $('#checkout');
   var overlay = $('#overlayCarrito');
   var ultimoFoco = null;
+
+  // ¿Hay alguna capa del carrito abierta? (drawer lateral o checkout)
+  function capaCarritoAbierta() {
+    return !drawer.hidden || !checkout.hidden;
+  }
 
   // El botón flotante se esconde mientras hay una capa abierta: aunque su
   // z-index ya lo deja por debajo, con el velo puesto seguiría siendo
@@ -2297,7 +2468,7 @@
 
   function liberarScroll() {
     // sólo se libera si no queda ninguna capa abierta
-    if (drawer.hidden && modal.hidden) {
+    if (!capaCarritoAbierta() && modal.hidden) {
       document.body.style.overflow = '';
       ocultarFlotantes(false);
     }
@@ -2305,7 +2476,6 @@
 
   function abrirDrawer() {
     ultimoFoco = document.activeElement;
-    mostrarVistaCarrito(false);      // siempre arranca en la lista, no en el checkout
     drawer.hidden = false;
     overlay.hidden = false;
     void drawer.offsetWidth;
@@ -2313,11 +2483,16 @@
     overlay.dataset.visible = 'true';
     bloquearScroll();
     actualizarFade();                // recién ahora la lista tiene altura real
+    marcarPaso(1);
     $('#cerrarCarrito').focus();
   }
 
+  // Cierra las dos capas del carrito y devuelve el foco a donde estaba.
   function cerrarDrawer() {
-    if (drawer.hidden) return;
+    if (!capaCarritoAbierta()) return;
+
+    checkout.hidden = true;
+    checkout.dataset.visible = 'false';
     drawer.dataset.visible = 'false';
     overlay.dataset.visible = 'false';
 
@@ -2369,12 +2544,18 @@
   }
 
   document.addEventListener('keydown', function (e) {
-    // el modal está por encima del drawer: se atiende primero
-    var capa = !modal.hidden ? modal : (!drawer.hidden ? drawer : null);
+    // Orden de arriba hacia abajo: el modal tapa al checkout y el checkout
+    // tapa al drawer, así que se atiende al de más arriba.
+    var capa = !modal.hidden ? modal
+             : (!checkout.hidden ? checkout
+             : (!drawer.hidden ? drawer : null));
     if (!capa) return;
 
     if (e.key === 'Escape') {
       if (capa === modal) cerrarModal();
+      // desde el checkout, Escape hace lo mismo que el botón "Volver":
+      // retrocede al carrito en vez de perder todo el paso
+      else if (capa === checkout) mostrarVistaCarrito();
       else cerrarDrawer();
       return;
     }
@@ -2646,21 +2827,40 @@
 
   /* --------------------------- CAMBIO DE VISTA ------------------------ */
 
+  // Del drawer lateral a la pantalla completa. El drawer se oculta: la
+  // vista de checkout es opaca y lo taparía igual, pero dejarlo abierto
+  // metería sus botones en el recorrido del Tab.
   function mostrarVistaCheckout() {
-    $('#carritoLista').hidden = true;
-    $('#pieCarrito').hidden = true;
-    formEntrega.hidden = false;
+    drawer.hidden = true;
+    drawer.dataset.visible = 'false';
+    overlay.hidden = true;
+    overlay.dataset.visible = 'false';
+
+    checkout.hidden = false;
+    void checkout.offsetWidth;
+    checkout.dataset.visible = 'true';
+
+    pintarCheckout();
     marcarPaso(2);
+    bloquearScroll();
     $('#formEntregaTitulo').focus();
   }
 
-  // `enfocar:false` la usa abrirDrawer(), que ya mueve el foco por su cuenta.
-  function mostrarVistaCarrito(enfocar) {
-    formEntrega.hidden = true;
-    $('#carritoLista').hidden = false;
-    $('#pieCarrito').hidden = false;
+  // Vuelta del checkout al carrito. Los datos del formulario no se tocan:
+  // siguen en el DOM y además persistidos (ver guardarDatosEntrega).
+  function mostrarVistaCarrito() {
+    checkout.dataset.visible = 'false';
+    checkout.hidden = true;
+
+    drawer.hidden = false;
+    overlay.hidden = false;
+    void drawer.offsetWidth;
+    drawer.dataset.visible = 'true';
+    overlay.dataset.visible = 'true';
+
     marcarPaso(1);
-    if (enfocar !== false) $('#pedirWhatsapp').focus();
+    actualizarFade();
+    $('#pedirWhatsapp').focus();
   }
 
   $('#volverAlCarrito').addEventListener('click', function () {
@@ -2761,9 +2961,7 @@
   // ícono chico). La sección de Contacto usa el botón completo en vez del
   // ícono circular. Si Instagram está en placeholder, ambos quedan vacíos.
   function pintarRedesContacto() {
-    var insta = enlaceInstagram();
-    $('#instaHero').innerHTML = insta;
-    $('#instaFaq').innerHTML = insta;
+    $('#instaHero').innerHTML = enlaceInstagram();
     $('#ctaInstagramWrap').innerHTML = botonInstagram('btn--sec');
   }
 
