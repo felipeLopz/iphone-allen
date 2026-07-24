@@ -367,16 +367,65 @@ button {
    Sólo texto en negro, sin recuadro. Mismo tratamiento en el header
    (.brand) y en el footer (.footer__brand).
    ------------------------------------------------------------------ */
+/* Marca tipográfica: la categoría en peso liviano y bien espaciada, el
+   lugar en negrita y más ceñido. El contraste de peso es lo que la hace
+   leer como logotipo y no como texto suelto. Ver htmlLogo() en app.js
+   para cambiar de variante (regla / punto / apilado). */
 .logo {
   display: inline-block;
   font-family: var(--display);
-  font-weight: 600;
   font-size: 0.92rem;
-  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--acento);
-  line-height: 1.2;
+  line-height: 1.15;
+  white-space: nowrap;
 }
+
+.logo__cat {
+  font-weight: 400;
+  letter-spacing: 0.2em;
+}
+
+.logo__lugar {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* --- variante 'regla': línea vertical fina entre las dos palabras --- */
+.logo--regla .logo__lugar::before {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 0.92em;
+  margin-right: 0.42em;
+  background: currentColor;
+  opacity: 0.4;
+  vertical-align: -0.1em;
+}
+
+/* --- variante 'punto' --- */
+.logo--punto .logo__lugar::before {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  margin-right: 0.5em;
+  background: currentColor;
+  opacity: 0.55;
+  vertical-align: 0.28em;
+}
+
+/* --- variante 'apilado': dos líneas, sin separador --- */
+.logo--apilado {
+  display: grid;
+  justify-items: start;
+  line-height: 1.02;
+}
+.logo--apilado .logo__cat { font-size: 0.74em; }
+
+/* El footer tiene aire de sobra: la marca puede respirar un poco más */
+.logo--grande { font-size: 1.05rem; }
 
 /* separador entre logotipo y links: sólo cuando van en la misma fila */
 .navbar__sep {
@@ -574,6 +623,12 @@ button {
   font-size: clamp(2.5rem, 9vw, 4.4rem);
   font-weight: 600;
   max-width: 12ch;
+  /* Corrección óptica: la caja del título ya estaba alineada, pero a este
+     cuerpo la tipografía display deja ~2px de aire a la izquierda del
+     primer trazo, contra ~1px del texto de abajo. Sin esto, el título se
+     ve metido hacia adentro respecto de la bajada y los tildes. Medido:
+     1px de exceso a 73.6px = 0.014em. En em para que escale con el clamp. */
+  margin-left: -0.014em;
 }
 
 .hero__bajada {
@@ -1241,17 +1296,17 @@ button {
    formulario, sin dirección: ese contenido ya está en el hero. */
 .contacto { border-top: 1px solid var(--borde); }
 
+/* Alineado a la izquierda como el resto de las secciones: antes estaba
+   centrado y su título quedaba fuera del eje vertical común. */
 .contacto__inner {
-  text-align: center;
   display: grid;
-  justify-items: center;
+  justify-items: start;
   gap: 6px;
 }
 
 .contacto__botones {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 18px;
@@ -1279,17 +1334,9 @@ button {
 .footer__brand { margin-bottom: 9px; }
 .footer__legal { margin-top: 12px; max-width: 62ch; font-size: 0.78rem; opacity: 0.75; }
 
-/* WhatsApp / Instagram / correo. Vacío si los tres son placeholder:
-   el contenedor no colapsa raro porque no tiene borde ni fondo propio. */
-.footer__redes {
-  display: flex;
-  gap: 14px;
-  margin: 16px 0;
-}
-
-/* Ícono circular para un enlace de red/contacto. Se usa en el footer
-   (WhatsApp, Instagram, correo) y en cualquier otro lugar donde el
-   Instagram acompañe a un WhatsApp de contacto general (.contacto-redes). */
+/* Ícono circular para un enlace de red/contacto. Lo usa el Instagram que
+   acompaña a un WhatsApp de contacto general (hero y FAQ, .contacto-redes).
+   El footer ya no lleva redes. */
 .red-link {
   display: grid;
   place-items: center;
@@ -1315,51 +1362,71 @@ button {
 }
 .overlay[data-visible="true"] { opacity: 1; }
 
+/* La vista del carrito es opaca y ocupa toda la pantalla, así que su velo
+   queda completamente tapado: el blur sería trabajo de GPU tirado. Se deja
+   el elemento (la lógica de apertura/cierre lo usa) pero sin desenfoque. */
+#overlayCarrito { backdrop-filter: none; }
+
+/* ------------------------ VISTA DEL CARRITO ------------------------
+   Antes era un drawer lateral de 420px. Ahora ocupa toda la pantalla y
+   tapa el header del sitio (z-index 60 > 40): la idea es que mientras se
+   revisa el pedido no haya nada más que el carrito. El ancho de lectura
+   se acota con --carrito-ancho y el contenido queda centrado, así que en
+   escritorio no se estira de borde a borde.
+   Se conservan los nombres .drawer* para no tocar la lógica (ids, foco
+   atrapado, Escape, bloqueo de scroll) que ya estaba probada.
+   ------------------------------------------------------------------ */
 .drawer {
+  --carrito-ancho: 720px;
+  /* centra el contenido dejando el borde/fondo a todo lo ancho */
+  --carrito-pad: max(20px, calc((100% - var(--carrito-ancho)) / 2));
+
   position: fixed;
   z-index: 60;
-  top: 0;
-  right: 0;
-  height: 100dvh;
-  width: min(420px, 100%);
-  background: var(--superficie);
-  border-left: 1px solid var(--borde);
-  box-shadow: -12px 0 40px rgba(var(--sombra-rgb), 0.16);
+  inset: 0;
+  background: var(--fondo);
   display: flex;
   flex-direction: column;
-  transform: translateX(100%);
-  transition: transform 300ms cubic-bezier(.4, .1, .2, 1);
+  /* entrada sobria: sube y aparece, sin desplazamiento lateral */
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 200ms ease, transform 260ms cubic-bezier(.4, .1, .2, 1);
 }
-.drawer[data-visible="true"] { transform: translateX(0); }
+.drawer[data-visible="true"] { opacity: 1; transform: none; }
 
 .drawer__head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 18px 20px;
+  gap: 14px;
+  padding: 16px var(--carrito-pad);
   border-bottom: 1px solid var(--borde);
+  background: var(--superficie);
 }
 
 .drawer__titulo { font-size: 1.2rem; }
 
-.drawer__cerrar {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
+/* Volver: texto + flecha, alineado a la izquierda del encabezado */
+.drawer__volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 8px 12px 8px 6px;
+  margin-left: -6px;
   border-radius: 999px;
-  border: 1px solid var(--borde);
   color: var(--texto-suave);
-  transition: color var(--transicion), border-color var(--transicion);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color var(--transicion), background var(--transicion);
 }
-.drawer__cerrar:hover { color: var(--texto); border-color: var(--texto-suave); }
+.drawer__volver:hover { color: var(--texto); background: var(--superficie2); }
+.drawer__volver .ico { width: 18px; height: 18px; }
 
 .drawer__body {
   flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 16px 20px;
+  padding: 20px var(--carrito-pad);
 }
 
 /* ------------------------- BARRA DE PASOS --------------------------
@@ -1370,7 +1437,7 @@ button {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
-  padding: 0 20px 12px;
+  padding: 14px var(--carrito-pad) 0;
   margin: 0;
   list-style: none;
 }
@@ -1424,13 +1491,6 @@ button {
   overflow-y: auto;
   /* que el scroll de la lista no se filtre a la página de atrás */
   overscroll-behavior: contain;
-}
-
-.drawer__vacio {
-  color: var(--texto-suave);
-  text-align: center;
-  padding-block: 48px;
-  font-size: 0.93rem;
 }
 
 /* ------------------- TARJETA DE PRODUCTO DEL CARRITO --------------- */
@@ -1505,9 +1565,10 @@ button {
 
 .drawer__foot {
   border-top: 1px solid var(--borde);
-  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  padding: 12px var(--carrito-pad) calc(12px + env(safe-area-inset-bottom));
   display: grid;
   gap: 6px;
+  background: var(--superficie);
 }
 
 /* bloque anclado: total + acción principal */
@@ -1560,6 +1621,44 @@ button {
   filter: brightness(0.92);
   box-shadow: 0 6px 14px rgba(var(--sombra-rgb), .24), 0 14px 36px rgba(var(--sombra-rgb), .30);
 }
+
+/* ---------------------- BOTÓN VOLVER ARRIBA -----------------------
+   Mismo z-index y misma lógica de ocultado que el de WhatsApp. Va en
+   superficie (no en acento) a propósito: es una ayuda de navegación,
+   no una llamada a la acción, y no tiene que competir con el WhatsApp.
+   Se apila ENCIMA del de WhatsApp (bottom 88 = 20 + 56 de alto + 12 de
+   aire); en mobile, donde el de WhatsApp está oculto, baja a 20.
+   ------------------------------------------------------------------ */
+.arriba-btn {
+  position: fixed;
+  z-index: 30;
+  right: 20px;
+  bottom: 88px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--superficie);
+  color: var(--texto-suave);
+  border: 1px solid var(--borde-superficie);
+  box-shadow: 0 2px 6px rgba(var(--sombra-rgb), .14), 0 8px 22px rgba(var(--sombra-rgb), .18);
+  /* oculto hasta que se scrollea: visibility (no display) para que la
+     opacidad pueda animar; pointer-events evita que capture toques
+     mientras está invisible */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 220ms ease, visibility 220ms ease,
+              color var(--transicion), border-color var(--transicion);
+}
+.arriba-btn.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+.arriba-btn .ico { width: 20px; height: 20px; }
+.arriba-btn:hover { color: var(--texto); border-color: var(--texto-suave); }
 
 /* --------------------- [25] CONFIRMACIÓN (TOAST) ------------------ */
 .toast {
@@ -2002,7 +2101,6 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 }
 
 /* wrap más angosto para bloques de lectura (FAQ) */
-.wrap--angosto { max-width: 760px; }
 
 /* =====================================================================
    COMPARADOR DE EQUIPOS
@@ -2224,6 +2322,11 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   border-radius: var(--radio);
   box-shadow: var(--sombra-superficie);
   padding: 0 20px;
+  /* Medida de lectura acotada, pero SIN centrar: la sección usa el mismo
+     .wrap que las demás para que el título arranque en el mismo eje, y el
+     acordeón se limita a 760px desde la izquierda. Antes la sección usaba
+     un .wrap--angosto centrado, que empujaba el título 210px adentro. */
+  max-width: 760px;
 }
 
 /* La abierta se marca con una barra vertical jade sobre el borde
@@ -2263,7 +2366,7 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 
 .faq__mas {
   margin-top: 26px;
-  text-align: center;
+  max-width: 760px;   /* misma medida que el acordeón, mismo eje izquierdo */
   color: var(--texto-suave);
   font-size: 0.92rem;
 }
@@ -2440,6 +2543,21 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
      vez de agregar. display:none (no opacity/visibility) para que deje de
      existir para el toque y para los lectores de pantalla. */
   .wa-flotante { display: none; }
+
+  /* Sin el de WhatsApp debajo, éste baja a la esquina. Se achica y se
+     arrima al borde para pisar lo menos posible el borde derecho de los
+     botones de las tarjetas, que ocupan todo el ancho: a 375px la tarjeta
+     llega hasta x=340 y este botón arranca en x=329, así que el solape
+     queda en 11px sobre la esquina redondeada (contra 25px si midiera
+     40px con margen de 20). Cero solape es imposible sin bajar de un
+     tamaño tocable: sólo quedan 20px de gutter libre a la derecha. */
+  .arriba-btn {
+    right: 8px;
+    bottom: 16px;
+    width: 38px;
+    height: 38px;
+  }
+  .arriba-btn .ico { width: 18px; height: 18px; }
 }
 
 @media (min-width: 900px) {

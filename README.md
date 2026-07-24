@@ -32,31 +32,39 @@ Listo: ahí la página funciona exactamente igual que una vez publicada. Para co
 
 ## Qué falta completar antes de publicar el sitio
 
-Esta lista es la posta: nada de lo que sigue está inventado, todo quedó marcado en el código con placeholders bien visibles (texto entre corchetes, tipo `[ALGO]`) para que sea imposible publicarlos por error sin notarlo.
+Los textos provisorios ya no se ven como corchetes en pantalla: se reemplazaron por redacciones neutras que **no prometen nada** (ni garantías, ni plazos, ni descuentos) y que remiten a consultar. Están marcados en el código con un comentario "TEXTO PROVISORIO" para encontrarlos rápido.
 
 1. **Las respuestas del FAQ.**
-   Archivo `app.js`, buscá el array `FAQ` (línea ~94). Son 7 preguntas ya redactadas; cada una tiene `r: '[RESPUESTA — completar]'` en lugar de la respuesta real. Hay que reemplazar ese texto por la respuesta de verdad, pregunta por pregunta. Una de esas preguntas es "¿Qué garantía tienen?" — al día de hoy el sitio no promete ninguna garantía en ningún lado, así que esa respuesta hay que pensarla con cuidado antes de publicar.
+   Archivo `app.js`, array `FAQ`. Son 7 preguntas con respuestas provisorias del tipo "Consultanos por…". Hay que reemplazarlas por la información real. Ojo con "¿Qué garantía tienen?": hoy la respuesta no promete ninguna garantía concreta a propósito, así que hay que pensarla con cuidado antes de publicar.
 
 2. **Las formas de pago.**
-   Archivo `app.js`, array `FORMAS_PAGO` (línea ~83). Tiene 3 tarjetas de ejemplo con `[FORMA DE PAGO 1]`, `[FORMA DE PAGO 2]`, etc. Se reemplaza el título y el detalle de cada una por los medios de pago reales (efectivo, transferencia, tarjeta, cuotas, o lo que corresponda). Se pueden agregar más tarjetas copiando el mismo formato, o borrar las que no apliquen.
+   Archivo `app.js`, array `FORMAS_PAGO`. Las 3 tarjetas (Efectivo, Transferencia, Tarjeta) ya tienen el medio de pago real, pero el campo `detalle` es provisorio y no menciona cuotas, recargos ni descuentos. Completar con las condiciones reales cuando estén definidas.
 
 3. **El correo de contacto.**
-   Archivo `app.js`, objeto `CONTACTO` (línea ~72), campo `email`. Hoy dice `'[CORREO]'`. Mientras tenga ese placeholder, el ícono de correo directamente **no aparece** en el pie de página (es a propósito: mejor no mostrar un enlace que no lleva a ningún lado). En cuanto se complete con un correo real, el ícono aparece solo.
+   Archivo `app.js`, objeto `CONTACTO`, campo `email`. Hoy dice `'[CORREO]'`. **No se muestra en ninguna parte**: el pie de página ya no lleva íconos de redes (WhatsApp e Instagram quedaron sólo en la sección Contacto). El campo queda ahí como dato del negocio, para cuando se decida dónde publicarlo.
 
-4. **El catálogo real.**
+4. **La dirección del local.**
+   Hoy figura "Río Cuarto 2341, Allen, Río Negro" en el hero y en el pie. Es **provisoria**: está marcada con el comentario `DIRECCIÓN PROVISORIA` en `index.html` y en `app.js` (constante `DIRECCION`). Confirmarla con el cliente antes de publicar.
+
+5. **La promo bancaria.**
+   Archivo `index.html`, sección `#promo`. Hoy dice "Consultá por promociones bancarias" — un texto que no afirma ninguna promo concreta. Cuando exista una promoción real, se reemplaza el contenido de `.promo__cuerpo` por el flyer o el texto definitivo.
+
+6. **El catálogo real.**
    Archivo `productos.json`. Hoy tiene 12 productos de ejemplo con precios y datos inventados. Hay que revisar, producto por producto: el nombre, el precio, si hay stock o no, las especificaciones cortas (`specs`) y la ficha técnica completa (`detalle`). Más abajo está la explicación completa de cómo se edita cada campo.
 
-5. **Las fotos de los productos que todavía no tienen.**
+7. **Las fotos de los productos que todavía no tienen.**
    Once de los doce productos ya tienen su foto en la carpeta `img/`. El que falta se ve con un cuadro gris con el nombre del modelo escrito adentro — es el diseño previsto para cuando no hay foto, no es un error. Ver más abajo "Cómo agregar la foto de un producto" para completarlo.
 
-6. **Sacar el bloqueo para buscadores.**
-   Archivo `index.html`, cerca del principio (dentro de `<head>`), hay esta línea:
+8. **Sacar el bloqueo para buscadores.**
+   Está en **las seis páginas** (`index.html`, `iphones.html`, `mac.html`, `ipad.html`, `accesorios.html`, `productos.html`), cerca del principio (dentro de `<head>`):
 
    ```html
    <meta name="robots" content="noindex, nofollow">
    ```
 
-   Se agregó a propósito para que Google **no** indexe la página mientras todavía tiene los placeholders de arriba sin completar — así nadie la encuentra a medio terminar. Tiene un comentario al lado que lo explica. **Antes de publicar el sitio de verdad, hay que borrar esa línea entera.** Si se publica con esa línea puesta, el sitio va a funcionar perfecto, pero no va a aparecer en los resultados de Google.
+   Se agregó a propósito para que Google **no** indexe el sitio mientras todavía tiene los textos provisorios de arriba sin completar — así nadie lo encuentra a medio terminar. Tiene un comentario al lado que lo explica. **Antes de publicar el sitio de verdad, hay que borrar esa línea en las seis páginas.** Si se publica con esa línea puesta, el sitio va a funcionar perfecto, pero no va a aparecer en los resultados de Google.
+
+   En las seis páginas están también las etiquetas Open Graph (la vista previa al compartir el link). Apuntan a `https://iphone-allen.vercel.app/`: si el sitio pasa a un dominio propio, hay que actualizar `og:url` y `og:image` en los seis archivos y la constante `SITIO` de `app.js`.
 
 ---
 

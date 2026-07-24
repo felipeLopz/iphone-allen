@@ -103,9 +103,13 @@
     'Accesorios': 'accesorios.html'
   };
 
-  // Redes del footer. Un valor que quede con el placeholder ("[ALGO]")
+  // Datos de contacto. Un valor que quede con el placeholder ("[ALGO]")
   // sencillamente no se renderiza: un ícono que lleva a una cuenta que
   // no existe es peor que no tenerlo.
+  // Se usan en la sección Contacto y en el hero/FAQ (Instagram junto al
+  // WhatsApp). El footer ya no muestra redes.
+  // OJO: "email" hoy no se muestra en ninguna parte — queda acá como dato
+  // del negocio para cuando se defina dónde publicarlo.
   var CONTACTO = {
     whatsapp: WHATSAPP,
     instagram: 'iphone.allen',
@@ -212,8 +216,6 @@
     instagram: '<path d="M4 8a4 4 0 0 1 4 -4h8a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-8a4 4 0 0 1 -4 -4z"></path>' +
                '<path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path>' +
                '<path d="M16.5 7.5m-.5 0a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0"></path>',
-    correo: '<path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10z"></path>' +
-            '<path d="M3 7l9 6l9 -6"></path>',
     lista: '<path d="M9 6l11 0"></path><path d="M9 12l11 0"></path><path d="M9 18l11 0"></path>' +
            '<path d="M5 6l0 .01"></path><path d="M5 12l0 .01"></path><path d="M5 18l0 .01"></path>',
     campana: '<path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6"></path>' +
@@ -233,7 +235,8 @@
                '<path d="M8.7 10.7l6.6 -3.4"></path><path d="M8.7 13.3l6.6 3.4"></path>',
     sol: '<circle cx="12" cy="12" r="4"></circle>' +
          '<path d="M3 12h1M20 12h1M12 3v1M12 20v1M5.6 5.6l.7 .7M17.7 17.7l.7 .7M18.4 5.6l-.7 .7M6.3 17.7l-.7 .7"></path>',
-    luna: '<path d="M12 3c.13 0 .26 0 .39 .04a6.5 6.5 0 1 0 8.57 8.57 .5 .5 0 0 1 .87 .38 9 9 0 1 1 -9.83 -9.83Z"></path>'
+    luna: '<path d="M12 3c.13 0 .26 0 .39 .04a6.5 6.5 0 1 0 8.57 8.57 .5 .5 0 0 1 .87 .38 9 9 0 1 1 -9.83 -9.83Z"></path>',
+    flechaArriba: '<path d="M12 19V5"></path><path d="M5 12l7 -7l7 7"></path>'
   };
 
   function icono(nombre, clase) {
@@ -373,7 +376,7 @@
       '<header class="header">' +
         '<div class="wrap">' +
           '<div class="navbar">' +
-            '<a class="brand" href="index.html"><span class="logo">' + esc(NEGOCIO) + '</span></a>' +
+            '<a class="brand" href="index.html">' + htmlLogo() + '</a>' +
             '<span class="navbar__sep" aria-hidden="true"></span>' +
             '<nav class="nav" aria-label="Principal">' +
               '<a class="link-sub nav__link' + (esInicio ? ' is-activo' : '') + '" href="index.html"' +
@@ -438,6 +441,38 @@
     window.setTimeout(function () { raiz.classList.remove('cambiando-tema'); }, 260);
   }
 
+  /* ------------------------ VOLVER ARRIBA ---------------------------
+     Aparece recién pasados los 400px de scroll. El listener no hace nada
+     por evento: sólo marca que hay trabajo pendiente y deja que el
+     requestAnimationFrame siguiente lea el scroll una única vez por
+     cuadro (leer scrollY en cada evento fuerza reflow y en mobile se
+     disparan decenas por segundo).
+     ------------------------------------------------------------------ */
+  var MOSTRAR_ARRIBA_DESDE = 400;
+
+  function iniciarVolverArriba() {
+    var btn = $('#arribaBtn');
+    var pendiente = false;
+
+    function evaluar() {
+      pendiente = false;
+      btn.classList.toggle('is-visible', window.scrollY > MOSTRAR_ARRIBA_DESDE);
+    }
+
+    window.addEventListener('scroll', function () {
+      if (pendiente) return;
+      pendiente = true;
+      window.requestAnimationFrame(evaluar);
+    }, { passive: true });
+
+    // estado inicial: al recargar a media página el botón ya tiene que estar
+    evaluar();
+
+    btn.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: sinMovimiento() ? 'auto' : 'smooth' });
+    });
+  }
+
   function iniciarTema() {
     pintarBotonTema();
     $('#temaBtn').addEventListener('click', function () {
@@ -445,14 +480,45 @@
     });
   }
 
+  /* --------------------------- LOGOTIPO -----------------------------
+     Marca tipográfica, sin nada de Apple. Parte NEGOCIO en dos: la
+     primera palabra (categoría) va liviana y espaciada, el resto (el
+     lugar, que es lo distintivo) va en negrita. El elemento gráfico lo
+     pone el CSS con un ::before, así no agrega nodos al árbol de
+     accesibilidad: el texto sigue leyéndose "IPHONE ALLEN".
+
+     Para cambiar de variante, tocar sólo esta constante:
+       'regla'   — IPHONE │ ALLEN   (línea vertical fina)   [actual]
+       'punto'   — IPHONE · ALLEN   (punto)
+       'apilado' — IPHONE           (dos líneas)
+                   ALLEN
+     ------------------------------------------------------------------ */
+  var LOGO_VARIANTE = 'regla';
+
+  function htmlLogo(clase) {
+    var partes = NEGOCIO.trim().split(/\s+/);
+    var primera = partes.shift();
+    var resto = partes.join(' ');
+
+    var cls = 'logo logo--' + LOGO_VARIANTE + (clase ? ' ' + clase : '');
+    // Sin segunda palabra no hay contraste que hacer: se rinde tal cual.
+    if (!resto) return '<span class="' + cls + '">' + esc(primera) + '</span>';
+
+    // El espacio entre los dos <span> es literal a propósito: es lo que
+    // separa las palabras para un lector de pantalla.
+    return '<span class="' + cls + '">' +
+             '<span class="logo__cat">' + esc(primera) + '</span> ' +
+             '<span class="logo__lugar">' + esc(resto) + '</span>' +
+           '</span>';
+  }
+
   function htmlFooter() {
     return '<footer class="footer">' +
       '<div class="wrap footer__inner">' +
-        '<p class="footer__brand"><span class="logo">' + esc(NEGOCIO) + '</span></p>' +
+        '<p class="footer__brand">' + htmlLogo('logo--grande') + '</p>' +
         // DIRECCIÓN PROVISORIA - confirmar con el cliente antes de publicar
         // (sale de la constante DIRECCION, arriba de este archivo)
         '<p class="footer__nota">' + esc(DIRECCION) + ' · Envíos a ciudades vecinas</p>' +
-        '<div class="footer__redes" id="footerRedes"></div>' +
         '<p class="footer__legal">No somos revendedor oficial de Apple. Apple, iPhone, iPad y Mac ' +
           'son marcas registradas de Apple Inc.</p>' +
       '</div>' +
@@ -477,11 +543,14 @@
 
     return '<div class="overlay" id="overlayCarrito" hidden></div>' +
       '<aside class="drawer" id="carrito" role="dialog" aria-modal="true" aria-labelledby="carritoTitulo" hidden>' +
+        // El botón de volver va primero: es lo primero que recibe el foco
+        // al abrir y lo primero que se lee. Conserva el id #cerrarCarrito
+        // para no duplicar la lógica de cierre (Escape, foco, scroll).
         '<div class="drawer__head">' +
-          '<h2 class="drawer__titulo" id="carritoTitulo">Tu carrito</h2>' +
-          '<button class="drawer__cerrar" type="button" id="cerrarCarrito" aria-label="Cerrar carrito">' +
-            '<span aria-hidden="true">✕</span>' +
+          '<button class="drawer__volver" type="button" id="cerrarCarrito">' +
+            icono('volver') + '<span>Volver</span>' +
           '</button>' +
+          '<h2 class="drawer__titulo" id="carritoTitulo">Tu carrito</h2>' +
         '</div>' +
 
         '<ol class="pasos" id="pasosCarrito" aria-label="Pasos de la compra">' +
@@ -575,14 +644,21 @@
       '</aside>';
   }
 
-  // Botón circular fijo abajo a la derecha, en las seis páginas. Su
+  // Botones circulares fijos abajo a la derecha, en las seis páginas. Su
   // z-index (30) queda por debajo del header, del velo, del drawer y del
-  // modal, así que nunca se dibuja encima de una capa abierta; además se
-  // oculta del todo mientras haya alguna (ver ocultarWhatsappFlotante).
+  // modal, así que nunca se dibujan encima de una capa abierta; además se
+  // ocultan del todo mientras haya alguna (ver ocultarFlotantes).
   function htmlBotonWhatsapp() {
     return '<a class="wa-flotante" id="waFlotante" href="' + urlWhatsapp(MENSAJE_CONSULTA) + '" ' +
            'target="_blank" rel="noopener" ' +
            'aria-label="Escribinos por WhatsApp">' + icono('whatsapp') + '</a>';
+  }
+
+  // Vuelve al tope. Aparece recién después de scrollear (ver
+  // iniciarVolverArriba); arranca sin la clase .is-visible.
+  function htmlBotonArriba() {
+    return '<button class="arriba-btn" id="arribaBtn" type="button" ' +
+           'aria-label="Volver arriba">' + icono('flechaArriba') + '</button>';
   }
 
   function htmlModal() {
@@ -601,9 +677,11 @@
   // formulario en el nivel superior, y todos viven acá adentro.
   document.getElementById('app-header').innerHTML = htmlHeader();
   document.getElementById('app-footer').innerHTML = htmlFooter();
-  document.body.insertAdjacentHTML('beforeend', htmlDrawer() + htmlModal() + htmlBotonWhatsapp());
+  document.body.insertAdjacentHTML('beforeend',
+    htmlDrawer() + htmlModal() + htmlBotonWhatsapp() + htmlBotonArriba());
 
   iniciarTema();
+  iniciarVolverArriba();
 
   /* ---------------------------- CARGA DE DATOS ---------------------- */
 
@@ -612,7 +690,6 @@
   if (!esInicio) montarPaginaCatalogo();
 
   hidratarIconos();
-  pintarRedes();
   // Estas tres son contenido estático de la portada: se pintan de una y
   // siguen ahí aunque el fetch de productos falle.
   if (esInicio) {
@@ -1800,21 +1877,23 @@
   // El botón flotante de WhatsApp se esconde mientras hay una capa
   // abierta: aunque su z-index ya lo deja por debajo, con el velo puesto
   // seguiría siendo clickeable y compite con las acciones del carrito.
-  function ocultarWhatsappFlotante(ocultar) {
-    var fab = $('#waFlotante');
-    if (fab) fab.hidden = ocultar;
+  function ocultarFlotantes(ocultar) {
+    ['#waFlotante', '#arribaBtn'].forEach(function (sel) {
+      var el = $(sel);
+      if (el) el.hidden = ocultar;
+    });
   }
 
   function bloquearScroll() {
     document.body.style.overflow = 'hidden';
-    ocultarWhatsappFlotante(true);
+    ocultarFlotantes(true);
   }
 
   function liberarScroll() {
     // sólo se libera si no queda ninguna capa abierta
     if (drawer.hidden && modal.hidden) {
       document.body.style.overflow = '';
-      ocultarWhatsappFlotante(false);
+      ocultarFlotantes(false);
     }
   }
 
@@ -2260,32 +2339,6 @@
     if (esPlaceholder(CONTACTO.instagram)) return '';
     return '<a class="red-link" href="https://instagram.com/' + encodeURIComponent(CONTACTO.instagram) + '" ' +
            'target="_blank" rel="noopener" aria-label="Instagram de ' + esc(NEGOCIO) + '">' + icono('instagram') + '</a>';
-  }
-
-  // Correo: sólo si dejó de ser placeholder.
-  function enlaceCorreo() {
-    if (esPlaceholder(CONTACTO.email)) return '';
-    return '<a class="red-link" href="mailto:' + esc(CONTACTO.email) + '" ' +
-           'aria-label="Enviar un correo a ' + esc(NEGOCIO) + '">' + icono('correo') + '</a>';
-  }
-
-  function pintarRedes() {
-    var enlaces = [];
-
-    if (!esPlaceholder(CONTACTO.whatsapp)) {
-      enlaces.push(
-        '<a class="red-link" href="' + urlWhatsapp(MENSAJE_CONSULTA) + '" target="_blank" rel="noopener" ' +
-        'aria-label="WhatsApp de ' + esc(NEGOCIO) + '">' + icono('whatsapp') + '</a>'
-      );
-    }
-
-    var insta = enlaceInstagram();
-    if (insta) enlaces.push(insta);
-
-    var correo = enlaceCorreo();
-    if (correo) enlaces.push(correo);
-
-    $('#footerRedes').innerHTML = enlaces.join('');
   }
 
   // Botón de Instagram con el mismo tratamiento de bloque que el resto de
