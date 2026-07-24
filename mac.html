@@ -28,6 +28,19 @@
       if ('IntersectionObserver' in window &&
           !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
         document.documentElement.classList.add('con-animacion');
+
+        // RED DE SEGURIDAD: las secciones arrancan en opacity 0 y dependen
+        // de que app.js las revele. Si app.js no llega a correr (un error
+        // antes de revelarSecciones(), un archivo que no cargó), quedarían
+        // invisibles PARA SIEMPRE. Este timeout saca la clase —y con ella
+        // el ocultamiento— salvo que app.js haya avisado que tomó el
+        // control poniendo data-anim="ok". Es lo que garantiza que el
+        // contenido nunca desaparezca por una animación que no arrancó.
+        window.setTimeout(function () {
+          if (document.documentElement.dataset.anim !== 'ok') {
+            document.documentElement.classList.remove('con-animacion');
+          }
+        }, 2500);
       }
     } catch (e) {
       document.documentElement.setAttribute('data-tema', 'claro');

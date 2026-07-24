@@ -1561,17 +1561,21 @@
              '</div>' +
 
              '<div class="combo__info">' +
-               '<div>' +
-                 '<p class="card__cat">' + esc(c.categoria) + '</p>' +
-                 '<h4 class="card__nombre">' +
-                   '<button class="card__abrir" type="button" data-modal="' + esc(c.id) + '">' +
-                     esc(c.nombre) +
-                   '</button>' +
-                 '</h4>' +
-                 '<p class="combo__label">Incluye</p>' +
-                 '<ul class="combo__incluye">' + incluye + '</ul>' +
-               '</div>' +
+               '<p class="card__cat">' + esc(c.categoria) + '</p>' +
+               '<h4 class="card__nombre">' +
+                 '<button class="card__abrir" type="button" data-modal="' + esc(c.id) + '">' +
+                   esc(c.nombre) +
+                 '</button>' +
+               '</h4>' +
+               '<p class="combo__label">Incluye</p>' +
+               '<ul class="combo__incluye">' + incluye + '</ul>' +
+             '</div>' +
 
+             // Tercera columna: precio y acciones. Separarla de .combo__info
+             // es lo que mantiene el banner bajo: con precio+botones apilados
+             // debajo del texto, la columna de la izquierda quedaba mucho más
+             // alta que las fotos y sobraba un hueco blanco enorme al lado.
+             '<div class="combo__compra">' +
                '<div class="card__precios">' +
                  '<span class="precio--anterior">' + precio(c.precioAnterior) + '</span>' +
                  '<span class="precio">' + precio(c.precio) + '</span>' +
@@ -1897,6 +1901,10 @@
     // que revelar. El hero queda afuera a propósito: es lo primero que se
     // ve y aparecer sobre el pliegue se siente como un error de carga.
     if (!document.documentElement.classList.contains('con-animacion')) return;
+
+    // Le avisa al timeout de seguridad del <head> que desde acá se maneja
+    // el revelado, así no desarma la animación a los 2,5 s.
+    document.documentElement.dataset.anim = 'ok';
 
     var objetivos = document.querySelectorAll('main > .seccion');
 
