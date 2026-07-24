@@ -1131,6 +1131,7 @@ button {
 .card [data-agregar],
 .card [data-avisar],
 .card [data-comparar],
+.card .btn[data-modal],
 .carrusel__slide [data-agregar],
 .carrusel__slide [data-avisar] { position: relative; z-index: 2; }
 
@@ -1299,6 +1300,113 @@ button {
   background: var(--superficie);
   color: var(--acento);
   border: 1px solid currentColor;
+}
+
+/* Combo: relleno en acento. Es la más fuerte de las tres porque marca un
+   tipo de producto distinto, no un estado del mismo producto. */
+.etiqueta--combo {
+  background: var(--acento-fuerte);
+  color: var(--sobre-acento);
+}
+
+/* ======================== TARJETA DE COMBO =========================
+   Usa la misma celda grande que .card--principal. Lo propio es el
+   bloque de las dos fotos y el detalle de lo que incluye.
+   ================================================================== */
+
+/* Las dos fotos lado a lado con un "+" en el medio, del mismo tamaño
+   las dos: es un combo, ninguno de los dos manda sobre el otro. */
+.combo__fotos {
+  position: relative;      /* ancla de la etiqueta "Combo" */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: 8px;
+}
+.combo__foto { min-width: 0; }
+.combo__foto .media { aspect-ratio: 1 / 1; }
+
+/* La celda del combo es alta (ocupa dos filas de la grilla) y el precio
+   va anclado abajo, así que sobraba un hueco en el medio. Las fotos se
+   estiran para tomarlo: crecen con el espacio disponible en vez de
+   dejarlo en blanco. El aspect-ratio pasa a ser un piso, no una medida
+   fija. */
+.card--combo .combo__fotos { flex: 1; }
+.card--combo .combo__foto .media {
+  height: 100%;
+  aspect-ratio: auto;
+  min-height: 150px;
+}
+
+.combo__mas {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--texto-tenue);
+  line-height: 1;
+}
+
+.combo__label {
+  margin-top: 10px;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.combo__incluye {
+  margin-top: 5px;
+  display: grid;
+  gap: 3px;
+  font-size: 0.88rem;
+  color: var(--texto-suave);
+  line-height: 1.35;
+}
+/* viñeta propia: la lista va sin marcador para poder alinearla con el
+   resto del texto de la tarjeta */
+.combo__incluye li { padding-left: 14px; position: relative; }
+.combo__incluye li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.55em;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--texto-tenue);
+}
+
+.combo__ahorro {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--acento);
+}
+
+/* --- detalle del combo dentro del modal --- */
+.combo__fotos--modal { margin-bottom: 4px; }
+
+.combo-detalle {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+.combo-detalle__item {
+  padding: 12px 14px;
+  background: var(--superficie2);
+  border-radius: var(--radio-sm);
+}
+.combo-detalle__nombre { font-weight: 600; font-size: 0.95rem; }
+.combo-detalle__specs {
+  margin-top: 3px;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+.combo-detalle__precio {
+  margin-top: 5px;
+  font-size: 0.83rem;
+  color: var(--texto-tenue);
+  font-variant-numeric: tabular-nums;
 }
 
 .card__cat {

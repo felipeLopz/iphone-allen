@@ -93,7 +93,16 @@ Los tres se aplican juntos: si hay texto buscado, rango y orden, se respetan los
 
 ## Cómo agregar un producto nuevo
 
-Se edita `productos.json`. Es una lista de productos entre corchetes `[ ]`; cada producto es un bloque entre llaves `{ }`, separado del siguiente por una coma. El **último** producto de la lista no lleva coma al final.
+Se edita `productos.json`. El archivo tiene dos partes:
+
+```json
+{
+  "productos": [ ... ],
+  "combos": [ ... ]
+}
+```
+
+Los productos van en la lista `"productos"`, entre corchetes `[ ]`; cada producto es un bloque entre llaves `{ }`, separado del siguiente por una coma. El **último** producto de la lista no lleva coma al final. (Los combos se explican más abajo.)
 
 Estos son todos los campos que puede tener un producto:
 
@@ -139,6 +148,46 @@ Estos son todos los campos que puede tener un producto:
 El objeto `detalle` puede tener las claves que hagan falta (no tienen que ser siempre las mismas): cada clave se muestra como una fila en la ficha del producto, en el mismo orden en que están escritas.
 
 Notá que este ejemplo no tiene el campo `"imagen"` — justamente porque no hace falta, como se explica a continuación.
+
+## Los combos (la tarjeta grande de cada categoría)
+
+Un combo son **dos productos vendidos juntos con descuento**. Ocupa la tarjeta grande de la categoría, la de la izquierda de la grilla.
+
+Se definen en la lista `"combos"` de `productos.json`:
+
+```json
+{
+  "id": "combo-iphone-16-magsafe",
+  "categoria": "iPhone",
+  "productos": ["iphone-16-pro-max-256", "magsafe-15w"],
+  "descuento": 10,
+  "etiqueta": "combo"
+}
+```
+
+| Campo | Qué es |
+|---|---|
+| `id` | Identificador único del combo. Conviene que empiece con `combo-` para distinguirlo. |
+| `categoria` | En qué sección se muestra como tarjeta grande (`iPhone`, `Mac`, `iPad`…). |
+| `productos` | Los **ids de los dos productos** que lo forman. Tienen que existir en la lista `"productos"`. |
+| `descuento` | El porcentaje de descuento sobre la suma de los dos precios. |
+| `etiqueta` | Dejar en `"combo"`. Es lo que dibuja el cartelito "Combo". |
+
+**El precio no se escribe**: se calcula solo como `(precio1 + precio2) × (1 − descuento/100)`. Si mañana cambia el precio de uno de los dos productos, el del combo se actualiza sin tocar nada.
+
+Reglas que conviene tener presentes:
+
+- Una categoría muestra su combo **sólo si los dos productos tienen stock**. Si a alguno se le acaba, el combo desaparece solo y la categoría vuelve a mostrar su tarjeta principal de siempre (la del producto marcado con `"principal": true`).
+- Si una categoría no tiene combo definido, se ve como siempre.
+- El producto que era principal **no desaparece**: pasa a verse como una tarjeta normal más y se sigue vendiendo suelto.
+- Si el visitante está buscando algo o filtró por precio, el combo se esconde para no ocupar la celda grande con algo que no coincide con lo que pidió.
+- Si alguno de los ids no existe, el combo se ignora y se avisa por consola (no rompe la página).
+
+En el carrito el combo entra como **una sola línea** (`Combo: producto A + producto B`) con el precio ya con descuento, y en el WhatsApp aparece igual: una línea con los dos productos. Se le puede cambiar la cantidad y quitarlo como a cualquier otro. Un combo y sus productos sueltos pueden convivir en el mismo carrito.
+
+Hoy hay tres combos de ejemplo: iPhone 16 Pro Max + Cargador MagSafe (10%), MacBook Air M3 + AirPods Pro 2 (8%) e iPad Air M2 + AirPods Pro 2 (8%).
+
+---
 
 ## Cómo agregar la foto de un producto
 

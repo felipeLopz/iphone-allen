@@ -149,6 +149,7 @@
   /* ------------------------------ ESTADO ---------------------------- */
 
   var productos = [];
+  var combos = [];                   // ver construirCombos()
   var carrito = leerCarrito();       // [{ id, cantidad }]
   var busqueda = '';
   // Filtro por precio y orden de la grilla. Se combinan entre sí y con el
@@ -273,6 +274,101 @@
 
   // Si un producto no declara "stock", se asume que hay.
   function hayStock(p) { return p.stock === undefined || p.stock === null || p.stock > 0; }
+
+  /* ============================== COMBOS ==============================
+     Un combo son DOS productos del catálogo vendidos juntos con un
+     descuento. Se definen en productos.json, en el array "combos":
+
+       {
+         "id": "combo-iphone-16-magsafe",
+         "categoria": "iPhone",
+         "productos": ["iphone-16-pro-max-256", "magsafe-15w"],
+         "descuento": 10,
+         "etiqueta": "combo"
+       }
+
+     - "productos": los ids de los dos productos. Tienen que existir en el
+       catálogo; si alguno no existe, el combo se ignora y se avisa por
+       consola.
+     - "categoria": en qué sección se muestra como tarjeta principal.
+     - "descuento": porcentaje sobre la suma de los dos precios. El precio
+       final NO se escribe a mano: se calcula acá.
+
+     construirCombos() arma con cada definición un objeto con la misma
+     forma que un producto (id, nombre, precio, stock, imagen…), así el
+     carrito, el modal y el mensaje de WhatsApp no necesitan saber que es
+     un combo. Lo único propio es la marca `esCombo` y la lista `items`.
+     ================================================================== */
+  function construirCombos(defs) {
+    return (defs || []).map(function (def) {
+      var ids = def.productos || [];
+      var items = ids.map(function (id) {
+        for (var i = 0; i < productos.length; i++) {
+          if (productos[i].id === id) return productos[i];
+        }
+        return null;
+      });
+
+      if (items.length < 2 || items.indexOf(null) !== -1) {
+        console.warn('Combo "' + def.id + '": necesita dos ids que existan en el ' +
+                     'catálogo. Se ignora.');
+        return null;
+      }
+
+      var suma = items.reduce(function (t, p) { return t + p.precio; }, 0);
+      var pct = Number(def.descuento) || 0;
+      var nombres = items.map(function (p) { return p.nombre; });
+
+      return {
+        id: def.id,
+        esCombo: true,
+        items: items,
+        categoria: def.categoria,
+        nombre: nombres.join(' + '),
+        // En el carrito y en el WhatsApp se antepone "Combo:" para que no
+        // se confunda con dos productos sueltos comprados por separado.
+        nombreCarrito: 'Combo: ' + nombres.join(' + '),
+        precio: Math.round(suma * (1 - pct / 100)),
+        precioAnterior: suma,      // la suma sin descuento, para tacharla
+        descuento: pct,
+        // el combo se agota con el primero de los dos que se agote
+        stock: Math.min.apply(null, items.map(function (p) {
+          return (p.stock === undefined || p.stock === null) ? Infinity : p.stock;
+        })),
+        // foto de la línea del carrito: la del primer producto
+        imagen: rutaImagen(items[0]),
+        specs: nombres,
+        etiqueta: def.etiqueta || 'combo'
+      };
+    }).filter(Boolean);
+  }
+
+  function ahorroCombo(c) { return c.precioAnterior - c.precio; }
+
+  // El combo de una sección, si corresponde mostrarlo. Devuelve null y la
+  // sección cae en su tarjeta principal de siempre cuando:
+  //   - la sección no es la categoría entera (las subcategorías de
+  //     accesorios comparten categoría y no deben repetir el combo),
+  //   - alguno de los dos productos se quedó sin stock,
+  //   - hay una búsqueda o un rango de precio puestos y el combo no
+  //     entra: sería raro filtrar "hasta $100.000" y ver un combo de
+  //     millones ocupando la celda grande.
+  function comboDeSeccion(categoria, titulo) {
+    if (titulo !== categoria) return null;
+
+    for (var i = 0; i < combos.length; i++) {
+      var c = combos[i];
+      if (c.categoria !== categoria) continue;
+      if (!hayStock(c)) return null;
+      if (busqueda) return null;
+      if (!rangoInvalido) {
+        if (precioDesde !== null && c.precio < precioDesde) return null;
+        if (precioHasta !== null && c.precio > precioHasta) return null;
+      }
+      return c;
+    }
+    return null;
+  }
 
   // Ruta de la foto: si el producto trae "imagen" en productos.json esa
   // gana (para casos como compartir foto entre dos productos); si no,
@@ -789,7 +885,13 @@
       return r.json();
     })
     .then(function (data) {
-      productos = data;
+      // productos.json puede venir en dos formas: la vieja (un array de
+      // productos, sin combos) y la actual ({ productos: [...],
+      // combos: [...] }). Se aceptan las dos para que un JSON viejo siga
+      // funcionando sin tocar nada.
+      productos = Array.isArray(data) ? data : (data.productos || []);
+      combos = construirCombos(Array.isArray(data) ? [] : (data.combos || []));
+
       destacados = productos.filter(function (p) { return p.destacado; });
       if (!destacados.length) destacados = productos.slice(0, 3);
 
@@ -1394,6 +1496,57 @@
     return '<p class="card__specs">' + esc(specs) + '</p>';
   }
 
+  /* ------------------------- TARJETA DE COMBO ------------------------
+     Ocupa la misma celda grande que la principal (por eso conserva la
+     clase .card--principal) pero con su propio contenido: las dos fotos
+     juntas, lo que incluye, el precio con descuento contra la suma
+     tachada y cuánto se ahorra.
+     ------------------------------------------------------------------ */
+  function tarjetaCombo(c) {
+    var fotos = c.items.map(function (p) {
+      return '<div class="combo__foto">' + media(p) + '</div>';
+    }).join('<span class="combo__mas" aria-hidden="true">+</span>');
+
+    var incluye = c.items.map(function (p) {
+      return '<li>' + esc(p.nombre) + '</li>';
+    }).join('');
+
+    return '<article class="card card--principal card--combo">' +
+             '<div class="combo__fotos">' +
+               '<span class="etiqueta etiqueta--combo">Combo</span>' +
+               fotos +
+             '</div>' +
+
+             '<div>' +
+               '<p class="card__cat">' + esc(c.categoria) + '</p>' +
+               '<h4 class="card__nombre">' +
+                 '<button class="card__abrir" type="button" data-modal="' + esc(c.id) + '">' +
+                   esc(c.nombre) +
+                 '</button>' +
+               '</h4>' +
+               '<p class="combo__label">Incluye</p>' +
+               '<ul class="combo__incluye">' + incluye + '</ul>' +
+             '</div>' +
+
+             '<div class="card__precios">' +
+               '<span class="precio--anterior">' + precio(c.precioAnterior) + '</span>' +
+               '<span class="precio">' + precio(c.precio) + '</span>' +
+               '<p class="combo__ahorro">Ahorrás ' + precio(ahorroCombo(c)) +
+                 ' (' + c.descuento + '%)</p>' +
+             '</div>' +
+
+             '<div class="card__acciones">' +
+               '<button class="btn btn--compacto" type="button" data-agregar="' + esc(c.id) + '">' +
+                 btnPartes('carrito', 'Agregar combo',
+                           '<span class="sr-only"> — ' + esc(c.nombre) + '</span>') +
+               '</button>' +
+               '<button class="btn btn--sec btn--compacto" type="button" data-modal="' + esc(c.id) + '">' +
+                 btnPartes('lista', 'Ver detalle') +
+               '</button>' +
+             '</div>' +
+           '</article>';
+  }
+
   // Tarjeta principal: ocupa el doble de alto en la primera columna.
   // Mantiene las specs y el botón con el texto completo.
   function tarjetaPrincipal(p) {
@@ -1465,11 +1618,16 @@
   // omite sólo cuando la página tiene una sección única (iPhone, Mac,
   // iPad): ahí repetiría el título de la página.
   function seccionGrilla(titulo, lista, idAncla, conEncabezado, categoria) {
-    var principal = elegirPrincipal(lista, titulo);
-    // La principal queda fija en la primera posición aunque se ordene por
-    // precio (es la que ocupa la celda grande de la grilla: moverla
-    // rompería el layout). El orden se aplica sólo al resto.
+    // Si la categoría tiene un combo disponible, ese ocupa la celda
+    // grande y NINGÚN producto se pierde: el que era principal pasa a
+    // verse como una tarjeta normal más (se sigue vendiendo suelto).
+    var combo = comboDeSeccion(categoria, titulo);
+    var principal = combo ? null : elegirPrincipal(lista, titulo);
+
+    // La celda grande queda fija en la primera posición aunque se ordene
+    // por precio (moverla rompería el layout). El orden se aplica al resto.
     var resto = ordenarPorPrecio(lista.filter(function (p) { return p !== principal; }));
+    var grande = combo ? tarjetaCombo(combo) : tarjetaPrincipal(principal);
 
     var encabezado = conEncabezado
       ? '<header class="cat__head">' +
@@ -1482,7 +1640,7 @@
              (conEncabezado ? ' aria-labelledby="tit-' + esc(idAncla) + '"' : '') + '>' +
              encabezado +
              '<div class="grilla">' +
-               tarjetaPrincipal(principal) +
+               grande +
                resto.map(tarjeta).join('') +
              '</div>' +
            '</section>';
@@ -1875,7 +2033,45 @@
   var overlayModal = $('#overlayModal');
   var ultimoFocoModal = null;
 
+  // Detalle de un combo: las dos fotos, qué incluye cada producto con sus
+  // specs, y el precio con el ahorro. No reusa contenidoModal() porque un
+  // combo no tiene ficha técnica propia — tiene dos.
+  function contenidoModalCombo(c) {
+    var fotos = c.items.map(function (p) {
+      return '<div class="combo__foto">' + media(p) + '</div>';
+    }).join('<span class="combo__mas" aria-hidden="true">+</span>');
+
+    var detalle = c.items.map(function (p) {
+      var specs = (p.specs || []).join(' · ');
+      return '<div class="combo-detalle__item">' +
+               '<p class="combo-detalle__nombre">' + esc(p.nombre) + '</p>' +
+               (specs ? '<p class="combo-detalle__specs">' + esc(specs) + '</p>' : '') +
+               '<p class="combo-detalle__precio">' + precio(p.precio) + ' por separado</p>' +
+             '</div>';
+    }).join('');
+
+    return '<div class="combo__fotos combo__fotos--modal">' +
+             '<span class="etiqueta etiqueta--combo">Combo</span>' + fotos +
+           '</div>' +
+      '<p class="modal__cat">' + esc(c.categoria) + '</p>' +
+      '<h2 class="modal__nombre" id="modalNombre">' + esc(c.nombre) + '</h2>' +
+      '<p class="modal__precios">' +
+        '<span class="precio--anterior">' + precio(c.precioAnterior) + '</span>' +
+        '<span class="precio">' + precio(c.precio) + '</span>' +
+      '</p>' +
+      '<p class="combo__ahorro">Ahorrás ' + precio(ahorroCombo(c)) +
+        ' (' + c.descuento + '%) comprando los dos juntos</p>' +
+      '<div class="combo-detalle">' + detalle + '</div>' +
+      '<div class="modal__acciones">' +
+        '<a class="btn btn--sec btn--compacto" href="' + urlWhatsapp(msgConsultaCombo(c)) + '" ' +
+        'target="_blank" rel="noopener">' + btnPartes('whatsapp', 'Consultar por WhatsApp') + '</a>' +
+        '<button class="btn btn--compacto" type="button" data-agregar="' + esc(c.id) + '">' +
+          btnPartes('carrito', 'Agregar combo al carrito') + '</button>' +
+      '</div>';
+  }
+
   function contenidoModal(p) {
+    if (p.esCombo) return contenidoModalCombo(p);
     var d = p.detalle || {};
     var filas = Object.keys(d).map(function (k) {
       return '<div class="detalle__fila"><dt>' + esc(k) + '</dt><dd>' + esc(d[k]) + '</dd></div>';
@@ -2146,9 +2342,15 @@
     }
   }
 
+  // Busca por id en el catálogo y también entre los combos: así el
+  // carrito, el modal y el mensaje de WhatsApp tratan a un combo como a
+  // cualquier otro producto, sin ramas especiales en cada lugar.
   function buscarProducto(id) {
     for (var i = 0; i < productos.length; i++) {
       if (productos[i].id === id) return productos[i];
+    }
+    for (var j = 0; j < combos.length; j++) {
+      if (combos[j].id === id) return combos[j];
     }
     return null;
   }
@@ -2247,7 +2449,7 @@
                  '<div class="linea">' +
                    media(p) +
                    '<div>' +
-                     '<p class="linea__nombre">' + esc(p.nombre) + '</p>' +
+                     '<p class="linea__nombre">' + esc(nombreDePedido(p)) + '</p>' +
                      (specs ? '<p class="linea__specs">' + esc(specs) + '</p>' : '') +
                      '<p class="linea__precio">' + precio(p.precio) + '</p>' +
                      '<div class="linea__controles">' +
@@ -2299,7 +2501,7 @@
       return '<div class="pedido-linea">' +
                media(p) +
                '<div class="pedido-linea__datos">' +
-                 '<p class="pedido-linea__nombre">' + esc(p.nombre) + '</p>' +
+                 '<p class="pedido-linea__nombre">' + esc(nombreDePedido(p)) + '</p>' +
                  '<p class="pedido-linea__cant">' + l.cantidad + ' × ' + precio(p.precio) + '</p>' +
                '</div>' +
                '<p class="pedido-linea__sub">' + precio(p.precio * l.cantidad) + '</p>' +
@@ -2576,10 +2778,19 @@
     return '¡Hola ' + NEGOCIO + '! ¿Me avisan cuando entre el ' + p.nombre + '?';
   }
 
+  function msgConsultaCombo(c) {
+    return '¡Hola ' + NEGOCIO + '! Quería consultar por el combo ' + c.nombre +
+           ' (' + precio(c.precio) + ').';
+  }
+
+  // Nombre para el carrito y el mensaje: los combos llevan el prefijo
+  // "Combo:" y en la misma línea van los dos productos que incluyen.
+  function nombreDePedido(p) { return p.nombreCarrito || p.nombre; }
+
   // Líneas del pedido en texto plano, reutilizadas por el mensaje final.
   function lineasPedidoTexto() {
     return lineas().map(function (l) {
-      return '• ' + l.cantidad + 'x ' + l.producto.nombre +
+      return '• ' + l.cantidad + 'x ' + nombreDePedido(l.producto) +
              ' — ' + precio(l.producto.precio * l.cantidad);
     });
   }
