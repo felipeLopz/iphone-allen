@@ -1148,6 +1148,141 @@ button {
   border-radius: 999px;
 }
 
+/* --------------------- SUGERENCIAS DEL BUSCADOR --------------------
+   Desplegable anclado al .buscador (que es position:relative). Es un
+   atajo al detalle del producto: la grilla se sigue filtrando aparte.
+   ------------------------------------------------------------------ */
+.sugerencias {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 45;              /* sobre el contenido, debajo del velo (50) */
+  width: min(340px, 86vw);
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--superficie);
+  border: 1px solid var(--borde-superficie);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(var(--sombra-rgb), 0.16);
+}
+
+.sugerencia {
+  display: grid;
+  grid-template-columns: 38px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+/* hover y marcado por teclado comparten el mismo resalte */
+.sugerencia:hover,
+.sugerencia.is-activa { background: var(--superficie2); }
+
+.sugerencia__foto {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  background: var(--marco-foto);
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+}
+
+.sugerencia__nombre {
+  font-size: 0.88rem;
+  line-height: 1.25;
+  /* un nombre largo no debe empujar el precio fuera de la fila */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sugerencia__precio {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--acento);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* -------------------- GALERÍA DE FOTOS DEL MODAL -------------------
+   Sólo aparece si el producto tiene fotos extra (img/<id>-2.jpg y
+   siguientes). Con una sola foto el contenedor queda [hidden] y el modal
+   se ve exactamente como antes.
+   ------------------------------------------------------------------ */
+.galeria {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  /* aire para que el anillo de foco no quede recortado por el overflow */
+  padding-block: 4px;
+}
+.galeria::-webkit-scrollbar { display: none; }
+
+.galeria__mini {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  padding: 3px;
+  border-radius: var(--radio-sm);
+  border: 1px solid var(--borde-superficie);
+  background: var(--marco-foto);
+  transition: border-color var(--transicion);
+}
+.galeria__mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.galeria__mini[aria-selected="true"] {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 1px var(--acento);
+}
+
+/* ---------------------- ETIQUETAS DE PRODUCTO ----------------------
+   Campo "etiqueta" en productos.json ("nuevo" | "oferta"). Van arriba a
+   la IZQUIERDA de la foto, así conviven con el badge "Sin stock" que va
+   arriba a la derecha.
+   Los dos tratamientos son deliberadamente distintos para distinguirlos
+   de un vistazo, y ninguno depende del color (el tema claro es
+   monocromático): "Oferta" es un chip invertido (el más fuerte) y
+   "Nuevo ingreso" es de contorno (más sobrio). Ambos quedan con buen
+   contraste en los dos temas porque se apoyan en --texto/--superficie.
+   ------------------------------------------------------------------ */
+.etiqueta {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* invertido: casi negro sobre claro, casi blanco sobre oscuro */
+.etiqueta--oferta {
+  background: var(--texto);
+  color: var(--superficie);
+}
+
+.etiqueta--nuevo {
+  background: var(--superficie);
+  color: var(--acento);
+  border: 1px solid currentColor;
+}
+
 .card__cat {
   font-size: 0.72rem;
   letter-spacing: 0.1em;
@@ -1591,49 +1726,19 @@ button {
   font-size: 0.92rem;
 }
 
-/* ------------------ BOTÓN FLOTANTE DE WHATSAPP --------------------
-   Fijo abajo a la derecha, en las seis páginas. El z-index (30) queda
-   por debajo del header (40), del velo (50), del drawer (60) y del
-   modal (65): nunca se dibuja sobre una capa abierta. Además app.js lo
-   esconde del todo mientras haya modal o carrito abiertos.
-   ------------------------------------------------------------------ */
-.wa-flotante {
-  position: fixed;
-  z-index: 30;
-  right: 20px;
-  bottom: 20px;
-  width: 56px;
-  height: 56px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background: var(--acento-fuerte);
-  color: var(--sobre-acento);
-  /* más marcada que la de las tarjetas: flota sobre cualquier contenido
-     y tiene que despegarse también de una foto */
-  box-shadow: 0 4px 10px rgba(var(--sombra-rgb), .20), 0 10px 30px rgba(var(--sombra-rgb), .26);
-  transition: filter var(--transicion), box-shadow var(--transicion);
-}
-.wa-flotante .ico { width: 27px; height: 27px; }
-.wa-flotante:hover {
-  /* oscurece por igual en los dos temas (en oscuro, sobre el jade); no
-     uso --texto porque en tema oscuro es casi blanco y aclararía el botón */
-  filter: brightness(0.92);
-  box-shadow: 0 6px 14px rgba(var(--sombra-rgb), .24), 0 14px 36px rgba(var(--sombra-rgb), .30);
-}
-
 /* ---------------------- BOTÓN VOLVER ARRIBA -----------------------
-   Mismo z-index y misma lógica de ocultado que el de WhatsApp. Va en
-   superficie (no en acento) a propósito: es una ayuda de navegación,
-   no una llamada a la acción, y no tiene que competir con el WhatsApp.
-   Se apila ENCIMA del de WhatsApp (bottom 88 = 20 + 56 de alto + 12 de
-   aire); en mobile, donde el de WhatsApp está oculto, baja a 20.
+   Único flotante del sitio (el de WhatsApp se quitó: el contacto vive
+   en el hero, en Contacto y en las preguntas). z-index 30, por debajo
+   del header (40), del velo (50), del carrito (60) y del modal (65), y
+   app.js lo oculta del todo mientras haya una capa abierta.
+   Va en superficie y no en acento a propósito: es una ayuda de
+   navegación, no una llamada a la acción.
    ------------------------------------------------------------------ */
 .arriba-btn {
   position: fixed;
   z-index: 30;
   right: 20px;
-  bottom: 88px;
+  bottom: 20px;
   width: 44px;
   height: 44px;
   display: grid;
@@ -1753,11 +1858,87 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
    de sus pastillas; sin eso el flex item no encoge y el scroll interno
    de .filtros nunca llega a activarse (desborda la página en su lugar). */
 .barra-catalogo .filtros { flex: 1 1 auto; min-width: 0; }
+
+/* --------------------- HERRAMIENTAS DEL CATÁLOGO -------------------
+   Rango de precio + orden + buscador. En escritorio van a la derecha de
+   las pastillas de categoría; en mobile bajan a su propia fila (ver la
+   media query del final) para no apretar los tres controles.
+   ------------------------------------------------------------------ */
+.herramientas {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+/* Los dos campos de precio con el guión en medio, como un solo control */
+.rango {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px 0 8px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie);
+  height: 38px;
+}
+.rango__campo {
+  width: 74px;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--texto);
+  font: inherit;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  padding: 0;
+}
+.rango__campo::placeholder { color: var(--texto-tenue); }
+/* el foco se marca en el campo, no en la cápsula: así se ve cuál de los
+   dos está activo */
+.rango__campo:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; border-radius: 4px; }
+.rango__campo[aria-invalid="true"] { color: var(--rojo-suave); }
+.rango__sep { color: var(--texto-tenue); flex: 0 0 auto; }
+
+.rango__limpiar {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--texto-suave);
+  transition: color var(--transicion), background var(--transicion);
+}
+.rango__limpiar:hover { color: var(--texto); background: var(--superficie2); }
+.rango__limpiar .ico { width: 14px; height: 14px; }
+
+.rango__error {
+  margin: -18px 0 22px;
+  color: var(--rojo-suave);
+  font-size: 0.85rem;
+}
+
+.orden__select {
+  height: 38px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie);
+  color: var(--texto-suave);
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0 10px;
+  cursor: pointer;
+  transition: color var(--transicion), border-color var(--transicion);
+}
+.orden__select:hover { color: var(--texto); border-color: var(--texto-suave); }
+
 .buscador {
+  position: relative;   /* ancla del desplegable de sugerencias */
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
 }
 
 .buscador__lupa {
@@ -2538,26 +2719,35 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
     top: calc(100% + 6px);
   }
 
-  /* En celular el botón flotante pisaba el borde derecho del "Agregar al
-     carrito" de las tarjetas al scrollear: un toque ahí abría WhatsApp en
-     vez de agregar. display:none (no opacity/visibility) para que deje de
-     existir para el toque y para los lectores de pantalla. */
-  .wa-flotante { display: none; }
-
-  /* Sin el de WhatsApp debajo, éste baja a la esquina. Se achica y se
-     arrima al borde para pisar lo menos posible el borde derecho de los
-     botones de las tarjetas, que ocupan todo el ancho: a 375px la tarjeta
-     llega hasta x=340 y este botón arranca en x=329, así que el solape
-     queda en 11px sobre la esquina redondeada (contra 25px si midiera
-     40px con margen de 20). Cero solape es imposible sin bajar de un
-     tamaño tocable: sólo quedan 20px de gutter libre a la derecha. */
+  /* SOLAPE CERO con el "Agregar al carrito" de las tarjetas, que ocupa
+     todo el ancho. El borde derecho de ese botón cae siempre a 35px del
+     borde de la pantalla (20 de gutter + 14 de padding + 1 de borde), así
+     que mientras `right + width` no pase de 35 los dos rectángulos no se
+     tocan a NINGÚN ancho de pantalla ni a ninguna altura de scroll:
+     5 + 30 = 35. Es el botón más grande que entra sin pisar nada; 30px
+     sigue estando por encima del mínimo de 24px de WCAG 2.5.8. */
   .arriba-btn {
-    right: 8px;
+    right: 5px;
     bottom: 16px;
-    width: 38px;
-    height: 38px;
+    width: 30px;
+    height: 30px;
   }
-  .arriba-btn .ico { width: 18px; height: 18px; }
+  .arriba-btn .ico { width: 16px; height: 16px; }
+
+  /* Tres controles no entran al lado de las pastillas: las herramientas
+     bajan y ocupan todo el ancho. El rango se lleva una fila entera (son
+     dos campos para escribir, conviene que respiren) y abajo comparten
+     fila el orden y el buscador. Así no queda ninguna fila con un solo
+     ícono suelto. */
+  .herramientas {
+    width: 100%;
+    margin-left: 0;
+    gap: 8px;
+  }
+  .rango { flex: 1 1 100%; }
+  .rango__campo { width: 100%; }
+  .orden__select { flex: 1 1 auto; min-width: 0; }
+  .buscador { flex: 0 0 auto; margin-left: auto; }
 }
 
 @media (min-width: 900px) {

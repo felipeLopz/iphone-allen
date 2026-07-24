@@ -6,6 +6,7 @@
     "precio": 3249000,
     "precioAnterior": 3490000,
     "destacado": true,
+    "etiqueta": "nuevo",
     "principal": true,
     "stock": 3,
     "specs": [
@@ -59,6 +60,7 @@
     "precio": 1749000,
     "precioAnterior": 1899000,
     "destacado": false,
+    "etiqueta": "oferta",
     "principal": false,
     "stock": 5,
     "specs": [
@@ -111,6 +113,7 @@
     "categoria": "iPhone",
     "precio": 1099000,
     "destacado": false,
+    "etiqueta": "oferta",
     "principal": false,
     "stock": 0,
     "specs": [
@@ -245,6 +248,7 @@
     "precio": 429000,
     "precioAnterior": 479000,
     "destacado": true,
+    "etiqueta": "nuevo",
     "principal": true,
     "stock": 8,
     "specs": [

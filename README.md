@@ -68,6 +68,18 @@ Los textos provisorios ya no se ven como corchetes en pantalla: se reemplazaron 
 
 ---
 
+## Los controles del catálogo
+
+Arriba de la grilla, en las cinco páginas de catálogo, hay tres controles que se combinan entre sí:
+
+- **Rango de precio** (`Desde` / `Hasta`): los dos son opcionales. Se escriben sólo números y se formatean solos con puntos de miles. La ✕ limpia el rango. Si el "Desde" queda mayor que el "Hasta", avisa debajo y no filtra nada.
+- **Orden**: por defecto (el orden del JSON), menor precio o mayor precio. **La tarjeta grande de cada sección no se mueve de la primera posición** aunque se ordene: es la que ocupa la celda doble de la grilla. El orden se aplica a las demás.
+- **Buscador** (la lupa): filtra la grilla al escribir y además muestra hasta cinco sugerencias con foto y precio. Elegir una abre el detalle del producto. Se maneja con flechas y Enter; Escape cierra las sugerencias.
+
+Los tres se aplican juntos: si hay texto buscado, rango y orden, se respetan los tres. En las páginas de categoría todo se limita a esa categoría; en `productos.html`, a todo el catálogo.
+
+---
+
 ## Cómo agregar un producto nuevo
 
 Se edita `productos.json`. Es una lista de productos entre corchetes `[ ]`; cada producto es un bloque entre llaves `{ }`, separado del siguiente por una coma. El **último** producto de la lista no lleva coma al final.
@@ -82,6 +94,7 @@ Estos son todos los campos que puede tener un producto:
 | `precio` | Sí | El precio actual, en números, **sin puntos ni el signo $** (ej: `1749000`, no `"$1.749.000"`). |
 | `precioAnterior` | No | Si el producto está en oferta, el precio viejo (se muestra tachado al lado). Si no hay descuento, directamente no se pone este campo. |
 | `destacado` | No | `true` para que el producto aparezca en el carrusel de "Destacados" de arriba. Lo ideal es que sean 3 o 4 productos en total con `true`. |
+| `etiqueta` | No | `"nuevo"` o `"oferta"`. Muestra un cartelito en la tarjeta. Ver la sección "Etiquetas" más abajo. |
 | `stock` | No | Un número. Ver la nota especial más abajo. |
 | `specs` | Sí | Una lista corta de 2 a 4 datos, entre corchetes, para la tarjeta (ej: `["128 GB", "Negro"]`). |
 | `detalle` | Sí | La ficha técnica completa que se ve al abrir el producto (el modal). Ver el ejemplo abajo. |
@@ -133,6 +146,43 @@ En cuanto el archivo está ahí con ese nombre exacto, la foto aparece sola en l
 ```json
 "imagen": "img/iphone-15-pro-256.jpg"
 ```
+
+### Varias fotos del mismo producto (galería)
+
+El detalle del producto puede mostrar más de una foto. No hay que tocar el JSON: funciona por el nombre del archivo, agregando un número al final.
+
+Si el producto tiene id `iphone-15-pro-256`, además de la foto principal se pueden guardar:
+
+```
+img/iphone-15-pro-256-2.jpg
+img/iphone-15-pro-256-3.jpg
+img/iphone-15-pro-256-4.jpg
+img/iphone-15-pro-256-5.jpg
+```
+
+Reglas:
+
+- Se buscan **en orden** y se corta en la primera que falta. Si están la `-2` y la `-4` pero no la `-3`, sólo se va a ver la `-2`.
+- El máximo son **5 fotos en total** (la principal más cuatro).
+- Con una sola foto, el detalle se ve exactamente como siempre: no aparece ningún control de galería.
+- Con dos o más, aparecen miniaturas debajo de la foto grande. Se cambia de foto con el mouse o con las flechas del teclado.
+
+### Etiquetas: "Nuevo ingreso" y "Oferta"
+
+Se le puede poner una etiqueta a un producto para que se destaque en la tarjeta. Es el campo `"etiqueta"` en `productos.json`, y admite dos valores:
+
+```json
+"etiqueta": "nuevo"
+"etiqueta": "oferta"
+```
+
+- `"nuevo"` muestra un cartelito **"Nuevo ingreso"** (de contorno, más sobrio).
+- `"oferta"` muestra **"Oferta"** (relleno, más fuerte).
+- Si el campo no está, está en `null`, o dice cualquier otra cosa, no se muestra nada.
+
+La etiqueta aparece arriba a la izquierda de la foto, y se ve en la tarjeta, en la tarjeta grande, en el carrusel de destacados y en el detalle del producto. El cartel de **"Sin stock"** va arriba a la derecha, así que un producto puede tener etiqueta y estar sin stock al mismo tiempo sin que se pisen.
+
+Hoy están marcados como ejemplo: el iPhone 16 Pro Max y los AirPods Pro 2 con `"nuevo"`, y el iPhone 15 128 GB y el iPhone 13 128 GB con `"oferta"` (este último además está sin stock, para que se vea que conviven).
 
 ### La nota importante sobre `stock`
 

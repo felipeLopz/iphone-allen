@@ -151,6 +151,12 @@
   var productos = [];
   var carrito = leerCarrito();       // [{ id, cantidad }]
   var busqueda = '';
+  // Filtro por precio y orden de la grilla. Se combinan entre sí y con el
+  // buscador: los tres se aplican en productosVisibles()/pintarCatalogo().
+  var precioDesde = null;            // número o null
+  var precioHasta = null;
+  var rangoInvalido = false;         // "Desde" > "Hasta": se avisa y no se aplica
+  var orden = 'defecto';             // 'defecto' | 'asc' | 'desc'
   var slideActivo = 0;
   var destacados = [];
   var primeraPintada = true;         // el escalonado [10] es sólo la 1ra vez
@@ -340,6 +346,29 @@
 
   function badgeStock(p) {
     return hayStock(p) ? '' : '<span class="badge-stock">Sin stock</span>';
+  }
+
+  // ---------------------------------------------------------------------
+  // ETIQUETAS DE PRODUCTO — campo "etiqueta" en productos.json.
+  // Valores admitidos: "nuevo" (muestra "Nuevo ingreso") y "oferta"
+  // (muestra "Oferta"). Sin el campo, en null, o con cualquier otro valor,
+  // no se muestra nada. Va arriba a la IZQUIERDA de la foto; el badge
+  // "Sin stock" va arriba a la derecha, así que los dos pueden convivir.
+  // ---------------------------------------------------------------------
+  var ETIQUETAS = {
+    nuevo:  'Nuevo ingreso',
+    oferta: 'Oferta'
+  };
+
+  function etiqueta(p) {
+    var texto = ETIQUETAS[p.etiqueta];
+    if (!texto) return '';
+    return '<span class="etiqueta etiqueta--' + esc(p.etiqueta) + '">' + esc(texto) + '</span>';
+  }
+
+  // Lo que va encima de la foto: etiqueta (izquierda) + stock (derecha).
+  function marcasSobreFoto(p) {
+    return etiqueta(p) + badgeStock(p);
   }
 
   /* =====================================================================
@@ -644,18 +673,11 @@
       '</aside>';
   }
 
-  // Botones circulares fijos abajo a la derecha, en las seis páginas. Su
-  // z-index (30) queda por debajo del header, del velo, del drawer y del
-  // modal, así que nunca se dibujan encima de una capa abierta; además se
-  // ocultan del todo mientras haya alguna (ver ocultarFlotantes).
-  function htmlBotonWhatsapp() {
-    return '<a class="wa-flotante" id="waFlotante" href="' + urlWhatsapp(MENSAJE_CONSULTA) + '" ' +
-           'target="_blank" rel="noopener" ' +
-           'aria-label="Escribinos por WhatsApp">' + icono('whatsapp') + '</a>';
-  }
-
-  // Vuelve al tope. Aparece recién después de scrollear (ver
-  // iniciarVolverArriba); arranca sin la clase .is-visible.
+  // Único botón flotante del sitio: vuelve al tope. Fijo abajo a la
+  // derecha en las seis páginas, con z-index 30 (por debajo del header,
+  // del velo, del carrito y del modal), y app.js lo oculta del todo
+  // mientras haya una capa abierta (ver ocultarFlotantes). Aparece recién
+  // después de scrollear: arranca sin la clase .is-visible.
   function htmlBotonArriba() {
     return '<button class="arriba-btn" id="arribaBtn" type="button" ' +
            'aria-label="Volver arriba">' + icono('flechaArriba') + '</button>';
@@ -678,7 +700,7 @@
   document.getElementById('app-header').innerHTML = htmlHeader();
   document.getElementById('app-footer').innerHTML = htmlFooter();
   document.body.insertAdjacentHTML('beforeend',
-    htmlDrawer() + htmlModal() + htmlBotonWhatsapp() + htmlBotonArriba());
+    htmlDrawer() + htmlModal() + htmlBotonArriba());
 
   iniciarTema();
   iniciarVolverArriba();
@@ -767,7 +789,7 @@
     $('#heroProducto').innerHTML =
       '<article class="destacado-card">' +
         '<span class="destacado-card__cinta">Destacado</span>' +
-        media(p, '', badgeStock(p), true) +
+        media(p, '', marcasSobreFoto(p), true) +
         '<div>' +
           '<h2 class="destacado-card__nombre">' + esc(p.nombre) + '</h2>' +
           '<p class="destacado-card__specs">' + esc((p.specs || []).join(' · ')) + '</p>' +
@@ -842,7 +864,7 @@
   function pintarCarrusel() {
     track.innerHTML = destacados.map(function (p, i) {
       return '<article class="carrusel__slide" id="slide-' + i + '">' +
-               media(p, '', badgeStock(p), true) +
+               media(p, '', marcasSobreFoto(p), true) +
                '<div>' +
                  '<h3 class="carrusel__nombre">' +
                    '<button class="card__abrir" type="button" data-modal="' + esc(p.id) + '">' +
@@ -975,15 +997,26 @@
           '</header>' +
           '<div class="barra-catalogo">' +
             htmlFiltrosNavegacion() +
-            '<div class="buscador" id="buscador" data-abierto="false">' +
-              '<button class="buscador__lupa" type="button" id="buscadorToggle" ' +
-                      'aria-expanded="false" aria-controls="busqueda" aria-label="Buscar productos">' +
-                icono('lupa') +
-              '</button>' +
-              '<input class="buscador__campo" id="busqueda" type="search" placeholder="Buscar equipo…" ' +
-                     'aria-label="Buscar productos por nombre" tabindex="-1" autocomplete="off">' +
+            '<div class="herramientas">' +
+              htmlRangoPrecio() +
+              htmlOrden() +
+              // combobox: el input filtra la grilla como siempre y además
+              // abre la lista de sugerencias (ver iniciarSugerencias)
+              '<div class="buscador" id="buscador" data-abierto="false">' +
+                '<button class="buscador__lupa" type="button" id="buscadorToggle" ' +
+                        'aria-expanded="false" aria-controls="busqueda" aria-label="Buscar productos">' +
+                  icono('lupa') +
+                '</button>' +
+                '<input class="buscador__campo" id="busqueda" type="search" placeholder="Buscar equipo…" ' +
+                       'aria-label="Buscar productos por nombre" tabindex="-1" autocomplete="off" ' +
+                       'role="combobox" aria-expanded="false" aria-controls="sugerencias" ' +
+                       'aria-autocomplete="list">' +
+                '<ul class="sugerencias" id="sugerencias" role="listbox" ' +
+                    'aria-label="Sugerencias de productos" hidden></ul>' +
+              '</div>' +
             '</div>' +
           '</div>' +
+          '<p class="rango__error" id="rangoError" role="alert" hidden></p>' +
           '<div class="secciones" id="catalogoSecciones" aria-live="polite"></div>' +
           '<div id="catalogoVacio" hidden></div>' +
         '</div>' +
@@ -991,6 +1024,107 @@
 
     pintarEsqueletos();
     iniciarBuscador();
+    iniciarRangoPrecio();
+    iniciarOrden();
+  }
+
+  /* --------------------- FILTRO POR PRECIO ---------------------------
+     Dos campos opcionales que se combinan con el buscador y con el orden.
+     Van en type=text (no number) porque se muestran formateados con
+     separador de miles y `number` no admite puntos; el teclado numérico
+     en mobile lo pide inputmode.
+     ------------------------------------------------------------------ */
+  function htmlRangoPrecio() {
+    return '<div class="rango" role="group" aria-labelledby="rangoLabel">' +
+             '<span class="sr-only" id="rangoLabel">Filtrar por precio</span>' +
+             '<input class="rango__campo" id="precioDesde" type="text" inputmode="numeric" ' +
+                    'placeholder="Desde" aria-label="Precio desde" autocomplete="off">' +
+             '<span class="rango__sep" aria-hidden="true">–</span>' +
+             '<input class="rango__campo" id="precioHasta" type="text" inputmode="numeric" ' +
+                    'placeholder="Hasta" aria-label="Precio hasta" autocomplete="off">' +
+             '<button class="rango__limpiar" type="button" id="limpiarRango" ' +
+                     'aria-label="Limpiar filtro de precio" hidden>' + icono('cruz') + '</button>' +
+           '</div>';
+  }
+
+  function htmlOrden() {
+    return '<label class="orden">' +
+             '<span class="sr-only">Ordenar por</span>' +
+             '<select class="orden__select" id="ordenPrecio">' +
+               '<option value="defecto">Orden: por defecto</option>' +
+               '<option value="asc">Menor precio</option>' +
+               '<option value="desc">Mayor precio</option>' +
+             '</select>' +
+           '</label>';
+  }
+
+  function soloDigitos(v) { return String(v).replace(/\D+/g, ''); }
+
+  // 3249000 -> "3.249.000" (mismo separador que los precios del sitio)
+  function conMiles(digitos) {
+    return digitos ? Number(digitos).toLocaleString('es-AR') : '';
+  }
+
+  function iniciarRangoPrecio() {
+    var desde = $('#precioDesde');
+    var hasta = $('#precioHasta');
+    var limpiar = $('#limpiarRango');
+
+    function alEscribir() {
+      // se reescribe formateado; el caret queda al final, que es donde
+      // está escribiendo el usuario
+      this.value = conMiles(soloDigitos(this.value));
+      leerRango();
+      pintarCatalogo();
+    }
+
+    function leerRango() {
+      var d = soloDigitos(desde.value);
+      var h = soloDigitos(hasta.value);
+      precioDesde = d ? Number(d) : null;
+      precioHasta = h ? Number(h) : null;
+
+      // "Desde" mayor que "Hasta" no filtra nada: se avisa en línea (no
+      // con alert) y se ignora el rango para no vaciar la grilla sin
+      // explicación.
+      rangoInvalido = precioDesde !== null && precioHasta !== null && precioDesde > precioHasta;
+
+      var err = $('#rangoError');
+      err.hidden = !rangoInvalido;
+      err.textContent = rangoInvalido
+        ? 'El precio "Desde" no puede ser mayor que el "Hasta".'
+        : '';
+      desde.setAttribute('aria-invalid', rangoInvalido ? 'true' : 'false');
+      hasta.setAttribute('aria-invalid', rangoInvalido ? 'true' : 'false');
+
+      limpiar.hidden = !(desde.value || hasta.value);
+    }
+
+    desde.addEventListener('input', alEscribir);
+    hasta.addEventListener('input', alEscribir);
+
+    limpiar.addEventListener('click', function () {
+      desde.value = '';
+      hasta.value = '';
+      leerRango();
+      pintarCatalogo();
+      desde.focus();
+    });
+  }
+
+  function iniciarOrden() {
+    $('#ordenPrecio').addEventListener('change', function () {
+      orden = this.value;
+      pintarCatalogo();
+    });
+  }
+
+  // Reordena una lista por precio. 'defecto' devuelve el orden del JSON.
+  function ordenarPorPrecio(lista) {
+    if (orden === 'defecto') return lista;
+    return lista.slice().sort(function (a, b) {
+      return orden === 'asc' ? a.precio - b.precio : b.precio - a.precio;
+    });
   }
 
   // [32] buscador que se abre desde la lupa. Acotado a la categoría de
@@ -1007,12 +1141,136 @@
 
     campoBusqueda.addEventListener('input', function () {
       busqueda = this.value.trim();
-      pintarCatalogo();
+      pintarCatalogo();          // el filtrado de la grilla no cambia
+      pintarSugerencias();       // las sugerencias son un atajo aparte
     });
 
     campoBusqueda.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') cerrarBuscador(true);
+      if (manejarTeclaSugerencias(e)) return;   // flechas / Enter dentro de la lista
+      if (e.key === 'Escape') {
+        // Escape primero cierra las sugerencias; si no había, cierra el buscador
+        if (!listaSugerencias.hidden) cerrarSugerencias();
+        else cerrarBuscador(true);
+      }
     });
+
+    iniciarSugerencias();
+  }
+
+  /* --------------------- SUGERENCIAS DEL BUSCADOR --------------------
+     Atajo para saltar directo al detalle de un producto. No reemplaza ni
+     interfiere con el filtrado: la grilla se sigue filtrando igual en el
+     mismo evento 'input'.
+     Patrón combobox: el input tiene role=combobox y aria-activedescendant
+     apuntando a la opción marcada; la lista es un role=listbox.
+     ------------------------------------------------------------------ */
+  var MIN_SUGERENCIAS = 2;   // caracteres mínimos
+  var MAX_SUGERENCIAS = 5;
+  var listaSugerencias, sugerenciasActuales = [], indiceSugerencia = -1;
+
+  function iniciarSugerencias() {
+    listaSugerencias = $('#sugerencias');
+
+    // clic en una sugerencia -> abre el modal de ese producto
+    listaSugerencias.addEventListener('click', function (e) {
+      var opcion = e.target.closest('.sugerencia');
+      if (opcion) elegirSugerencia(Number(opcion.dataset.indice));
+    });
+
+    // clic fuera del buscador -> cierra
+    document.addEventListener('click', function (e) {
+      if (!listaSugerencias || listaSugerencias.hidden) return;
+      if (!e.target.closest('#buscador')) cerrarSugerencias();
+    });
+  }
+
+  // Coincidencias sobre el mismo universo que la grilla: en una página de
+  // categoría, sólo esa categoría; en productos.html, todo el catálogo.
+  function buscarSugerencias(texto) {
+    var q = normalizar(texto);
+    return productos.filter(function (p) {
+      if (categoriaPagina && p.categoria !== categoriaPagina) return false;
+      return normalizar(p.nombre).indexOf(q) !== -1;
+    }).slice(0, MAX_SUGERENCIAS);
+  }
+
+  function pintarSugerencias() {
+    if (!listaSugerencias) return;
+
+    if (busqueda.length < MIN_SUGERENCIAS) return cerrarSugerencias();
+
+    sugerenciasActuales = buscarSugerencias(busqueda);
+    if (!sugerenciasActuales.length) return cerrarSugerencias();
+
+    indiceSugerencia = -1;
+    listaSugerencias.innerHTML = sugerenciasActuales.map(function (p, i) {
+      return '<li class="sugerencia" role="option" id="sug-' + i + '" ' +
+                 'aria-selected="false" data-indice="' + i + '">' +
+               '<img class="sugerencia__foto" src="' + esc(rutaImagen(p)) + '" ' +
+                    'alt="" loading="lazy">' +
+               '<span class="sugerencia__nombre">' + esc(p.nombre) + '</span>' +
+               '<span class="sugerencia__precio">' + precio(p.precio) + '</span>' +
+             '</li>';
+    }).join('');
+
+    listaSugerencias.hidden = false;
+    campoBusqueda.setAttribute('aria-expanded', 'true');
+    campoBusqueda.removeAttribute('aria-activedescendant');
+  }
+
+  function cerrarSugerencias() {
+    if (!listaSugerencias) return;
+    listaSugerencias.hidden = true;
+    listaSugerencias.innerHTML = '';
+    sugerenciasActuales = [];
+    indiceSugerencia = -1;
+    campoBusqueda.setAttribute('aria-expanded', 'false');
+    campoBusqueda.removeAttribute('aria-activedescendant');
+  }
+
+  function marcarSugerencia(i) {
+    var opciones = listaSugerencias.querySelectorAll('.sugerencia');
+    indiceSugerencia = i;
+    Array.prototype.forEach.call(opciones, function (op, j) {
+      op.setAttribute('aria-selected', j === i ? 'true' : 'false');
+      op.classList.toggle('is-activa', j === i);
+    });
+    if (i >= 0) {
+      campoBusqueda.setAttribute('aria-activedescendant', 'sug-' + i);
+      opciones[i].scrollIntoView({ block: 'nearest' });
+    } else {
+      campoBusqueda.removeAttribute('aria-activedescendant');
+    }
+  }
+
+  function elegirSugerencia(i) {
+    var p = sugerenciasActuales[i];
+    if (!p) return;
+    var disparador = campoBusqueda;
+    cerrarSugerencias();
+    abrirModal(p.id, disparador);
+  }
+
+  // Devuelve true si consumió la tecla (para que no siga el handler de al lado)
+  function manejarTeclaSugerencias(e) {
+    if (!listaSugerencias || listaSugerencias.hidden) return false;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      marcarSugerencia((indiceSugerencia + 1) % sugerenciasActuales.length);
+      return true;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      marcarSugerencia(indiceSugerencia <= 0 ? sugerenciasActuales.length - 1 : indiceSugerencia - 1);
+      return true;
+    }
+    if (e.key === 'Enter' && indiceSugerencia >= 0) {
+      e.preventDefault();
+      elegirSugerencia(indiceSugerencia);
+      return true;
+    }
+    return false;
   }
 
   function abrirBuscador() {
@@ -1026,6 +1284,7 @@
     buscador.dataset.abierto = 'false';
     lupa.setAttribute('aria-expanded', 'false');
     campoBusqueda.tabIndex = -1;   // cerrado no debe recibir foco por Tab
+    cerrarSugerencias();
     if (campoBusqueda.value) {
       campoBusqueda.value = '';
       busqueda = '';
@@ -1045,7 +1304,7 @@
     // hace clickeable toda la tarjeta. En el span, hermano del ::after,
     // el recorte alcanza sólo al texto.
     return '<article class="card' + (hayStock(p) ? '' : ' card--agotado') + '">' +
-             media(p, '', badgeStock(p)) +
+             media(p, '', marcasSobreFoto(p)) +
              '<div>' +
                '<p class="card__cat">' + esc(p.categoria) + '</p>' +
                '<h4 class="card__nombre">' +
@@ -1064,7 +1323,7 @@
   // Mantiene las specs y el botón con el texto completo.
   function tarjetaPrincipal(p) {
     return '<article class="card card--principal' + (hayStock(p) ? '' : ' card--agotado') + '">' +
-             media(p, 'media--principal', badgeStock(p)) +
+             media(p, 'media--principal', marcasSobreFoto(p)) +
              '<div>' +
                '<p class="card__cat">' + esc(p.categoria) + '</p>' +
                '<h4 class="card__nombre">' +
@@ -1099,9 +1358,30 @@
   function productosVisibles() {
     return productos.filter(function (p) {
       if (categoriaPagina && p.categoria !== categoriaPagina) return false;
+
+      // el rango sólo se aplica si es coherente (ver leerRango)
+      if (!rangoInvalido) {
+        if (precioDesde !== null && p.precio < precioDesde) return false;
+        if (precioHasta !== null && p.precio > precioHasta) return false;
+      }
+
       if (!busqueda) return true;
       return normalizar(p.nombre).indexOf(normalizar(busqueda)) !== -1;
     });
+  }
+
+  // ¿Hay un rango de precio realmente aplicado?
+  function rangoActivo() {
+    return !rangoInvalido && (precioDesde !== null || precioHasta !== null);
+  }
+
+  // "de $ 1.000.000 a $ 2.000.000" / "desde $ 1.000.000" / "hasta $ 2.000.000"
+  function textoRango() {
+    if (precioDesde !== null && precioHasta !== null) {
+      return 'de ' + precio(precioDesde) + ' a ' + precio(precioHasta);
+    }
+    if (precioDesde !== null) return 'desde ' + precio(precioDesde);
+    return 'hasta ' + precio(precioHasta);
   }
 
   // Una sección con su grilla (principal + resto). El encabezado se
@@ -1109,7 +1389,10 @@
   // iPad): ahí repetiría el título de la página.
   function seccionGrilla(titulo, lista, idAncla, conEncabezado, categoria) {
     var principal = elegirPrincipal(lista, titulo);
-    var resto = lista.filter(function (p) { return p !== principal; });
+    // La principal queda fija en la primera posición aunque se ordene por
+    // precio (es la que ocupa la celda grande de la grilla: moverla
+    // rompería el layout). El orden se aplica sólo al resto.
+    var resto = ordenarPorPrecio(lista.filter(function (p) { return p !== principal; }));
 
     var encabezado = conEncabezado
       ? '<header class="cat__head">' +
@@ -1173,8 +1456,14 @@
     });
 
     $('#catalogoSecciones').innerHTML = html;
+    // El subtítulo dice qué filtros están puestos: con búsqueda y/o rango
+    // el número de productos por sí solo no explica por qué hay menos.
+    var detalles = [];
+    if (busqueda) detalles.push('que coinciden con la búsqueda');
+    if (rangoActivo()) detalles.push(textoRango());
+
     $('#conteoCategoria').textContent = conteoPagina(lista.length) +
-      (busqueda ? ' que coinciden con la búsqueda' : ' · precios finales en pesos');
+      (detalles.length ? ' ' + detalles.join(' · ') : ' · precios finales en pesos');
 
     pintarVacio(html === '');
     revelarTarjetas();
@@ -1209,10 +1498,24 @@
 
     if (!vacio) { cont.innerHTML = ''; return; }
 
-    var titulo = busqueda
-      ? 'Ningún resultado para “' + esc(busqueda) + '”'
-      : 'Todavía no hay productos en esta sección';
-    var salida = busqueda ? 'Probá con otro nombre o ' : 'Mirá otra categoría en el menú o ';
+    // El título nombra lo que efectivamente se filtró, para que no parezca
+    // que la categoría está vacía cuando en realidad es el rango o la
+    // búsqueda lo que no da resultados.
+    var titulo, salida;
+
+    if (busqueda && rangoActivo()) {
+      titulo = 'Ningún resultado para “' + esc(busqueda) + '” ' + esc(textoRango());
+      salida = 'Probá con otro nombre, ampliá el rango de precio o ';
+    } else if (rangoActivo()) {
+      titulo = 'Ningún producto ' + esc(textoRango());
+      salida = 'Ampliá el rango de precio o ';
+    } else if (busqueda) {
+      titulo = 'Ningún resultado para “' + esc(busqueda) + '”';
+      salida = 'Probá con otro nombre o ';
+    } else {
+      titulo = 'Todavía no hay productos en esta sección';
+      salida = 'Mirá otra categoría en el menú o ';
+    }
 
     cont.innerHTML =
       '<div class="estado-vacio">' +
@@ -1511,7 +1814,11 @@
       : '<a class="btn btn--sec btn--bloque" href="' + urlWhatsapp(msgAviso(p)) + '" ' +
         'target="_blank" rel="noopener">' + btnPartes('campana', 'Avisame cuando llegue') + '</a>';
 
-    return media(p, '', badgeStock(p)) +
+    return media(p, '', marcasSobreFoto(p)) +
+      // Vacío y oculto salvo que se detecten fotos extra (ver montarGaleria):
+      // con una sola foto el modal queda igual que siempre.
+      '<div class="galeria" id="modalGaleria" role="tablist" ' +
+           'aria-label="Fotos del producto" hidden></div>' +
       '<p class="modal__cat">' + esc(p.categoria) + '</p>' +
       '<h2 class="modal__nombre" id="modalNombre">' + esc(p.nombre) + '</h2>' +
       '<p class="modal__precios">' +
@@ -1603,12 +1910,107 @@
     abrirModal(id);
   }
 
+  /* ------------------- GALERÍA DE FOTOS DEL MODAL --------------------
+     Misma convención que la foto principal, con sufijo: si existen
+     img/<id>-2.jpg, -3, -4, -5, se suman a la galería. No hay índice en
+     el JSON: se detectan intentando cargarlas y se corta en la primera
+     que falta (probando hasta MAX_FOTOS en total).
+
+     La búsqueda es asíncrona y la galería se inyecta DESPUÉS de que el
+     modal ya está abierto: así el modal abre igual de rápido y, cuando
+     el producto no tiene fotos extra (el caso de hoy), queda exactamente
+     como antes, sin controles.
+     ------------------------------------------------------------------ */
+  var MAX_FOTOS = 5;
+  var galeriaCache = {};      // id -> array de rutas extra ya detectadas
+  var productoEnModal = null; // evita que una búsqueda lenta pinte sobre otro producto
+
+  function probarImagen(src) {
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () { resolve(true); };
+      img.onerror = function () { resolve(false); };
+      img.src = src;
+    });
+  }
+
+  function buscarFotosExtra(p) {
+    if (galeriaCache[p.id]) return Promise.resolve(galeriaCache[p.id]);
+
+    var encontradas = [];
+
+    function terminar() {
+      galeriaCache[p.id] = encontradas;
+      return encontradas;
+    }
+
+    function siguiente(n) {
+      if (n > MAX_FOTOS) return Promise.resolve(terminar());
+      var src = 'img/' + p.id + '-' + n + '.jpg';
+      return probarImagen(src).then(function (existe) {
+        if (!existe) return terminar();
+        encontradas.push(src);
+        return siguiente(n + 1);
+      });
+    }
+
+    return siguiente(2);
+  }
+
+  function montarGaleria(p, fotos) {
+    var caja = $('#modalGaleria');
+    if (!caja) return;
+
+    caja.innerHTML = fotos.map(function (src, i) {
+      return '<button class="galeria__mini" type="button" role="tab" ' +
+             'aria-selected="' + (i === 0 ? 'true' : 'false') + '" ' +
+             'data-foto="' + esc(src) + '" data-indice="' + i + '">' +
+               '<img src="' + esc(src) + '" alt="' + esc(p.nombre) +
+               ' — foto ' + (i + 1) + ' de ' + fotos.length + '" loading="lazy">' +
+             '</button>';
+    }).join('');
+    caja.hidden = false;
+
+    var grande = $('#modalContenido .media__img');
+    var minis = Array.prototype.slice.call(caja.querySelectorAll('.galeria__mini'));
+
+    function mostrar(i) {
+      if (i < 0) i = fotos.length - 1;
+      if (i >= fotos.length) i = 0;
+      if (grande) {
+        grande.src = fotos[i];
+        grande.alt = p.nombre + ' — foto ' + (i + 1) + ' de ' + fotos.length;
+      }
+      minis.forEach(function (m, j) {
+        m.setAttribute('aria-selected', j === i ? 'true' : 'false');
+      });
+    }
+
+    caja.addEventListener('click', function (e) {
+      var mini = e.target.closest('.galeria__mini');
+      if (mini) mostrar(Number(mini.dataset.indice));
+    });
+
+    // Flechas para cambiar de foto, con el foco dentro de la galería.
+    caja.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      var actual = minis.findIndex(function (m) { return m.getAttribute('aria-selected') === 'true'; });
+      var proximo = e.key === 'ArrowRight' ? actual + 1 : actual - 1;
+      if (proximo < 0) proximo = fotos.length - 1;
+      if (proximo >= fotos.length) proximo = 0;
+      mostrar(proximo);
+      minis[proximo].focus();
+    });
+  }
+
   function abrirModal(id, disparador) {
     var p = buscarProducto(id);
     if (!p) return;
 
     ultimoFocoModal = disparador || document.activeElement;
     $('#modalContenido').innerHTML = contenidoModal(p);
+    productoEnModal = p.id;
 
     modal.hidden = false;
     overlayModal.hidden = false;
@@ -1617,6 +2019,12 @@
     overlayModal.dataset.visible = 'true';
     bloquearScroll();
     $('#modalCerrar').focus();
+
+    buscarFotosExtra(p).then(function (extras) {
+      // si mientras buscaba se abrió otro producto (o se cerró), no pinta
+      if (!extras.length || productoEnModal !== p.id || modal.hidden) return;
+      montarGaleria(p, [rutaImagen(p)].concat(extras));
+    });
   }
 
   function cerrarModal() {
@@ -1874,14 +2282,12 @@
   var overlay = $('#overlayCarrito');
   var ultimoFoco = null;
 
-  // El botón flotante de WhatsApp se esconde mientras hay una capa
-  // abierta: aunque su z-index ya lo deja por debajo, con el velo puesto
-  // seguiría siendo clickeable y compite con las acciones del carrito.
+  // El botón flotante se esconde mientras hay una capa abierta: aunque su
+  // z-index ya lo deja por debajo, con el velo puesto seguiría siendo
+  // clickeable y compite con las acciones del carrito.
   function ocultarFlotantes(ocultar) {
-    ['#waFlotante', '#arribaBtn'].forEach(function (sel) {
-      var el = $(sel);
-      if (el) el.hidden = ocultar;
-    });
+    var el = $('#arribaBtn');
+    if (el) el.hidden = ocultar;
   }
 
   function bloquearScroll() {
