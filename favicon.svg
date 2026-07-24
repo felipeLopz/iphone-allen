@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Favicon del sitio: variante 8 de los mockups (A jade sobre negro,
+       con marco jade). Fondo negro (color acento del tema claro,
+       #111418), marco y letra en jade (#5DCAA5, el acento del tema
+       oscuro): así el ícono no cambia según el tema del sistema, es una
+       marca fija. El marco es de 1.5px con 1px de margen para que a
+       16x16 real (la mitad de este viewBox) siga viéndose nítido y no se
+       funda con el borde del círculo de la pestaña del navegador. -->
+  <rect x="1" y="1" width="30" height="30" rx="7" fill="#111418" stroke="#5DCAA5" stroke-width="1.5"/>
+  <text x="16" y="22.5" font-family="Arial, Helvetica, sans-serif" font-weight="700"
+        font-size="19" fill="#5DCAA5" text-anchor="middle">A</text>
+</svg>
