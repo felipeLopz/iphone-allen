@@ -1346,32 +1346,58 @@ button {
 }
 
 /* ======================== TARJETA DE COMBO =========================
-   Usa la misma celda grande que .card--principal. Lo propio es el
-   bloque de las dos fotos y el detalle de lo que incluye.
-   ================================================================== */
+   Banner horizontal de ancho completo, FUERA de .grilla (lo ubica
+   seccionGrilla() en .combo-destacado, antes de la grilla): ya no ocupa
+   la celda grande ni estira las fotos para llenarla. Se ajusta a su
+   contenido — fotos a un lado, texto+precio+acciones al otro — y su
+   altura la da el contenido, no un span de dos filas.
+   ------------------------------------------------------------------ */
+.combo-destacado { margin-bottom: 16px; }   /* mismo aire que el gap de la grilla */
+
+.card--combo {
+  /* mobile-first: apilada (hereda flex-direction:column de .card). La
+     fila sólo entra a partir de 620px — ver la media query más abajo —
+     donde ya hay ancho para las dos fotos + el texto sin apretarse. */
+  gap: 18px;
+  /* mismo tratamiento que la tarjeta principal: sigue siendo el
+     destacado de la sección, aunque ya no ocupe la celda grande */
+  border-color: var(--borde-fuerte);
+  box-shadow: var(--sombra-principal);
+}
+.card--combo.is-visible:hover {
+  box-shadow: 0 6px 12px rgba(var(--sombra-rgb), .14), 0 20px 48px rgba(var(--sombra-rgb), .22);
+}
 
 /* Las dos fotos lado a lado con un "+" en el medio, del mismo tamaño
-   las dos: es un combo, ninguno de los dos manda sobre el otro. */
+   las dos: es un combo, ninguno de los dos manda sobre el otro. En
+   columna (mobile) ocupan el ancho completo de la tarjeta; en fila
+   (620px+, ver la media query) pasan a un ancho fijo de 260px. El
+   aspect-ratio 1/1 nunca se estira: tamaño contenido, como cualquier
+   foto de tarjeta, no una medida que persigue el alto del texto. */
 .combo__fotos {
   position: relative;      /* ancla de la etiqueta "Combo" */
+  width: 100%;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  align-items: stretch;
+  align-items: center;
   gap: 8px;
 }
 .combo__foto { min-width: 0; }
-.combo__foto .media { aspect-ratio: 1 / 1; }
+/* Más específico a propósito (4 clases): la regla general
+   ".card:not(.card--principal) .media { aspect-ratio: 16/10 }" tiene la
+   misma especificidad que un selector de 3 clases (el :not() cuenta el
+   argumento) y aparece después en el archivo, así que sin este empate
+   roto a mano ganaba ella y las fotos del combo salían 16:10 en vez de
+   cuadradas. */
+.card--combo .combo__fotos .combo__foto .media { aspect-ratio: 1 / 1; }
 
-/* La celda del combo es alta (ocupa dos filas de la grilla) y el precio
-   va anclado abajo, así que sobraba un hueco en el medio. Las fotos se
-   estiran para tomarlo: crecen con el espacio disponible en vez de
-   dejarlo en blanco. El aspect-ratio pasa a ser un piso, no una medida
-   fija. */
-.card--combo .combo__fotos { flex: 1; }
-.card--combo .combo__foto .media {
-  height: 100%;
-  aspect-ratio: auto;
-  min-height: 150px;
+/* El resto de la tarjeta: mismo criterio flex-column que .card, para que
+   .card__precios (margin-top: auto) siga empujándose contra el final. */
+.combo__info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .combo__mas {
@@ -3120,6 +3146,13 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 @media (min-width: 620px) {
   .destacado-card { padding: 22px; }
   .opciones--horarios { grid-template-columns: repeat(3, 1fr); }
+
+  /* Combo en fila: fotos a la izquierda con ancho fijo, info a la
+     derecha. Por debajo de este ancho quedan apiladas (ver la regla
+     base de .card--combo). */
+  .card--combo { flex-direction: row; align-items: stretch; }
+  .combo__fotos { flex: 0 0 auto; width: 260px; }
+  .combo__info { flex: 1 1 320px; }
 }
 
 /* La cápsula entra entera en una sola fila: se encoge al ancho de su

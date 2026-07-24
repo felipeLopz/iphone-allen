@@ -1539,6 +1539,12 @@
      juntas, lo que incluye, el precio con descuento contra la suma
      tachada y cuánto se ahorra.
      ------------------------------------------------------------------ */
+  // Banner horizontal de ancho completo, ya no la celda grande de la
+  // grilla: las fotos van a un lado (tamaño contenido, sin estirar) y el
+  // resto de la info al otro, en .combo__info. Ver seccionGrilla(), que
+  // lo ubica FUERA de .grilla — así no participa del grid-row: span 2
+  // ni de ninguna cuenta de columnas, y las tarjetas normales quedan
+  // libres de su influencia.
   function tarjetaCombo(c) {
     var fotos = c.items.map(function (p) {
       return '<div class="combo__foto">' + media(p) + '</div>';
@@ -1548,39 +1554,41 @@
       return '<li>' + esc(p.nombre) + '</li>';
     }).join('');
 
-    return '<article class="card card--principal card--combo">' +
+    return '<article class="card card--combo">' +
              '<div class="combo__fotos">' +
                '<span class="etiqueta etiqueta--combo">Combo</span>' +
                fotos +
              '</div>' +
 
-             '<div>' +
-               '<p class="card__cat">' + esc(c.categoria) + '</p>' +
-               '<h4 class="card__nombre">' +
-                 '<button class="card__abrir" type="button" data-modal="' + esc(c.id) + '">' +
-                   esc(c.nombre) +
+             '<div class="combo__info">' +
+               '<div>' +
+                 '<p class="card__cat">' + esc(c.categoria) + '</p>' +
+                 '<h4 class="card__nombre">' +
+                   '<button class="card__abrir" type="button" data-modal="' + esc(c.id) + '">' +
+                     esc(c.nombre) +
+                   '</button>' +
+                 '</h4>' +
+                 '<p class="combo__label">Incluye</p>' +
+                 '<ul class="combo__incluye">' + incluye + '</ul>' +
+               '</div>' +
+
+               '<div class="card__precios">' +
+                 '<span class="precio--anterior">' + precio(c.precioAnterior) + '</span>' +
+                 '<span class="precio">' + precio(c.precio) + '</span>' +
+                 '<p class="combo__ahorro">Ahorrás ' + precio(ahorroCombo(c)) +
+                   ' (' + c.descuento + '%)</p>' +
+               '</div>' +
+               htmlStock(c) +
+
+               '<div class="card__acciones">' +
+                 '<button class="btn btn--compacto" type="button" data-agregar="' + esc(c.id) + '">' +
+                   btnPartes('carrito', 'Agregar combo',
+                             '<span class="sr-only"> — ' + esc(c.nombre) + '</span>') +
                  '</button>' +
-               '</h4>' +
-               '<p class="combo__label">Incluye</p>' +
-               '<ul class="combo__incluye">' + incluye + '</ul>' +
-             '</div>' +
-
-             '<div class="card__precios">' +
-               '<span class="precio--anterior">' + precio(c.precioAnterior) + '</span>' +
-               '<span class="precio">' + precio(c.precio) + '</span>' +
-               '<p class="combo__ahorro">Ahorrás ' + precio(ahorroCombo(c)) +
-                 ' (' + c.descuento + '%)</p>' +
-             '</div>' +
-             htmlStock(c) +
-
-             '<div class="card__acciones">' +
-               '<button class="btn btn--compacto" type="button" data-agregar="' + esc(c.id) + '">' +
-                 btnPartes('carrito', 'Agregar combo',
-                           '<span class="sr-only"> — ' + esc(c.nombre) + '</span>') +
-               '</button>' +
-               '<button class="btn btn--sec btn--compacto" type="button" data-modal="' + esc(c.id) + '">' +
-                 btnPartes('lista', 'Ver detalle') +
-               '</button>' +
+                 '<button class="btn btn--sec btn--compacto" type="button" data-modal="' + esc(c.id) + '">' +
+                   btnPartes('lista', 'Ver detalle') +
+                 '</button>' +
+               '</div>' +
              '</div>' +
            '</article>';
   }
@@ -1681,20 +1689,23 @@
              '</section>';
     }
 
-    // Orden por defecto: si la categoría tiene combo, ese ocupa la celda
-    // grande, y NINGÚN producto se pierde — el que era principal pasa a
-    // verse como una tarjeta normal más (se sigue vendiendo suelto).
+    // Orden por defecto: si la categoría tiene combo, va como un banner
+    // horizontal ARRIBA de la grilla (fuera de ella, no como celda
+    // grande): así no participa de ningún cálculo de columnas y las
+    // tarjetas normales quedan en su grilla de siempre, todas iguales.
+    // Sin combo, la principal ocupa la celda grande como antes.
     var principal = combo ? null : elegirPrincipal(lista, titulo);
     var resto = lista.filter(function (p) { return p !== principal; });
-    var grande = combo ? tarjetaCombo(combo) : tarjetaPrincipal(principal);
 
     var encabezado = encabezadoSeccion(titulo, idAncla, conEncabezado, categoria, lista);
+    var bannerCombo = combo ? '<div class="combo-destacado">' + tarjetaCombo(combo) + '</div>' : '';
 
     return '<section class="cat" id="' + esc(idAncla) + '"' +
              (conEncabezado ? ' aria-labelledby="tit-' + esc(idAncla) + '"' : '') + '>' +
              encabezado +
+             bannerCombo +
              '<div class="grilla">' +
-               grande +
+               (combo ? '' : tarjetaPrincipal(principal)) +
                resto.map(tarjeta).join('') +
              '</div>' +
            '</section>';
