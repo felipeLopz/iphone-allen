@@ -145,6 +145,41 @@ html.cambiando-tema * {
               fill 200ms ease !important;
 }
 
+/* ------------------ APARICIÓN AL SCROLLEAR (SECCIONES) -------------
+   La clase .con-animacion la pone el script inline del <head>, antes del
+   primer pintado: así las secciones ya nacen en opacity 0 y no se ve el
+   parpadeo de contenido visible que se oculta un instante después. Si no
+   hay JS, no hay IntersectionObserver, o el visitante pidió reducir
+   movimiento, esa clase no se agrega y todo se ve directo.
+
+   app.js saca las dos clases al terminar la transición, así que el
+   elemento queda SIN transform y SIN will-change residuales: eso es lo
+   que evita reabrir el bug del scroll trabado sobre las imágenes.
+   ------------------------------------------------------------------ */
+/* El estado oculto lo aplica el CSS por sí solo, sin esperar a app.js:
+   por eso el selector es :not([data-revelado]) y no una clase que
+   agregue el JS. Si lo pusiera el JS (que corre al final del body) la
+   sección se vería un instante antes de ocultarse: ese es el parpadeo. */
+html.con-animacion main > .seccion:not([data-revelado]) {
+  opacity: 0;
+  transform: translateY(12px);
+  will-change: opacity, transform;
+}
+
+/* entrando */
+html.con-animacion main > .seccion[data-revelado="animando"] {
+  opacity: 1;
+  transform: none;
+  transition: opacity 350ms ease, transform 350ms cubic-bezier(.4, .1, .2, 1);
+}
+
+/* terminada: sin transform, sin will-change y sin transition colgados */
+html.con-animacion main > .seccion[data-revelado="listo"] {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
 /* ------------------------------ BASE ------------------------------ */
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -1069,7 +1104,8 @@ button {
   border-radius: var(--radio);
   box-shadow: var(--sombra-superficie);
   opacity: 0; /* [10] la revela el IntersectionObserver */
-  transition: border-color 300ms ease, box-shadow 250ms ease;
+  /* misma duración y curva que el resto de los hovers del sitio */
+  transition: border-color var(--transicion), box-shadow var(--transicion);
 }
 
 /* [10] entrada escalonada. `backwards` mantiene el estado inicial durante
@@ -1443,6 +1479,30 @@ button {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+/* ------------------------ CONTADOR DE STOCK ------------------------
+   Una línea fija debajo del precio. Se renderiza SIEMPRE (vacía cuando
+   el producto está agotado, que ya lo dice el badge de la foto) para que
+   todas las tarjetas de la grilla midan exactamente lo mismo tenga el
+   producto stock bajo, normal o cero.
+   ------------------------------------------------------------------ */
+.stock {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+  /* alto reservado: 1 línea, esté o no escrita */
+  min-height: 1.3em;
+  line-height: 1.3;
+}
+
+/* Stock bajo: el rojo de alerta que ya usa el sitio para los errores del
+   formulario. Va en negrita porque el color por sí solo no es señal
+   suficiente (daltonismo). Funciona en los dos temas: --rojo-suave está
+   definido en ambos. */
+.stock--bajo {
+  color: var(--rojo-suave);
+  font-weight: 600;
 }
 
 .card__precios { margin-top: auto; padding-top: 4px; }
@@ -3085,7 +3145,15 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 
   /* Catálogo: el principal ocupa la columna ancha y dos filas; el resto
      entra en las dos columnas de la derecha. */
-  .grilla { grid-template-columns: 1.5fr 1fr 1fr; }
+  /* Tres columnas IGUALES. Antes la primera era 1.5fr para darle aire a
+     la tarjeta grande, pero como esa ocupa sólo dos filas, cuando la
+     sección tiene un número impar de tarjetas normales una cae en esa
+     columna ancha: al ser más ancha, su foto (que va por aspect-ratio)
+     queda más alta y esa tarjeta terminaba midiendo distinto que el
+     resto. Con las columnas iguales, todas las tarjetas miden lo mismo
+     caigan donde caigan, y la grande se sigue distinguiendo por ocupar
+     el doble de alto. */
+  .grilla { grid-template-columns: repeat(3, 1fr); }
   .card--principal { grid-column: 1; grid-row: span 2; }
 }
 
@@ -3155,6 +3223,16 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 
   .carrusel__flecha { display: grid; place-items: center; }
   .carrusel__slide { padding: 26px; }
+
+  /* El carrusel estaba centrado (margin-inline:auto) mientras el título
+     de su sección arranca a la izquierda como todos los demás: quedaba
+     248px corrido respecto de su propio encabezado. Acá se alinea al eje
+     del contenido. El desplazamiento es de 62px —el ancho de la flecha
+     más su separación— para que lo primero que se ve del componente, que
+     es la flecha, caiga sobre ese eje y no el borde de la tarjeta.
+     Sólo en este breakpoint: es donde aparecen las flechas. Por debajo
+     el carrusel ocupa el ancho disponible y ya arranca alineado. */
+  .carrusel { margin-inline: 62px 0; }
 
   .secciones { gap: 86px; }
   .cat__head { padding-bottom: 16px; margin-bottom: 28px; }

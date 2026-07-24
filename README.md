@@ -84,7 +84,7 @@ Los sugeridos se eligen solos: productos **con stock**, que **no estén ya en el
 Arriba de la grilla, en las cinco páginas de catálogo, hay tres controles que se combinan entre sí:
 
 - **Rango de precio** (`Desde` / `Hasta`): los dos son opcionales. Se escriben sólo números y se formatean solos con puntos de miles. La ✕ limpia el rango. Si el "Desde" queda mayor que el "Hasta", avisa debajo y no filtra nada.
-- **Orden**: por defecto (el orden del JSON), menor precio o mayor precio. **La tarjeta grande de cada sección no se mueve de la primera posición** aunque se ordene: es la que ocupa la celda doble de la grilla. El orden se aplica a las demás.
+- **Orden**: por defecto (el orden del JSON), menor precio o mayor precio. Con "por defecto" la sección muestra su tarjeta grande (el combo, o el producto marcado como principal). Al ordenar por precio la grilla se vuelve **uniforme**: no hay tarjeta grande, todas son del mismo tamaño y quedan estrictamente ordenadas por precio — una tarjeta fija arriba que no fuera la más barata se leería como un error. El combo no se pierde: aparece como una tarjeta más, con su precio de combo, en el lugar que le toca.
 - **Buscador** (la lupa): filtra la grilla al escribir y además muestra hasta cinco sugerencias con foto y precio. Elegir una abre el detalle del producto. Se maneja con flechas y Enter; Escape cierra las sugerencias.
 
 Los tres se aplican juntos: si hay texto buscado, rango y orden, se respetan los tres. En las páginas de categoría todo se limita a esa categoría; en `productos.html`, a todo el catálogo.
@@ -252,6 +252,24 @@ El campo sólo hace falta cuando **no** hay stock: se pone `"stock": 0`, y autom
 - el producto se muestra más apagado (no se oculta, sigue en el catálogo),
 - aparece un cartel de "Sin stock",
 - el botón cambia de "Agregar" a "Avisame" (abre WhatsApp con un mensaje ya armado para ese producto puntual). En el detalle del producto, donde hay más lugar, esos botones se leen completos: "Agregar al carrito" y "Avisame cuando llegue".
+
+### El contador de unidades
+
+Además del caso "sin stock", el número que se escriba en `"stock"` cambia lo que se muestra debajo del precio, tanto en la tarjeta como en el detalle:
+
+| `stock` | Qué se ve |
+|---|---|
+| sin el campo | **Disponible** |
+| `0` | nada en esa línea (ya lo dicen el cartel "Sin stock" y el botón "Avisame") |
+| `1` | **¡Última unidad!** en rojo |
+| `2` a `5` | **¡Últimas N unidades!** en rojo, con el número exacto |
+| `6` o más | **Disponible**, sin número |
+
+La idea es que el número sólo aparezca cuando de verdad apura: "quedan 47 unidades" no genera ninguna urgencia y encima se ve raro. El corte está en **5**; si se quiere mover, es la constante `STOCK_BAJO` al principio de `app.js` (buscá "CONTADOR DE UNIDADES").
+
+Los combos usan la misma lógica, con el stock del producto que tenga menos: si un combo lleva un equipo con 2 unidades y un accesorio con 8, muestra "¡Últimas 2 unidades!".
+
+La línea se dibuja **siempre**, aunque quede vacía, para que todas las tarjetas de la grilla midan exactamente lo mismo tenga el producto stock bajo, normal o cero.
 
 ---
 

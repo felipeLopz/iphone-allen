@@ -275,6 +275,32 @@
   // Si un producto no declara "stock", se asume que hay.
   function hayStock(p) { return p.stock === undefined || p.stock === null || p.stock > 0; }
 
+  // ---------------------------------------------------------------------
+  // CONTADOR DE UNIDADES — a partir del campo "stock" de productos.json.
+  //   0            → no se dice nada acá: ya lo cubren el badge "Sin stock"
+  //                  y el botón "Avisame". Igual se renderiza la línea
+  //                  vacía para que todas las tarjetas midan lo mismo.
+  //   1 a 5        → el número exacto, con urgencia ("¡Últimas 3 unidades!").
+  //   6 o más      → "Disponible", sin número: "quedan 47" no apura a nadie.
+  //   sin declarar → "Disponible" (se asume que hay).
+  // Para cambiar el umbral alcanza con tocar STOCK_BAJO.
+  // ---------------------------------------------------------------------
+  var STOCK_BAJO = 5;
+
+  function htmlStock(p) {
+    if (!hayStock(p)) return '<p class="stock" aria-hidden="true"></p>';
+
+    var n = p.stock;
+    // Infinity lo puede traer un combo armado con productos sin "stock"
+    var sinDato = n === undefined || n === null || n === Infinity;
+
+    if (!sinDato && n <= STOCK_BAJO) {
+      var texto = n === 1 ? '¡Última unidad!' : '¡Últimas ' + n + ' unidades!';
+      return '<p class="stock stock--bajo">' + esc(texto) + '</p>';
+    }
+    return '<p class="stock">Disponible</p>';
+  }
+
   /* ============================== COMBOS ==============================
      Un combo son DOS productos del catálogo vendidos juntos con un
      descuento. Se definen en productos.json, en el array "combos":
@@ -589,6 +615,7 @@
     function evaluar() {
       pendiente = false;
       btn.classList.toggle('is-visible', window.scrollY > MOSTRAR_ARRIBA_DESDE);
+      revelarLoQueQuedoAtras();
     }
 
     window.addEventListener('scroll', function () {
@@ -908,6 +935,10 @@
         // del buscador y no corresponde reabrir el modal cada vez.
         abrirProductoDeLaUrl();
       }
+
+      // Recién acá: hasta que no está el contenido, las secciones miden
+      // poco y entrarían TODAS juntas en pantalla, revelándose de una.
+      revelarSecciones();
     })
     .catch(function (err) {
       // Ocurre al abrir el HTML con doble clic (file://): el navegador
@@ -922,6 +953,9 @@
       var destino = $('#catalogoSecciones') || $('#heroProducto');
       if (destino) destino.innerHTML = aviso;
       console.error('[tienda] no se pudo cargar productos.json:', err);
+
+      // que un fetch fallido no deje las secciones invisibles
+      revelarSecciones();
     });
 
   // [9] esqueletos con la misma forma que la tarjeta real
@@ -1480,9 +1514,12 @@
                descripcionCorta(p) +
              '</div>' +
              bloquePrecios(p) +
+             htmlStock(p) +
              '<div class="card__acciones">' +
                botonAccion(p, 'btn--compacto', 'Agregar', 'Avisame') +
-               botonComparar(p) +
+               // un combo no se puede comparar: el comparador trabaja
+               // sobre productos sueltos del catálogo
+               (p.esCombo ? '' : botonComparar(p)) +
              '</div>' +
            '</article>';
   }
@@ -1534,6 +1571,7 @@
                '<p class="combo__ahorro">Ahorrás ' + precio(ahorroCombo(c)) +
                  ' (' + c.descuento + '%)</p>' +
              '</div>' +
+             htmlStock(c) +
 
              '<div class="card__acciones">' +
                '<button class="btn btn--compacto" type="button" data-agregar="' + esc(c.id) + '">' +
@@ -1562,6 +1600,7 @@
                descripcionCorta(p) +
              '</div>' +
              bloquePrecios(p) +
+             htmlStock(p) +
              '<div class="card__acciones">' +
                botonAccion(p, 'btn--compacto') +
                botonComparar(p) +
@@ -1617,24 +1656,39 @@
   // Una sección con su grilla (principal + resto). El encabezado se
   // omite sólo cuando la página tiene una sección única (iPhone, Mac,
   // iPad): ahí repetiría el título de la página.
-  function seccionGrilla(titulo, lista, idAncla, conEncabezado, categoria) {
-    // Si la categoría tiene un combo disponible, ese ocupa la celda
-    // grande y NINGÚN producto se pierde: el que era principal pasa a
-    // verse como una tarjeta normal más (se sigue vendiendo suelto).
-    var combo = comboDeSeccion(categoria, titulo);
-    var principal = combo ? null : elegirPrincipal(lista, titulo);
+  function encabezadoSeccion(titulo, idAncla, conEncabezado, categoria, lista) {
+    if (!conEncabezado) return '';
+    return '<header class="cat__head">' +
+             '<h2 class="cat__titulo" id="tit-' + esc(idAncla) + '">' + esc(titulo) + '</h2>' +
+             '<p class="cat__conteo">' + conteo(categoria, lista.length) + '</p>' +
+           '</header>';
+  }
 
-    // La celda grande queda fija en la primera posición aunque se ordene
-    // por precio (moverla rompería el layout). El orden se aplica al resto.
-    var resto = ordenarPorPrecio(lista.filter(function (p) { return p !== principal; }));
+  function seccionGrilla(titulo, lista, idAncla, conEncabezado, categoria) {
+    var combo = comboDeSeccion(categoria, titulo);
+
+    // Ordenado por precio: la grilla se vuelve UNIFORME. No hay celda
+    // grande ni combo destacado, porque una tarjeta fija arriba que no es
+    // la más barata se lee como un error. El combo no se pierde: entra
+    // como una tarjeta normal más, con su precio de combo, en el lugar
+    // que le toca por precio.
+    if (orden !== 'defecto') {
+      var todo = ordenarPorPrecio(combo ? lista.concat([combo]) : lista);
+      return '<section class="cat" id="' + esc(idAncla) + '"' +
+               (conEncabezado ? ' aria-labelledby="tit-' + esc(idAncla) + '"' : '') + '>' +
+               encabezadoSeccion(titulo, idAncla, conEncabezado, categoria, lista) +
+               '<div class="grilla grilla--uniforme">' + todo.map(tarjeta).join('') + '</div>' +
+             '</section>';
+    }
+
+    // Orden por defecto: si la categoría tiene combo, ese ocupa la celda
+    // grande, y NINGÚN producto se pierde — el que era principal pasa a
+    // verse como una tarjeta normal más (se sigue vendiendo suelto).
+    var principal = combo ? null : elegirPrincipal(lista, titulo);
+    var resto = lista.filter(function (p) { return p !== principal; });
     var grande = combo ? tarjetaCombo(combo) : tarjetaPrincipal(principal);
 
-    var encabezado = conEncabezado
-      ? '<header class="cat__head">' +
-          '<h2 class="cat__titulo" id="tit-' + esc(idAncla) + '">' + esc(titulo) + '</h2>' +
-          '<p class="cat__conteo">' + conteo(categoria, lista.length) + '</p>' +
-        '</header>'
-      : '';
+    var encabezado = encabezadoSeccion(titulo, idAncla, conEncabezado, categoria, lista);
 
     return '<section class="cat" id="' + esc(idAncla) + '"' +
              (conEncabezado ? ' aria-labelledby="tit-' + esc(idAncla) + '"' : '') + '>' +
@@ -1774,6 +1828,89 @@
         });
       }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' })
     : null;
+
+  /* ---------------- APARICIÓN DE SECCIONES AL SCROLLEAR --------------
+     Mismo criterio que las tarjetas: aparecen una sola vez y con un
+     recorrido corto. Al terminar la transición se sacan las dos clases,
+     de modo que el elemento vuelve a su estado natural — sin transform y
+     sin will-change encima. Eso importa: un transform o una capa de
+     composición que quede colgada sobre un ancestro de .media es
+     exactamente lo que reabría el bug del scroll sobre las imágenes.
+     ------------------------------------------------------------------ */
+  var observadorSecciones = ('IntersectionObserver' in window)
+    ? new IntersectionObserver(function (entradas) {
+        entradas.forEach(function (e) {
+          if (!e.isIntersecting) return;
+          var el = e.target;
+          observadorSecciones.unobserve(el);
+          el.dataset.revelado = 'animando';
+
+          // "listo" quita el transform y el will-change. Si por lo que sea
+          // no llega el transitionend, el timeout lo hace igual.
+          var hecho = false;
+          var fin = function () {
+            if (hecho) return;
+            hecho = true;
+            el.removeEventListener('transitionend', fin);
+            el.dataset.revelado = 'listo';
+          };
+          el.addEventListener('transitionend', fin);
+          window.setTimeout(fin, 700);
+        });
+      }, { threshold: 0.06, rootMargin: '0px 0px -60px 0px' })
+    : null;
+
+  // Red de seguridad para los SALTOS. El IntersectionObserver avisa
+  // cuando un elemento cruza el borde de la pantalla, pero si el scroll
+  // salta de una (tecla Fin, un ancla, la rueda a fondo) una sección
+  // puede pasar de "abajo de la pantalla" a "arriba de la pantalla" en un
+  // solo cuadro, sin cruzar nada: el observer no dispara y esa sección
+  // quedaría invisible para siempre. Esto revela lo que ya quedó atrás.
+  // No es un listener de scroll propio: se engancha al tick de
+  // requestAnimationFrame que ya tenía el botón de volver arriba.
+  function revelarLoQueQuedoAtras() {
+    if (!observadorSecciones) return;
+    Array.prototype.forEach.call(
+      document.querySelectorAll('main > .seccion:not([data-revelado])'),
+      function (sec) {
+        if (sec.getBoundingClientRect().top < window.innerHeight) {
+          observadorSecciones.unobserve(sec);
+          sec.dataset.revelado = 'listo';   // ya pasó: sin animación
+        }
+      }
+    );
+  }
+
+  function revelarSecciones() {
+    // La clase del <head> es la que las dejó ocultas; sin ella no hay nada
+    // que revelar. El hero queda afuera a propósito: es lo primero que se
+    // ve y aparecer sobre el pliegue se siente como un error de carga.
+    if (!document.documentElement.classList.contains('con-animacion')) return;
+
+    var objetivos = document.querySelectorAll('main > .seccion');
+
+    if (!observadorSecciones || sinMovimiento()) {
+      Array.prototype.forEach.call(objetivos, function (sec) {
+        sec.dataset.revelado = 'listo';
+      });
+      return;
+    }
+
+    Array.prototype.forEach.call(objetivos, function (sec) {
+      // Lo que ya entra en la primera pantalla se muestra directo, sin
+      // animación y sin depender de que el observer dispare. Son dos
+      // cosas a la vez: no tiene sentido "aparecer" algo que el visitante
+      // ya está mirando, y —más importante— así el contenido de arriba
+      // nunca queda invisible esperando un callback. En las páginas de
+      // catálogo eso importa mucho: la grilla es UNA sola sección, y si
+      // el observer no llegara a disparar la página se vería vacía.
+      if (sec.getBoundingClientRect().top < window.innerHeight) {
+        sec.dataset.revelado = 'listo';
+        return;
+      }
+      observadorSecciones.observe(sec);
+    });
+  }
 
   function revelarTarjetas() {
     var grillas = $('#catalogoSecciones').querySelectorAll('.grilla');
@@ -2061,6 +2198,7 @@
       '</p>' +
       '<p class="combo__ahorro">Ahorrás ' + precio(ahorroCombo(c)) +
         ' (' + c.descuento + '%) comprando los dos juntos</p>' +
+      htmlStock(c) +
       '<div class="combo-detalle">' + detalle + '</div>' +
       '<div class="modal__acciones">' +
         '<a class="btn btn--sec btn--compacto" href="' + urlWhatsapp(msgConsultaCombo(c)) + '" ' +
@@ -2097,6 +2235,7 @@
       '<p class="modal__precios">' +
         '<span class="precio">' + precio(p.precio) + '</span>' + anterior +
       '</p>' +
+      htmlStock(p) +
       (hayStock(p) ? '' : '<p class="modal__agotado">Sin stock por ahora. Dejanos tu mensaje y te avisamos apenas entre.</p>') +
       (filas ? '<dl class="detalle">' + filas + '</dl>' : '') +
       '<div class="modal__acciones">' +

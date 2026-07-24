@@ -14,6 +14,18 @@
       var t = localStorage.getItem('nombre-tema');
       if (t !== 'claro' && t !== 'oscuro') t = 'claro';
       document.documentElement.setAttribute('data-tema', t);
+
+      // Marca que las apariciones al scrollear están habilitadas. Se pone
+      // ACÁ, antes del primer pintado, porque es lo que deja las secciones
+      // en opacity 0 desde el arranque: si la clase la pusiera app.js (que
+      // corre al final del body) se vería un parpadeo del contenido ya
+      // visible antes de ocultarse. Sin JS, sin IntersectionObserver o con
+      // "reducir movimiento" activo, la clase no se pone y todo se ve
+      // directo, sin animación.
+      if ('IntersectionObserver' in window &&
+          !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+        document.documentElement.classList.add('con-animacion');
+      }
     } catch (e) {
       document.documentElement.setAttribute('data-tema', 'claro');
     }
