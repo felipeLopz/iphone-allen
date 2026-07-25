@@ -1610,6 +1610,32 @@ html[data-anim-entrada="no"] .card {
 .card__precios { margin-top: auto; padding-top: 4px; }
 .card__precios .precio { font-size: 1.38rem; }
 
+/* ------------- AHORRO CONTRA EL MISMO MODELO NUEVO -----------------
+   La línea se pinta en TODAS las tarjetas, vacía cuando no hay nada que
+   comparar (ver lineaAhorro en app.js), y el alto va reservado acá. Es
+   el mismo criterio que el espaciador del precio tachado: si la línea
+   existiera sólo en los usados, esas tarjetas serían más altas y los
+   botones de la fila dejarían de alinearse.
+   El tono es el de una ventaja, no el de una advertencia: el monto va
+   en el color de acento y el precio del nuevo queda en gris al lado. */
+.card__ahorro {
+  min-height: 1.15rem;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  line-height: 1.15rem;
+  /* --texto-suave y no --texto-tenue: el precio del nuevo es un dato que
+     se lee, no un adorno. Con --texto-tenue quedaba en 3.1 de contraste
+     sobre la tarjeta blanca. */
+  color: var(--texto-suave);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card__ahorro-monto {
+  color: var(--acento);
+  font-weight: 600;
+}
+
 /* ---------------- TARJETAS DE LA GRILLA, TODAS IGUALES -------------
    Las tarjetas de una fila ya miden lo mismo (son items de grid y se
    estiran solas). Lo que se desalineaba era el CONTENIDO: un nombre de
@@ -2427,6 +2453,63 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   margin: -18px 0 22px;
   color: var(--rojo-suave);
   font-size: 0.85rem;
+}
+
+/* --------------------- FILTRO NUEVO / USADO ------------------------
+   Tres pastillas dentro de una cápsula, del mismo alto (38px) que el
+   resto de los controles de la barra. Son radios de verdad: el <input>
+   está oculto y la pastilla visible es su <label>, así se conserva la
+   navegación con flechas y el anuncio del lector de pantalla.
+   El <fieldset> va sin borde ni padding propios: los estilos de cápsula
+   son de este contenedor, no de un div extra. */
+.condicion {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 38px;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie);
+  min-width: 0;
+}
+/* fuera de pantalla pero enfocable: sin esto el foco de teclado no
+   llega nunca a las pastillas */
+.condicion__radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.condicion__op {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--transicion), background var(--transicion);
+}
+.condicion__op:hover { color: var(--texto); }
+.condicion__radio:checked + .condicion__op {
+  background: var(--acento-fuerte);
+  color: var(--sobre-acento);
+  font-weight: 600;
+}
+/* el foco se dibuja sobre la pastilla, que es lo que se ve */
+.condicion__radio:focus-visible + .condicion__op {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
 }
 
 .orden__select {
@@ -3307,6 +3390,86 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 .detalle--estado .detalle__fila:last-child { border-bottom: 0; }
 .detalle--estado dt { color: var(--usado-texto); opacity: 0.9; }
 
+/* --------- COMPARATIVO DE PRECIO CONTRA EL MODELO NUEVO ------------
+   Dentro del informe de estado: primero qué tiene el equipo, después
+   cuánto se ahorra. Las dos puntas en filas chicas y el ahorro
+   destacado abajo, que es el dato que se quiere que quede. */
+.ahorro {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--usado-borde);
+  border-radius: var(--radio-sm);
+  background: var(--superficie);
+}
+.ahorro__filas {
+  display: grid;
+  gap: 2px;
+}
+.ahorro__fila {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.86rem;
+}
+.ahorro__etq { color: var(--texto-suave); }
+.ahorro__val {
+  color: var(--texto);
+  font-variant-numeric: tabular-nums;
+}
+.ahorro__val--tachado {
+  text-decoration: line-through;
+  /* tachado ya alcanza para bajarle jerarquía; con --texto-tenue encima
+     el contraste caía a 3.1 y el precio de referencia no se leía */
+  color: var(--texto-suave);
+}
+.ahorro__total {
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--usado-borde);
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--acento);
+}
+.ahorro__pct {
+  font-family: var(--cuerpo);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--texto-suave);
+}
+
+/* ------------------------ ENTREGA ESTIMADA -------------------------
+   Modal: una línea con el reloj a la izquierda y, debajo del plazo, la
+   aclaración chica de que se coordina. El plazo sale de una constante
+   de app.js (ENTREGA_ESTIMADA). */
+.entrega {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-sm);
+  background: var(--superficie2);
+  font-size: 0.88rem;
+  color: var(--texto);
+}
+.entrega__ico {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--texto-suave);
+}
+.entrega__txt { display: block; }
+.entrega__nota {
+  display: block;
+  margin-top: 1px;
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+}
+
 .detalle {
   margin: 22px 0 0;
   border-top: 1px solid var(--borde);
@@ -3590,6 +3753,22 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   }
   .rango { flex: 1 1 100%; }
   .rango__campo { width: 100%; }
+
+  /* Con el filtro nuevo/usado son cuatro controles: el rango se lleva su
+     fila, el filtro de condición se lleva la suya (las tres pastillas
+     reparten el ancho en partes iguales) y abajo comparten fila el orden
+     y el buscador. Así ninguna fila queda con un control apretado ni con
+     uno suelto, y la barra no necesita scroll horizontal. */
+  .condicion {
+    flex: 1 1 100%;
+    justify-content: stretch;
+  }
+  .condicion__op {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 4px;
+  }
+
   .orden__select { flex: 1 1 auto; min-width: 0; }
   .buscador { flex: 0 0 auto; margin-left: auto; }
 }

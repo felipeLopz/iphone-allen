@@ -81,13 +81,31 @@ Los sugeridos se eligen solos: productos **con stock**, que **no estén ya en el
 
 ## Los controles del catálogo
 
-Arriba de la grilla, en las cinco páginas de catálogo, hay tres controles que se combinan entre sí:
+Arriba de la grilla, en las cinco páginas de catálogo, hay cuatro controles que se combinan entre sí:
 
 - **Rango de precio** (`Desde` / `Hasta`): los dos son opcionales. Se escriben sólo números y se formatean solos con puntos de miles. La ✕ limpia el rango. Si el "Desde" queda mayor que el "Hasta", avisa debajo y no filtra nada.
+- **Nuevo / usado**: tres pastillas, `Todos` (por defecto) · `Nuevos` · `Usados`. Con "Nuevos" desaparece la sección de usados y la página queda como antes de que existieran. Con "Usados" se ven sólo los usados, sin combos ni tarjeta grande (los combos son de productos nuevos). Si la selección no deja ningún producto, aparece el cartel de "sin resultados" nombrando el filtro.
 - **Orden**: por defecto (el orden del JSON), menor precio o mayor precio. Con "por defecto" la sección muestra su tarjeta grande (el combo, o el producto marcado como principal). Al ordenar por precio la grilla se vuelve **uniforme**: no hay tarjeta grande, todas son del mismo tamaño y quedan estrictamente ordenadas por precio — una tarjeta fija arriba que no fuera la más barata se leería como un error. El combo no se pierde: aparece como una tarjeta más, con su precio de combo, en el lugar que le toca.
 - **Buscador** (la lupa): filtra la grilla al escribir y además muestra hasta cinco sugerencias con foto y precio. Elegir una abre el detalle del producto. Se maneja con flechas y Enter; Escape cierra las sugerencias.
 
-Los tres se aplican juntos: si hay texto buscado, rango y orden, se respetan los tres. En las páginas de categoría todo se limita a esa categoría; en `productos.html`, a todo el catálogo.
+Los cuatro se aplican juntos: si hay texto buscado, rango, condición y orden, se respetan los cuatro. En las páginas de categoría todo se limita a esa categoría; en `productos.html`, a todo el catálogo.
+
+En celular la barra se acomoda en tres filas —el rango arriba, las tres pastillas de condición en el medio, y abajo el orden con la lupa— para que ningún control quede apretado y la barra no necesite scroll horizontal.
+
+### Entrega estimada
+
+El plazo que se ve en el detalle de cada producto y en el resumen de finalizar compra sale de **una sola constante** en `app.js`, cerca del principio:
+
+```js
+var ENTREGA_ESTIMADA = '12 a 36 hs';
+var ENTREGA_NOTA = 'Coordinamos por WhatsApp';
+```
+
+Se edita ahí y cambia en los dos lugares a la vez. Vale igual para nuevos y usados. Está redactado como **estimado** a propósito, y la nota de al lado aclara que se coordina: no conviene convertirlo en un plazo prometido.
+
+### El contador de la pestaña
+
+Cuando el carrito tiene productos, el título de la pestaña del navegador arranca con la cantidad: `(3) iPhones — IPHONE ALLEN…`. Con el carrito vacío se ve el título normal. El número son **unidades** (respeta las cantidades, no cuenta líneas), se actualiza al agregar, quitar y cambiar cantidades, y como el carrito vive en `localStorage` sigue estando al pasar de una página a otra. Cada página conserva su propio título: el número se le antepone.
 
 ---
 
@@ -122,6 +140,7 @@ Estos son todos los campos que puede tener un producto:
 | `condicion` | No | `"nuevo"` o `"usado"`. Si no se escribe, se asume `"nuevo"`. Ver "Productos usados" más abajo. |
 | `anio` | No | Sólo para usados: el año del modelo (ej: `2022`). Ordena la sección de usados. |
 | `estado` | No | Sólo para usados: el informe del estado real del equipo. Ver "Productos usados" más abajo. |
+| `equivaleNuevo` | No | Sólo para usados: el `id` del mismo modelo nuevo, para mostrar cuánto se ahorra. Ver "Productos usados". |
 
 ### Ejemplo completo
 
@@ -217,6 +236,21 @@ Este es el usado que se arma a partir del `iphone-14-128` que ya estaba en el ca
 - **Al abrir el producto**: un bloque **"Estado del equipo"** con *todos* los campos cargados, uno por fila, antes de la ficha técnica. La idea es que se lea como un informe de transparencia — mostrar la marca en el borde genera más confianza que esconderla.
 
 En la línea de descripción de la tarjeta conviene **no repetir la batería en `specs`** (ya la pone `estado`), como en el ejemplo de arriba.
+
+### Cuánto se ahorra contra el nuevo
+
+Si el usado lleva **`"equivaleNuevo"`** con el `id` del mismo modelo nuevo, la página calcula sola cuánto se ahorra y lo muestra en dos lugares:
+
+- **En la tarjeta**: una línea corta, `Nuevo $1.399.000 · Ahorrás $249.000`.
+- **En el modal**, dentro del informe de estado: el precio del nuevo tachado, el del usado, y abajo `Ahorrás $249.000 (18%)`.
+
+```json
+"equivaleNuevo": "iphone-14-128"
+```
+
+El ahorro es `precio del nuevo − precio del usado`, y el porcentaje va sobre el precio del nuevo. **No hay que escribir ningún monto**: si mañana cambia el precio de cualquiera de los dos, la cuenta se actualiza sola.
+
+Si el campo no está, si el `id` no existe, o si el usado quedara **igual o más caro** que el nuevo, no se muestra ninguna comparación y el usado se ve como cualquier otro. El espacio de esa línea está reservado en todas las tarjetas, así que aparezca o no, todas siguen midiendo lo mismo.
 
 ### Reglas de los usados
 

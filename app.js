@@ -117,6 +117,31 @@
   };
 
   // ---------------------------------------------------------------------
+  // ENTREGA ESTIMADA — se edita ACÁ y cambia en todo el sitio: aparece en
+  // el modal de cada producto y en el resumen de finalizar compra. Vale
+  // igual para nuevos y usados.
+  // Es un ESTIMADO a propósito, no una promesa: el texto de al lado
+  // (ENTREGA_NOTA) aclara que se coordina, así no queda como un plazo
+  // garantizado que después haya que explicar.
+  // ---------------------------------------------------------------------
+  var ENTREGA_ESTIMADA = '12 a 36 hs';
+  var ENTREGA_NOTA = 'Coordinamos por WhatsApp';
+
+  // Opciones del filtro nuevo/usado de la barra del catálogo. Va acá
+  // arriba y no al lado de htmlCondicion() porque montarPaginaCatalogo()
+  // se ejecuta antes de esa parte del archivo: declarada más abajo, el
+  // `var` valdría undefined justo cuando se pinta la barra.
+  var CONDICIONES = [
+    { valor: 'todos',  texto: 'Todos'  },
+    { valor: 'nuevos', texto: 'Nuevos' },
+    { valor: 'usados', texto: 'Usados' }
+  ];
+
+  // Title propio de la página, para anteponerle el contador del carrito
+  // (ver actualizarTituloPestana). Se lee antes de tocarlo nunca.
+  var TITULO_BASE = document.title;
+
+  // ---------------------------------------------------------------------
   // FORMAS DE PAGO — los medios ya están confirmados. Los "detalle" de
   // abajo son TEXTO PROVISORIO: neutros, sin afirmar descuentos, recargos
   // ni cuotas. Reemplazar por las condiciones reales cuando estén
@@ -158,6 +183,7 @@
   var precioHasta = null;
   var rangoInvalido = false;         // "Desde" > "Hasta": se avisa y no se aplica
   var orden = 'defecto';             // 'defecto' | 'asc' | 'desc'
+  var condicion = 'todos';           // 'todos' | 'nuevos' | 'usados'
   var slideActivo = 0;
   var destacados = [];
   var primeraPintada = true;         // el escalonado [10] es sólo la 1ra vez
@@ -165,6 +191,14 @@
   var bloquearClick = false;         // evita abrir el modal al terminar un swipe
   var comparadorA = null;            // id del producto en la columna 1
   var comparadorB = null;            // id del producto en la columna 2
+
+  // El contador de la pestaña se pone YA, sin esperar el fetch del
+  // catálogo: las cantidades están en el propio localStorage. Si no, al
+  // entrar a cualquier página se vería un instante el title sin el
+  // número, justo cuando el carrito no está vacío. Después de que
+  // carguen los productos, pintarCarrito() lo recalcula contra el
+  // catálogo real (por si algún id guardado ya no existe).
+  actualizarTituloPestana(carrito.reduce(function (t, i) { return t + i.cantidad; }, 0));
 
   /* ----------------------------- UTILIDADES ------------------------- */
 
@@ -243,7 +277,8 @@
     sol: '<circle cx="12" cy="12" r="4"></circle>' +
          '<path d="M3 12h1M20 12h1M12 3v1M12 20v1M5.6 5.6l.7 .7M17.7 17.7l.7 .7M18.4 5.6l-.7 .7M6.3 17.7l-.7 .7"></path>',
     luna: '<path d="M12 3c.13 0 .26 0 .39 .04a6.5 6.5 0 1 0 8.57 8.57 .5 .5 0 0 1 .87 .38 9 9 0 1 1 -9.83 -9.83Z"></path>',
-    flechaArriba: '<path d="M12 19V5"></path><path d="M5 12l7 -7l7 7"></path>'
+    flechaArriba: '<path d="M12 19V5"></path><path d="M5 12l7 -7l7 7"></path>',
+    reloj: '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>'
   };
 
   function icono(nombre, clase) {
@@ -392,6 +427,8 @@
   //     millones ocupando la celda grande.
   function comboDeSeccion(categoria, titulo) {
     if (titulo !== categoria) return null;
+    // Un combo es de productos nuevos: filtrando por "usados" no pinta.
+    if (condicion === 'usados') return null;
 
     for (var i = 0; i < combos.length; i++) {
       var c = combos[i];
@@ -635,6 +672,88 @@
       return ESTADO_ORDEN.indexOf(k) === -1 && cargada(k);
     });
     return conocidas.concat(otras);
+  }
+
+  /* ------------- CUÁNTO SE AHORRA CONTRA EL MISMO MODELO NUEVO -------
+     El usado puede declarar con qué producto nuevo del catálogo se
+     compara, por id:
+
+       "equivaleNuevo": "iphone-14-128"
+
+     Sin ese campo —o si el id no existe— el usado se muestra como
+     cualquier otro: no se inventa ninguna comparación.
+     Además se exige que el nuevo sea MÁS CARO. Si alguna vez el usado
+     quedara igual o más caro (un error de carga, o el nuevo en
+     liquidación) mostrar "Ahorrás $0" o un número negativo sería peor
+     que no mostrar nada.
+     ------------------------------------------------------------------ */
+  function equivalenteNuevo(p) {
+    if (!esUsado(p) || !p.equivaleNuevo) return null;
+    for (var i = 0; i < productos.length; i++) {
+      var n = productos[i];
+      if (n.id !== p.equivaleNuevo) continue;
+      if (esUsado(n) || n.precio <= p.precio) return null;
+      return n;
+    }
+    return null;
+  }
+
+  // { nuevo, monto, pct } o null. El porcentaje va sobre el precio del
+  // nuevo, que es contra lo que se compara el ahorro.
+  function ahorroVsNuevo(p) {
+    var n = equivalenteNuevo(p);
+    if (!n) return null;
+    var monto = n.precio - p.precio;
+    return { nuevo: n, monto: monto, pct: Math.round(monto / n.precio * 100) };
+  }
+
+  // Línea de la TARJETA. Se pinta SIEMPRE, aunque venga vacía: el CSS le
+  // reserva el alto de un renglón a todas las tarjetas de la grilla, así
+  // el precio y los botones siguen cayendo a la misma altura en las que
+  // no tienen ahorro que mostrar (mismo criterio que el espaciador del
+  // precio tachado).
+  function lineaAhorro(p) {
+    var a = ahorroVsNuevo(p);
+    if (!a) return '<p class="card__ahorro" aria-hidden="true"></p>';
+    return '<p class="card__ahorro">' +
+             '<span class="card__ahorro-nuevo">Nuevo ' + precio(a.nuevo.precio) + '</span>' +
+             '<span class="card__ahorro-sep" aria-hidden="true"> · </span>' +
+             '<strong class="card__ahorro-monto">Ahorrás ' + precio(a.monto) + '</strong>' +
+           '</p>';
+  }
+
+  // Entrega estimada del modal. El plazo sale de ENTREGA_ESTIMADA, arriba
+  // de todo: se edita una vez y cambia acá y en el checkout.
+  function bloqueEntrega() {
+    return '<p class="entrega">' +
+             icono('reloj', 'entrega__ico') +
+             '<span class="entrega__txt">' +
+               'Entrega estimada: <strong>' + esc(ENTREGA_ESTIMADA) + '</strong>' +
+               '<span class="entrega__nota">' + esc(ENTREGA_NOTA) + '</span>' +
+             '</span>' +
+           '</p>';
+  }
+
+  // Bloque del MODAL: las dos puntas y el ahorro destacado. Va dentro del
+  // informe de estado (ver bloqueEstado) porque es parte del mismo
+  // argumento: esto es lo que tiene, y esto es lo que te ahorrás.
+  function bloqueAhorro(p) {
+    var a = ahorroVsNuevo(p);
+    if (!a) return '';
+    return '<div class="ahorro">' +
+             '<div class="ahorro__filas">' +
+               '<div class="ahorro__fila">' +
+                 '<span class="ahorro__etq">Nuevo</span>' +
+                 '<span class="ahorro__val ahorro__val--tachado">' + precio(a.nuevo.precio) + '</span>' +
+               '</div>' +
+               '<div class="ahorro__fila">' +
+                 '<span class="ahorro__etq">Usado</span>' +
+                 '<span class="ahorro__val">' + precio(p.precio) + '</span>' +
+               '</div>' +
+             '</div>' +
+             '<p class="ahorro__total">Ahorrás ' + precio(a.monto) +
+               ' <span class="ahorro__pct">(' + a.pct + '%)</span></p>' +
+           '</div>';
   }
 
   // Resumen para la TARJETA: lo mínimo para decidir sin abrir el modal.
@@ -989,6 +1108,12 @@
                 '</div>' +
                 '<div class="resumen__fila">' +
                   '<dt>Envío</dt><dd class="resumen__suave">A coordinar por WhatsApp</dd>' +
+                '</div>' +
+                // el plazo sale de ENTREGA_ESTIMADA (arriba de todo), el
+                // mismo que muestra el modal de cada producto
+                '<div class="resumen__fila">' +
+                  '<dt>Entrega estimada</dt>' +
+                  '<dd class="resumen__suave" id="resumenEntrega"></dd>' +
                 '</div>' +
                 '<div class="resumen__fila resumen__fila--total">' +
                   '<dt>Total</dt>' +
@@ -1350,6 +1475,7 @@
             htmlFiltrosNavegacion() +
             '<div class="herramientas">' +
               htmlRangoPrecio() +
+              htmlCondicion() +
               htmlOrden() +
               // combobox: el input filtra la grilla como siempre y además
               // abre la lista de sugerencias (ver iniciarSugerencias)
@@ -1376,6 +1502,7 @@
     pintarEsqueletos();
     iniciarBuscador();
     iniciarRangoPrecio();
+    iniciarCondicion();
     iniciarOrden();
   }
 
@@ -1396,6 +1523,54 @@
              '<button class="rango__limpiar" type="button" id="limpiarRango" ' +
                      'aria-label="Limpiar filtro de precio" hidden>' + icono('cruz') + '</button>' +
            '</div>';
+  }
+
+  /* -------------------- FILTRO NUEVO / USADO -------------------------
+     Tres opciones excluyentes, así que van como radios de verdad y no
+     como botones con aria: el grupo se recorre con las flechas y lo
+     anuncia el lector de pantalla sin que haya que programar nada. El
+     input real queda oculto y la pastilla visible es el <label>.
+     (La lista CONDICIONES se declara arriba de todo, con el resto de las
+     constantes: montarPaginaCatalogo() corre antes que esta parte del
+     archivo y un `var` de acá todavía valdría undefined.)
+     ------------------------------------------------------------------ */
+  function htmlCondicion() {
+    var opciones = CONDICIONES.map(function (o) {
+      var id = 'cond-' + o.valor;
+      return '<input class="condicion__radio" type="radio" name="condicion" ' +
+                    'id="' + id + '" value="' + o.valor + '"' +
+                    (condicion === o.valor ? ' checked' : '') + '>' +
+             '<label class="condicion__op" for="' + id + '">' + esc(o.texto) + '</label>';
+    }).join('');
+
+    return '<fieldset class="condicion" id="condicion">' +
+             '<legend class="sr-only">Filtrar por condición</legend>' +
+             opciones +
+           '</fieldset>';
+  }
+
+  function iniciarCondicion() {
+    $('#condicion').addEventListener('change', function (e) {
+      var radio = e.target.closest('.condicion__radio');
+      if (!radio) return;
+      condicion = radio.value;
+      pintarCatalogo();
+    });
+  }
+
+  // "usado" / "usados" según cuántos sean, para que el subtítulo concuerde
+  // ("1 equipo usado" y no "1 equipo usados"). Cadena vacía con "todos".
+  function adjCondicion(n) {
+    if (condicion === 'todos') return '';
+    var base = condicion === 'usados' ? 'usado' : 'nuevo';
+    return n === 1 ? base : base + 's';
+  }
+
+  // ¿El producto pasa el filtro de condición?
+  function pasaCondicion(p) {
+    if (condicion === 'nuevos') return !esUsado(p);
+    if (condicion === 'usados') return esUsado(p);
+    return true;
   }
 
   function htmlOrden() {
@@ -1666,6 +1841,7 @@
                descripcionCorta(p) +
              '</div>' +
              bloquePrecios(p) +
+             lineaAhorro(p) +
              htmlStock(p) +
              '<div class="card__acciones">' +
                botonAccion(p, 'btn--compacto', 'Agregar', 'Avisame') +
@@ -1706,13 +1882,17 @@
       return '<div class="detalle__fila"><dt>' + esc(nombre) + '</dt>' +
              '<dd>' + esc(valorEstado(k, e[k])) + '</dd></div>';
     }).join('');
-    if (!filas) return '';
+    var ahorro = bloqueAhorro(p);
+    // Sin ningún campo de estado Y sin comparación de precio no hay nada
+    // que contar; con cualquiera de las dos el bloque vale la pena.
+    if (!filas && !ahorro) return '';
 
     return '<section class="estado-equipo">' +
              '<h3 class="estado-equipo__titulo">Estado del equipo</h3>' +
              '<p class="estado-equipo__nota">Equipo usado, revisado y probado. ' +
                'Esto es lo que encontramos:</p>' +
-             '<dl class="detalle detalle--estado">' + filas + '</dl>' +
+             ahorro +
+             (filas ? '<dl class="detalle detalle--estado">' + filas + '</dl>' : '') +
            '</section>';
   }
 
@@ -1795,6 +1975,7 @@
                descripcionCorta(p) +
              '</div>' +
              bloquePrecios(p) +
+             lineaAhorro(p) +
              htmlStock(p) +
              '<div class="card__acciones">' +
                botonAccion(p, 'btn--compacto') +
@@ -1822,6 +2003,8 @@
   function productosVisibles() {
     return productos.filter(function (p) {
       if (categoriaPagina && p.categoria !== categoriaPagina) return false;
+
+      if (!pasaCondicion(p)) return false;
 
       // el rango sólo se aplica si es coherente (ver leerRango)
       if (!rangoInvalido) {
@@ -1986,6 +2169,7 @@
     // El subtítulo dice qué filtros están puestos: con búsqueda y/o rango
     // el número de productos por sí solo no explica por qué hay menos.
     var detalles = [];
+    if (adjCondicion(lista.length)) detalles.push(adjCondicion(lista.length));
     if (busqueda) detalles.push('que coinciden con la búsqueda');
     if (rangoActivo()) detalles.push(textoRango());
 
@@ -2029,20 +2213,32 @@
     // que la categoría está vacía cuando en realidad es el rango o la
     // búsqueda lo que no da resultados.
     var titulo, salida;
+    // Si lo que vació la vista fue el filtro de condición, el cartel tiene
+    // que nombrarlo: si no, parece que la categoría entera está vacía.
+    // "en usados" / "en nuevos" se intercala como complemento para que la
+    // frase cierre igual con y sin filtro.
+    var enCond = condicion === 'todos' ? '' : ' en ' + condicion;
+    var unProducto = condicion === 'todos' ? 'producto' : 'producto ' + adjCondicion(1);
+    var volverATodos = condicion === 'todos' ? '' : 'Probá con “Todos”, ';
 
     if (busqueda && rangoActivo()) {
-      titulo = 'Ningún resultado para “' + esc(busqueda) + '” ' + esc(textoRango());
-      salida = 'Probá con otro nombre, ampliá el rango de precio o ';
+      titulo = 'Ningún resultado' + enCond + ' para “' + esc(busqueda) + '” ' + esc(textoRango());
+      salida = volverATodos + 'buscá otro nombre, ampliá el rango de precio o ';
     } else if (rangoActivo()) {
-      titulo = 'Ningún producto ' + esc(textoRango());
-      salida = 'Ampliá el rango de precio o ';
+      titulo = 'Ningún ' + unProducto + ' ' + esc(textoRango());
+      salida = volverATodos + 'ampliá el rango de precio o ';
     } else if (busqueda) {
-      titulo = 'Ningún resultado para “' + esc(busqueda) + '”';
-      salida = 'Probá con otro nombre o ';
+      titulo = 'Ningún resultado' + enCond + ' para “' + esc(busqueda) + '”';
+      salida = volverATodos + 'buscá otro nombre o ';
+    } else if (enCond) {
+      titulo = 'No hay ' + adjCondicion(0) + ' en esta sección';
+      salida = 'Probá con “Todos”, mirá otra categoría en el menú o ';
     } else {
       titulo = 'Todavía no hay productos en esta sección';
       salida = 'Mirá otra categoría en el menú o ';
     }
+    // la frase arranca la oración cuando no la abre "Probá con “Todos”"
+    if (!volverATodos) salida = salida.charAt(0).toUpperCase() + salida.slice(1);
 
     cont.innerHTML =
       '<div class="estado-vacio">' +
@@ -2804,6 +3000,8 @@
       '</p>' +
       htmlStock(p) +
       (hayStock(p) ? '' : '<p class="modal__agotado">Sin stock por ahora. Dejanos tu mensaje y te avisamos apenas entre.</p>') +
+      // sólo tiene sentido prometer un plazo de lo que se puede entregar
+      (hayStock(p) ? bloqueEntrega() : '') +
       bloqueEstado(p) +
       (filas ? '<dl class="detalle">' + filas + '</dl>' : '') +
       '<div class="modal__acciones">' +
@@ -3132,6 +3330,17 @@
     return lineas().reduce(function (t, l) { return t + l.cantidad; }, 0);
   }
 
+  /* ------------- CONTADOR DEL CARRITO EN LA PESTAÑA ------------------
+     "(2) iPhones — IPHONE ALLEN…". El title propio de cada página no se
+     reemplaza: TITULO_BASE se guarda arriba de todo, al arrancar, y el
+     número se le antepone, así las seis páginas conservan el suyo.
+     Se lee del carrito, que vive en localStorage, de modo que el número
+     sigue estando al navegar de una página a otra.
+     ------------------------------------------------------------------ */
+  function actualizarTituloPestana(n) {
+    document.title = n > 0 ? '(' + n + ') ' + TITULO_BASE : TITULO_BASE;
+  }
+
   function pintarCarrito() {
     var ls = lineas();
     var cont = $('#carritoItems');
@@ -3184,6 +3393,7 @@
     var n = unidades();
     $('#contadorCarrito').textContent = n;
     $('#contadorCarritoTexto').textContent = n + (n === 1 ? ' producto en el carrito' : ' productos en el carrito');
+    actualizarTituloPestana(n);
     $('#abrirCarrito').dataset.lleno = n > 0 ? 'true' : 'false';
     $('#carritoTotal').textContent = precio(total());
     $('#pedirWhatsapp').disabled = n === 0;
@@ -3228,6 +3438,7 @@
     // es la lectura que espera cualquiera que compró alguna vez online.
     $('#resumenSubtotal').textContent = precio(total());
     $('#resumenTotal').textContent = precio(total());
+    $('#resumenEntrega').textContent = ENTREGA_ESTIMADA;
 
     $('#resumenPagos').innerHTML = FORMAS_PAGO.map(function (f) {
       var ico = ICONOS[f.icono] ? icono(f.icono) : '';
