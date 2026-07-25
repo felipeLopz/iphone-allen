@@ -32,8 +32,6 @@
       "id": "iphone-15-pro-256",
       "nombre": "iPhone 15 Pro 256 GB",
       "categoria": "iPhone",
-      "condicion": "usado",
-      "anio": 2023,
       "precio": 2599000,
       "destacado": true,
       "principal": false,
@@ -41,16 +39,9 @@
       "specs": [
         "256 GB",
         "Titanio azul",
+        "Batería 96%",
         "Liberado"
       ],
-      "estado": {
-        "bateria": 96,
-        "pantalla": "Sin rayones",
-        "carcasa": "Impecable, sin golpes",
-        "uso": "8 meses",
-        "reparaciones": "Ninguna",
-        "accesorios": "Con caja y cable USB-C"
-      },
       "detalle": {
         "Pantalla": "6.1\" Super Retina XDR",
         "Procesador": "A17 Pro",
@@ -59,7 +50,7 @@
         "Almacenamiento": "256 GB",
         "Color": "Titanio azul",
         "Conector": "USB-C",
-        "Estado": "Usado impecable, liberado"
+        "Estado": "Sellado, liberado de fábrica"
       },
       "imagen": ""
     },
@@ -94,13 +85,39 @@
       "id": "iphone-14-128",
       "nombre": "iPhone 14 128 GB",
       "categoria": "iPhone",
-      "condicion": "usado",
-      "anio": 2022,
       "precio": 1399000,
       "precioAnterior": 1549000,
       "destacado": false,
       "principal": false,
       "stock": 4,
+      "specs": [
+        "128 GB",
+        "Azul medianoche",
+        "Batería 92%",
+        "Liberado"
+      ],
+      "detalle": {
+        "Pantalla": "6.1\" Super Retina XDR",
+        "Procesador": "A15 Bionic",
+        "Cámara": "12 MP principal + 12 MP ultra gran angular",
+        "Batería": "Hasta 20 h de video · salud 92%",
+        "Almacenamiento": "128 GB",
+        "Color": "Azul medianoche",
+        "Conector": "Lightning",
+        "Estado": "Sellado, liberado de fábrica"
+      },
+      "imagen": ""
+    },
+    {
+      "id": "iphone-14-128-usado",
+      "nombre": "iPhone 14 128 GB (usado)",
+      "categoria": "iPhone",
+      "condicion": "usado",
+      "anio": 2022,
+      "precio": 1150000,
+      "destacado": false,
+      "principal": false,
+      "stock": 2,
       "specs": [
         "128 GB",
         "Azul medianoche",
@@ -124,15 +141,43 @@
         "Conector": "Lightning",
         "Estado": "Usado muy bueno, liberado"
       },
-      "imagen": ""
+      "imagen": "img/iphone-14-128.jpg"
     },
     {
       "id": "iphone-13-128",
       "nombre": "iPhone 13 128 GB",
       "categoria": "iPhone",
+      "precio": 1099000,
+      "destacado": false,
+      "etiqueta": "oferta",
+      "principal": false,
+      "stock": 0,
+      "specs": [
+        "128 GB",
+        "Blanco estelar",
+        "Batería 89%",
+        "Liberado"
+      ],
+      "detalle": {
+        "Pantalla": "6.1\" Super Retina XDR",
+        "Procesador": "A15 Bionic",
+        "Cámara": "12 MP principal + 12 MP ultra gran angular",
+        "Batería": "Hasta 19 h de video · salud 89%",
+        "Almacenamiento": "128 GB",
+        "Color": "Blanco estelar",
+        "Conector": "Lightning",
+        "Estado": "Sellado, liberado de fábrica"
+      },
+      "imagen": ""
+    },
+    {
+      "id": "iphone-13-128-usado",
+      "nombre": "iPhone 13 128 GB (usado)",
+      "categoria": "iPhone",
       "condicion": "usado",
       "anio": 2021,
-      "precio": 1099000,
+      "precio": 899000,
+      "precioAnterior": 1020000,
       "destacado": false,
       "etiqueta": "oferta",
       "principal": false,
@@ -160,7 +205,7 @@
         "Conector": "Lightning",
         "Estado": "Usado bueno, liberado"
       },
-      "imagen": ""
+      "imagen": "img/iphone-13-128.jpg"
     },
     {
       "id": "macbook-air-m3-13",
@@ -190,6 +235,44 @@
       "imagen": ""
     },
     {
+      "id": "macbook-air-m3-13-usado",
+      "nombre": "MacBook Air M3 13\" (usado)",
+      "categoria": "Mac",
+      "condicion": "usado",
+      "anio": 2024,
+      "precio": 2390000,
+      "precioAnterior": 2590000,
+      "destacado": false,
+      "etiqueta": "oferta",
+      "principal": false,
+      "stock": 1,
+      "specs": [
+        "Chip M3",
+        "8 GB RAM",
+        "256 GB SSD",
+        "Medianoche"
+      ],
+      "estado": {
+        "bateria": 94,
+        "pantalla": "Sin rayones",
+        "carcasa": "Marca leve en la tapa",
+        "uso": "10 meses",
+        "reparaciones": "Ninguna",
+        "accesorios": "Con caja y cargador original"
+      },
+      "detalle": {
+        "Pantalla": "13.6\" Liquid Retina, 500 nits",
+        "Procesador": "Chip M3 · 8 núcleos CPU / 8 GPU",
+        "Memoria": "8 GB unificada",
+        "Almacenamiento": "256 GB SSD",
+        "Batería": "Hasta 18 h de uso · salud 94%",
+        "Puertos": "2x Thunderbolt / USB-4, MagSafe 3, jack 3.5 mm",
+        "Color": "Medianoche",
+        "Estado": "Usado, ciclos de batería bajos"
+      },
+      "imagen": "img/macbook-air-m3-13.jpg"
+    },
+    {
       "id": "macbook-pro-14-m4",
       "nombre": "MacBook Pro 14\" M4",
       "categoria": "Mac",
@@ -212,44 +295,6 @@
         "Puertos": "3x Thunderbolt 4, HDMI, SDXC, MagSafe 3",
         "Color": "Negro espacial",
         "Estado": "Sellado"
-      },
-      "imagen": ""
-    },
-    {
-      "id": "macbook-air-m2-13",
-      "nombre": "MacBook Air M2 13\"",
-      "categoria": "Mac",
-      "condicion": "usado",
-      "anio": 2022,
-      "precio": 1990000,
-      "precioAnterior": 2190000,
-      "destacado": false,
-      "etiqueta": "oferta",
-      "principal": false,
-      "stock": 1,
-      "specs": [
-        "Chip M2",
-        "8 GB RAM",
-        "256 GB SSD",
-        "Gris espacial"
-      ],
-      "estado": {
-        "bateria": 91,
-        "pantalla": "Sin rayones",
-        "carcasa": "Marca leve en la tapa",
-        "uso": "2 años",
-        "reparaciones": "Ninguna",
-        "accesorios": "Con caja y cargador original"
-      },
-      "detalle": {
-        "Pantalla": "13.6\" Liquid Retina, 500 nits",
-        "Procesador": "Chip M2 · 8 núcleos CPU / 8 GPU",
-        "Memoria": "8 GB unificada",
-        "Almacenamiento": "256 GB SSD",
-        "Batería": "Hasta 18 h de uso · salud 91%",
-        "Puertos": "2x Thunderbolt / USB-4, MagSafe 3, jack 3.5 mm",
-        "Color": "Gris espacial",
-        "Estado": "Usado, ciclos de batería bajos"
       },
       "imagen": ""
     },

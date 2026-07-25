@@ -524,17 +524,24 @@
        }
 
      El que falte no se muestra: ni en la tarjeta ni en el modal queda una
-     línea vacía. Ejemplo completo, tal como está cargado hoy:
+     línea vacía.
+
+     Un usado es SIEMPRE una entrada propia, no un campo que se le pone al
+     producto nuevo: el mismo modelo puede estar a la venta sellado y
+     usado a la vez, a precios distintos. Se duplica la entrada con otro
+     id, se le baja el precio y se apunta "imagen" a la foto que ya tiene
+     el nuevo — ese campo gana sobre la convención img/<id>.jpg, así que
+     no hay que duplicar ningún archivo. Ejemplo completo, tal como está
+     cargado hoy:
 
        {
-         "id": "iphone-14-128",
-         "nombre": "iPhone 14 128 GB",
+         "id": "iphone-14-128-usado",
+         "nombre": "iPhone 14 128 GB (usado)",
          "categoria": "iPhone",
          "condicion": "usado",
          "anio": 2022,
-         "precio": 1399000,
-         "precioAnterior": 1549000,
-         "stock": 4,
+         "precio": 1150000,
+         "stock": 2,
          "specs": ["128 GB", "Azul medianoche", "Liberado"],
          "estado": {
            "bateria": 92,
@@ -544,7 +551,8 @@
            "reparaciones": "Ninguna",
            "accesorios": "Con caja, sin cargador"
          },
-         "detalle": { ... }
+         "detalle": { ... },
+         "imagen": "img/iphone-14-128.jpg"
        }
 
      Dónde aparece cada cosa:

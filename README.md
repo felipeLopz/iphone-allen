@@ -156,6 +156,10 @@ Notá que este ejemplo no tiene el campo `"imagen"` — justamente porque no hac
 
 Cada categoría se muestra partida en dos: arriba los equipos **nuevos** y abajo los **usados**, cada una con su título. La sección de usados aparece sola: si una categoría no tiene ningún usado cargado, no se muestra ningún título de más y la página queda igual que siempre.
 
+**Un usado es una entrada aparte, no un campo que se le pone al producto nuevo.** El mismo modelo puede estar a la venta sellado y usado al mismo tiempo, a precios distintos, así que se duplica la entrada en `productos.json` con otro id (ej: `iphone-14-128-usado`) y se le baja el precio. La foto **no se duplica**: se completa el campo `"imagen"` apuntando a la que ya tiene el producto nuevo (ej: `"imagen": "img/iphone-14-128.jpg"`), porque ese campo tiene prioridad sobre la convención `img/<id>.jpg`.
+
+Conviene que el `nombre` diga `(usado)`: en el carrito, en el comparador y en el mensaje de WhatsApp los dos aparecen juntos, y ahí el cartelito de la tarjeta no está para distinguirlos.
+
 Para marcar un producto como usado se agregan tres campos:
 
 - **`"condicion": "usado"`** — es lo único que decide si el producto va a la sección de usados. Un producto sin este campo se considera nuevo.
@@ -175,16 +179,17 @@ Los campos de `estado` son:
 
 ### Ejemplo completo de un producto usado
 
+Este es el usado que se arma a partir del `iphone-14-128` que ya estaba en el catálogo. Fijate que el `id` es otro, el precio es menor y la `imagen` apunta a la foto del nuevo:
+
 ```json
 {
-  "id": "iphone-14-128",
-  "nombre": "iPhone 14 128 GB",
+  "id": "iphone-14-128-usado",
+  "nombre": "iPhone 14 128 GB (usado)",
   "categoria": "iPhone",
   "condicion": "usado",
   "anio": 2022,
-  "precio": 1399000,
-  "precioAnterior": 1549000,
-  "stock": 4,
+  "precio": 1150000,
+  "stock": 2,
   "specs": ["128 GB", "Azul medianoche", "Liberado"],
   "estado": {
     "bateria": 92,
@@ -201,7 +206,8 @@ Los campos de `estado` son:
     "Color": "Azul medianoche",
     "Conector": "Lightning",
     "Estado": "Usado muy bueno, liberado"
-  }
+  },
+  "imagen": "img/iphone-14-128.jpg"
 }
 ```
 
@@ -315,7 +321,7 @@ La etiqueta aparece arriba a la izquierda de la foto, y se ve en la tarjeta, en 
 
 Hay un tercer cartelito, **"Usado"** (ámbar), que no sale de este campo sino de `"condicion": "usado"` — ver "Productos usados" más arriba. Va también a la izquierda, **debajo** de la etiqueta de oferta o de nuevo ingreso cuando el producto tiene las dos, así que los tres carteles pueden convivir sin pisarse.
 
-Hoy están marcados como ejemplo: el iPhone 16 Pro Max y los AirPods Pro 2 con `"nuevo"`, y el iPhone 15 128 GB, el iPhone 13 128 GB y la MacBook Air M2 con `"oferta"`. El iPhone 13 es el caso completo: está usado, en oferta y sin stock a la vez, para que se vea que los tres carteles conviven.
+Hoy están marcados como ejemplo: el iPhone 16 Pro Max y los AirPods Pro 2 con `"nuevo"`, y el iPhone 15 128 GB, el iPhone 13 128 GB y los dos usados en oferta con `"oferta"`. El **iPhone 13 128 GB (usado)** es el caso completo: está usado, en oferta y sin stock a la vez, para que se vea que los tres carteles conviven.
 
 ### La nota importante sobre `stock`
 
