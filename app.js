@@ -2059,8 +2059,14 @@
 
     // Y si el observer no responde, se muestran todas: el catálogo es el
     // contenido principal de la página, no puede quedar en blanco.
+    // Además se apaga la animación de entrada: en un navegador que no
+    // avanza las animaciones (misma causa por la que el observer no
+    // dispara), el keyframe se queda clavado en su estado inicial
+    // —opacity 0— y la tarjeta nunca se ve, aunque tenga .is-visible.
     probarObserver(function (sirve) {
-      if (!sirve) mostrarTodasLasTarjetas();
+      if (sirve) return;
+      document.documentElement.dataset.animEntrada = 'no';
+      mostrarTodasLasTarjetas();
     });
 
     primeraPintada = false;
@@ -2076,27 +2082,244 @@
   // El comparador vive sólo en index.html. Desde una página de categoría
   // el botón "Comparar" es un enlace a index.html?comparar=<id>, que se
   // resuelve acá al terminar de montar la tabla.
-  function iniciarComparador() {
-    selectA = $('#compararA');
-    selectB = $('#compararB');
-    if (!selectA) return;
+  /* ==================== SELECTOR PERSONALIZADO =======================
+     Reemplaza a un <select> nativo, que en celular abre la rueda del
+     sistema y no se puede estilar. Sigue el patrón combobox + listbox de
+     ARIA, con el foco SIEMPRE en el botón: mientras el panel está
+     abierto, la opción resaltada se comunica con aria-activedescendant en
+     vez de moviendo el foco. Eso es lo que hace que un selector propio
+     sea usable con lector de pantalla y con teclado solo.
 
-    selectA.addEventListener('change', function () {
-      comparadorA = this.value || null;
-      actualizarDisponibilidadComparador();
-      pintarComparador();
+     Devuelve una API chica para que el comparador lo maneje igual que
+     manejaba al <select>: setOpciones / setValor / deshabilitar / valor.
+     ------------------------------------------------------------------ */
+  function crearSelector(cfg) {
+    // cfg: { id, idLabel, placeholder, alElegir(valor) }
+    var raiz = $('#' + cfg.id);
+    if (!raiz) return null;
+
+    var idBtn = cfg.id + '-btn';
+    var idPanel = cfg.id + '-panel';
+
+    raiz.innerHTML =
+      '<button class="csel__btn" type="button" id="' + idBtn + '" ' +
+              'role="combobox" aria-expanded="false" aria-haspopup="listbox" ' +
+              'aria-controls="' + idPanel + '" ' +
+              'aria-labelledby="' + cfg.idLabel + ' ' + idBtn + '">' +
+        '<span class="csel__valor"></span>' +
+        icono('chevron', 'csel__chevron') +
+      '</button>' +
+      '<div class="csel__panel" id="' + idPanel + '" role="listbox" ' +
+           'aria-labelledby="' + cfg.idLabel + '" hidden></div>';
+
+    var btn = $('#' + idBtn);
+    var panel = $('#' + idPanel);
+    var etiquetaEl = raiz.querySelector('.csel__valor');
+
+    var grupos = [];      // [{ titulo, items: [{ valor, etiqueta }] }]
+    var planas = [];      // todas las opciones en orden, para las flechas
+    var valorActual = '';
+    var idDeshabilitado = null;
+    var abierto = false;
+    var resaltado = -1;
+
+    function esElegible(op) {
+      return !!op && !(op.valor !== '' && op.valor === idDeshabilitado);
+    }
+
+    function opcionHTML(op, i) {
+      var inhabilitada = op.valor !== '' && op.valor === idDeshabilitado;
+      return '<div class="csel__op" role="option" id="' + cfg.id + '-op-' + i + '" ' +
+                  'data-valor="' + esc(op.valor) + '" data-i="' + i + '" ' +
+                  'aria-selected="' + (op.valor === valorActual ? 'true' : 'false') + '"' +
+                  (inhabilitada ? ' aria-disabled="true"' : '') + '>' +
+               esc(op.etiqueta) +
+             '</div>';
+    }
+
+    function pintarPanel() {
+      var html = '';
+      planas = [];
+
+      // La opción vacía va primera y nunca se deshabilita: es la forma de
+      // vaciar la columna.
+      var vacia = { valor: '', etiqueta: cfg.placeholder };
+      planas.push(vacia);
+      html += opcionHTML(vacia, 0);
+
+      grupos.forEach(function (g) {
+        html += '<div role="group" aria-label="' + esc(g.titulo) + '">' +
+                  '<div class="csel__grupo" aria-hidden="true">' + esc(g.titulo) + '</div>';
+        g.items.forEach(function (it) {
+          var i = planas.length;
+          planas.push(it);
+          html += opcionHTML(it, i);
+        });
+        html += '</div>';
+      });
+
+      panel.innerHTML = html;
+    }
+
+    function refrescarEstados() {
+      Array.prototype.forEach.call(panel.querySelectorAll('.csel__op'), function (el) {
+        var v = el.dataset.valor;
+        el.setAttribute('aria-selected', v === valorActual ? 'true' : 'false');
+        if (v !== '' && v === idDeshabilitado) el.setAttribute('aria-disabled', 'true');
+        else el.removeAttribute('aria-disabled');
+      });
+
+      var elegida = null;
+      planas.forEach(function (o) { if (o.valor === valorActual) elegida = o; });
+      etiquetaEl.textContent = elegida ? elegida.etiqueta : cfg.placeholder;
+      raiz.dataset.vacio = valorActual ? 'false' : 'true';
+    }
+
+    function marcar(i) {
+      resaltado = i;
+      Array.prototype.forEach.call(panel.querySelectorAll('.csel__op'), function (el) {
+        var esta = Number(el.dataset.i) === i;
+        el.classList.toggle('is-resaltada', esta);
+        if (esta) {
+          btn.setAttribute('aria-activedescendant', el.id);
+          el.scrollIntoView({ block: 'nearest' });
+        }
+      });
+      if (i < 0) btn.removeAttribute('aria-activedescendant');
+    }
+
+    // Salta las deshabilitadas: no se alcanzan ni con las flechas.
+    function siguienteElegible(desde, paso) {
+      var i = desde;
+      for (var n = 0; n < planas.length; n++) {
+        i += paso;
+        if (i < 0) i = planas.length - 1;
+        if (i >= planas.length) i = 0;
+        if (esElegible(planas[i])) return i;
+      }
+      return desde;
+    }
+
+    function indiceDelValor() {
+      var idx = -1;
+      planas.forEach(function (o, k) { if (o.valor === valorActual) idx = k; });
+      return idx;
+    }
+
+    function abrir() {
+      if (abierto) return;
+      abierto = true;
+      panel.hidden = false;
+      btn.setAttribute('aria-expanded', 'true');
+      var i = indiceDelValor();
+      if (i < 0 || !esElegible(planas[i])) i = siguienteElegible(-1, 1);
+      marcar(i);
+    }
+
+    function cerrar(devolverFoco) {
+      if (!abierto) return;
+      abierto = false;
+      panel.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+      btn.removeAttribute('aria-activedescendant');
+      marcar(-1);
+      if (devolverFoco) btn.focus();
+    }
+
+    function elegir(i) {
+      var op = planas[i];
+      if (!esElegible(op)) return;      // una deshabilitada no se elige
+      valorActual = op.valor;
+      refrescarEstados();
+      cerrar(true);
+      if (cfg.alElegir) cfg.alElegir(valorActual);
+    }
+
+    btn.addEventListener('click', function () {
+      if (abierto) cerrar(false);
+      else abrir();
     });
-    selectB.addEventListener('change', function () {
-      comparadorB = this.value || null;
-      actualizarDisponibilidadComparador();
-      pintarComparador();
+
+    btn.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!abierto) { abrir(); return; }
+        marcar(siguienteElegible(resaltado, e.key === 'ArrowDown' ? 1 : -1));
+        return;
+      }
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        if (!abierto) abrir();
+        else elegir(resaltado);
+        return;
+      }
+      if (e.key === 'Escape') {
+        if (abierto) { e.preventDefault(); cerrar(true); }
+        return;
+      }
+      if (e.key === 'Tab') { cerrar(false); return; }
+      if (e.key === 'Home' && abierto) { e.preventDefault(); marcar(siguienteElegible(-1, 1)); }
+      if (e.key === 'End' && abierto) { e.preventDefault(); marcar(siguienteElegible(planas.length, -1)); }
+    });
+
+    // mousedown y no click: así el botón no recibe el foco de vuelta y
+    // vuelve a abrir el panel en el mismo gesto.
+    panel.addEventListener('mousedown', function (e) {
+      var op = e.target.closest('.csel__op');
+      if (!op) return;
+      e.preventDefault();
+      elegir(Number(op.dataset.i));
+    });
+
+    panel.addEventListener('mousemove', function (e) {
+      var op = e.target.closest('.csel__op');
+      if (!op) return;
+      var i = Number(op.dataset.i);
+      if (esElegible(planas[i])) marcar(i);
+    });
+
+    document.addEventListener('click', function (e) {
+      if (abierto && !raiz.contains(e.target)) cerrar(false);
+    });
+
+    return {
+      setOpciones: function (nuevos) { grupos = nuevos || []; pintarPanel(); refrescarEstados(); },
+      setValor: function (v) { valorActual = v || ''; pintarPanel(); refrescarEstados(); },
+      deshabilitar: function (id) { idDeshabilitado = id || null; refrescarEstados(); },
+      valor: function () { return valorActual; }
+    };
+  }
+
+  function iniciarComparador() {
+    if (!$('#compararA')) return;
+
+    selectA = crearSelector({
+      id: 'compararA',
+      idLabel: 'compararALabel',
+      placeholder: 'Elegir producto\u2026',
+      alElegir: function (valor) {
+        comparadorA = valor || null;
+        actualizarDisponibilidadComparador();
+        pintarComparador();
+      }
+    });
+
+    selectB = crearSelector({
+      id: 'compararB',
+      idLabel: 'compararBLabel',
+      placeholder: 'Elegir producto\u2026',
+      alElegir: function (valor) {
+        comparadorB = valor || null;
+        actualizarDisponibilidadComparador();
+        pintarComparador();
+      }
     });
 
     $('#compararLimpiar').addEventListener('click', function () {
       comparadorA = null;
       comparadorB = null;
-      selectA.value = '';
-      selectB.value = '';
+      selectA.setValor('');
+      selectB.setValor('');
       actualizarDisponibilidadComparador(); // rehabilita las dos opciones
       pintarComparador();
     });
@@ -2115,19 +2338,20 @@
   }
 
   function pintarSelectsComparador() {
-    var optgroups = categoriasConProductos().map(function (c) {
+    // Mismos grupos por categoría que tenían los <optgroup>.
+    var grupos = categoriasConProductos().map(function (c) {
       var lista = productos.filter(function (p) { return p.categoria === c; });
-      if (!lista.length) return '';
-      return '<optgroup label="' + esc(c) + '">' + lista.map(function (p) {
-        return '<option value="' + esc(p.id) + '">' + esc(p.nombre) + '</option>';
-      }).join('') + '</optgroup>';
-    }).join('');
+      if (!lista.length) return null;
+      return {
+        titulo: c,
+        items: lista.map(function (p) { return { valor: p.id, etiqueta: p.nombre }; })
+      };
+    }).filter(Boolean);
 
-    var base = '<option value="">Elegir producto…</option>' + optgroups;
-    selectA.innerHTML = base;
-    selectB.innerHTML = base;
-    selectA.value = comparadorA || '';
-    selectB.value = comparadorB || '';
+    selectA.setOpciones(grupos);
+    selectB.setOpciones(grupos);
+    selectA.setValor(comparadorA || '');
+    selectB.setValor(comparadorB || '');
     actualizarDisponibilidadComparador();
   }
 
@@ -2135,14 +2359,8 @@
   // elegida en una columna se deshabilita en la otra (la opción vacía
   // nunca se toca). Se llama después de cualquier cambio de estado.
   function actualizarDisponibilidadComparador() {
-    deshabilitarOpcion(selectA, comparadorB);
-    deshabilitarOpcion(selectB, comparadorA);
-  }
-
-  function deshabilitarOpcion(select, idADeshabilitar) {
-    Array.prototype.forEach.call(select.options, function (opt) {
-      opt.disabled = opt.value !== '' && opt.value === idADeshabilitar;
-    });
+    selectA.deshabilitar(comparadorB);
+    selectB.deshabilitar(comparadorA);
   }
 
   /* ------------------- GANADOR POR FILA (comparador) -----------------
@@ -2285,8 +2503,8 @@
       else if (!comparadorB) comparadorB = id;
       else comparadorB = id;
 
-      selectA.value = comparadorA || '';
-      selectB.value = comparadorB || '';
+      selectA.setValor(comparadorA || '');
+      selectB.setValor(comparadorB || '');
       actualizarDisponibilidadComparador();
       pintarComparador();
     }

@@ -382,10 +382,18 @@ button {
    cápsula los recibe, así el hueco de alrededor no tapa el contenido
    que pasa por debajo al scrollear.
    ------------------------------------------------------------------ */
-.header {
+/* El sticky va en #app-header (hijo directo del body), NO en .header:
+   position:sticky se mueve dentro de la caja del PADRE, y como
+   #app-header mide exactamente lo que mide el header, el recorrido era
+   cero y la barra se iba con el scroll. Estaba pensada para quedar fija
+   (de ahí el scroll-padding-top de html), pero nunca lo hacía. */
+#app-header {
   position: sticky;
   top: 0;
   z-index: 40;
+}
+
+.header {
   padding-block: 14px 8px;
   pointer-events: none;
 }
@@ -1129,6 +1137,15 @@ button {
 .card.is-visible:hover {
   border-color: var(--acento);
   box-shadow: var(--sombra-superficie-hover);
+}
+
+/* Escape hatch: si la sonda de app.js detectó que este navegador no
+   avanza animaciones ni dispara el observer, la entrada se apaga y la
+   tarjeta queda visible sin depender del keyframe (que si no avanza se
+   queda en su estado inicial, opacity 0, y la tarjeta no se ve nunca). */
+html[data-anim-entrada="no"] .card {
+  opacity: 1;
+  animation: none;
 }
 
 @keyframes entrarTarjeta {
@@ -2736,8 +2753,20 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 
 .comparador__campo { flex: 1 1 220px; min-width: 0; }
 
-.select {
+/* ================== SELECTOR PERSONALIZADO (csel) ==================
+   Reemplaza al <select> nativo del comparador. El botón es el combobox
+   y el panel el listbox; los estados los maneja crearSelector() en
+   app.js. Ver ahí la parte de teclado y ARIA.
+   ================================================================== */
+.csel { position: relative; }
+
+.csel__btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   width: 100%;
+  /* mismo tratamiento que tenía .select para no romper la fila */
   padding: 11px 14px;
   border: 1px solid var(--borde);
   border-radius: var(--radio-sm);
@@ -2745,12 +2774,92 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   color: var(--texto);
   font-family: var(--cuerpo);
   font-size: 0.92rem;
-  transition: border-color 200ms ease;
+  text-align: left;
+  /* área de toque cómoda en celular */
+  min-height: 44px;
+  transition: border-color var(--transicion), color var(--transicion);
 }
-.select:focus-visible {
-  outline: none;
-  border-color: var(--acento-fuerte);
-  box-shadow: 0 0 0 3px var(--foco-glow);
+.csel__btn:hover { border-color: var(--texto-suave); }
+.csel__btn[aria-expanded="true"] { border-color: var(--acento-fuerte); }
+
+/* Sin elegir, el texto es un placeholder: más tenue que un valor real */
+.csel[data-vacio="true"] .csel__valor { color: var(--texto-tenue); }
+
+.csel__valor {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.csel__chevron {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: var(--texto-suave);
+  transition: transform var(--transicion);
+}
+.csel__btn[aria-expanded="true"] .csel__chevron { transform: rotate(180deg); }
+
+.csel__panel {
+  position: absolute;
+  z-index: 45;          /* sobre el contenido, debajo del velo (50) */
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  /* si la lista es larga, scrollea adentro en vez de desbordar */
+  max-height: min(320px, 60vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  background: var(--superficie);
+  border: 1px solid var(--borde-superficie);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(var(--sombra-rgb), 0.16);
+}
+
+.csel__grupo {
+  padding: 8px 10px 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.csel__op {
+  padding: 10px 10px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.3;
+  cursor: pointer;
+  /* alto cómodo para el dedo */
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+/* El resaltado del teclado y el del mouse son el mismo: una sola señal
+   visual para "acá vas a elegir". */
+.csel__op.is-resaltada { background: var(--superficie2); }
+
+.csel__op[aria-selected="true"] {
+  color: var(--acento);
+  font-weight: 600;
+}
+
+/* Deshabilitada = ya elegida en la otra columna. No se puede elegir ni
+   con el mouse ni con las flechas (lo filtra crearSelector). */
+.csel__op[aria-disabled="true"] {
+  color: var(--texto-tenue);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.csel__op[aria-disabled="true"].is-resaltada { background: transparent; }
+
+@media (max-width: 559px) {
+  /* en celular las opciones se agrandan para el dedo */
+  .csel__op { min-height: 46px; font-size: 0.95rem; }
 }
 
 .comparador__vs {
@@ -2837,8 +2946,25 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   font-family: var(--display);
   font-size: 1rem;
   font-weight: 600;
+  /* Dos líneas SIEMPRE: un nombre largo envuelve y el otro no, y esa
+     diferencia de una línea corría hacia abajo el precio y todas las
+     filas de esa columna. Con el alto reservado, las dos columnas
+     arrancan cada fila a la misma altura. */
+  min-height: 2.6em;
 }
 .comparador__prod .card__precios { margin-top: 0; }
+
+/* Un producto en oferta trae la línea del precio anterior tachado y el
+   otro no, así que su columna quedaba más alta y las filas de las dos
+   columnas dejaban de estar alineadas. Este espaciador ocupa esa línea
+   que falta cuando no hay descuento, con el mismo alto exacto.
+   (Mismo recurso que ya usan las tarjetas de la grilla.) */
+.comparador__prod .card__precios:not(:has(.precio--anterior))::before {
+  content: "";
+  display: block;
+  /* alto de .precio--anterior: 0.85rem × line-height 1.6 + 2px de margen */
+  height: calc(0.85rem * 1.6 + 2px);
+}
 
 .comparador__tabla tfoot td {
   border-bottom: 0;
@@ -3213,6 +3339,20 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
    ancho completo que cae debajo de la cápsula, como acordeón. Se ancla a
    .navbar (position:relative) para no quedar recortado por nada. */
 @media (max-width: 719px) {
+  /* La cápsula flotante no llega a los bordes: deja 20px de gutter
+     transparente a cada lado, y como .header no tenía fondo, el contenido
+     que scrollea por debajo asomaba por esas dos franjas. En mobile la
+     cápsula ocupa casi todo el ancho, así que esas franjas no se leían
+     como "diseño flotante" sino como una falla.
+     Solución: la banda del header se vuelve opaca, del color del fondo de
+     la página — el mismo que se ve arriba de todo antes de scrollear —,
+     así la cápsula sigue flotando pero nada se cuela por los costados.
+     Y pointer-events vuelve a auto: si tapa contenido, tiene que
+     interceptar el toque, no dejarlo pasar a algo invisible. */
+  #app-header { background: var(--fondo); }
+  .header { pointer-events: auto; }
+  .header > .wrap { pointer-events: auto; }
+
   .nav-drop { position: static; }
   .nav-drop__panel {
     left: 6px;

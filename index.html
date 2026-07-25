@@ -196,22 +196,22 @@
         <p class="seccion__sub">Elegí dos productos y mirá sus fichas técnicas lado a lado.</p>
       </header>
 
+      <!-- Los dos selectores son desplegables propios (no <select> nativo,
+           que en celular abre la rueda del sistema y no se puede estilar).
+           app.js los construye dentro de estos contenedores con el patrón
+           combobox + listbox de ARIA: ver crearSelector(). -->
       <div class="comparador__selects">
-        <label class="comparador__campo">
-          <span class="sr-only">Producto de la columna 1</span>
-          <select class="select" id="compararA" aria-label="Elegir primer producto a comparar">
-            <option value="">Elegir producto…</option>
-          </select>
-        </label>
+        <div class="comparador__campo">
+          <span class="sr-only" id="compararALabel">Producto de la columna 1</span>
+          <div class="csel" id="compararA"></div>
+        </div>
 
         <span class="comparador__vs" aria-hidden="true">vs</span>
 
-        <label class="comparador__campo">
-          <span class="sr-only">Producto de la columna 2</span>
-          <select class="select" id="compararB" aria-label="Elegir segundo producto a comparar">
-            <option value="">Elegir producto…</option>
-          </select>
-        </label>
+        <div class="comparador__campo">
+          <span class="sr-only" id="compararBLabel">Producto de la columna 2</span>
+          <div class="csel" id="compararB"></div>
+        </div>
 
         <button class="btn btn--sec" type="button" id="compararLimpiar">
           <span class="btn__ico" data-ico="cruz"></span><span class="btn__txt">Limpiar</span>
