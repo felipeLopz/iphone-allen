@@ -615,7 +615,11 @@
     function evaluar() {
       pendiente = false;
       btn.classList.toggle('is-visible', window.scrollY > MOSTRAR_ARRIBA_DESDE);
-      revelarLoQueQuedoAtras();
+      // Se aprovecha este tick (uno por cuadro, ya throttleado) para
+      // revelar lo que haya entrado en pantalla: cubre los saltos de
+      // scroll y el caso de que el observer no dispare.
+      revelarVisibles();
+      if ($('#catalogoSecciones')) mostrarTarjetasVisibles();
     }
 
     window.addEventListener('scroll', function () {
@@ -1852,48 +1856,107 @@
      composición que quede colgada sobre un ancestro de .media es
      exactamente lo que reabría el bug del scroll sobre las imágenes.
      ------------------------------------------------------------------ */
+  /* --------------- APARICIÓN DE SECCIONES AL SCROLLEAR ---------------
+     Las secciones arrancan en opacity 0 (lo pone el CSS con la clase
+     .con-animacion del <head>, así no hay parpadeo) y se revelan al
+     entrar en pantalla.
+
+     REGLA DE ORO: el IntersectionObserver es una MEJORA, nunca la única
+     vía. Se comprobó que puede no disparar nunca para un elemento
+     perfectamente visible (pasaba con la franja de promo: quedaba en
+     opacity 0 estando en pantalla, y sólo aparecía cuando alguna
+     interacción disparaba un evento de scroll). Por eso el estado
+     visible se recalcula además en varios momentos —al cargar, cuando
+     terminan las imágenes y las fuentes, y en cada cuadro de scroll— y
+     hay un rescate final si el observer resultó no servir.
+     ------------------------------------------------------------------ */
+
   var observadorSecciones = ('IntersectionObserver' in window)
     ? new IntersectionObserver(function (entradas) {
         entradas.forEach(function (e) {
-          if (!e.isIntersecting) return;
-          var el = e.target;
-          observadorSecciones.unobserve(el);
-          el.dataset.revelado = 'animando';
-
-          // "listo" quita el transform y el will-change. Si por lo que sea
-          // no llega el transitionend, el timeout lo hace igual.
-          var hecho = false;
-          var fin = function () {
-            if (hecho) return;
-            hecho = true;
-            el.removeEventListener('transitionend', fin);
-            el.dataset.revelado = 'listo';
-          };
-          el.addEventListener('transitionend', fin);
-          window.setTimeout(fin, 700);
+          if (e.isIntersecting) revelarSeccion(e.target, true);
         });
       }, { threshold: 0.06, rootMargin: '0px 0px -60px 0px' })
     : null;
 
-  // Red de seguridad para los SALTOS. El IntersectionObserver avisa
-  // cuando un elemento cruza el borde de la pantalla, pero si el scroll
-  // salta de una (tecla Fin, un ancla, la rueda a fondo) una sección
-  // puede pasar de "abajo de la pantalla" a "arriba de la pantalla" en un
-  // solo cuadro, sin cruzar nada: el observer no dispara y esa sección
-  // quedaría invisible para siempre. Esto revela lo que ya quedó atrás.
-  // No es un listener de scroll propio: se engancha al tick de
-  // requestAnimationFrame que ya tenía el botón de volver arriba.
-  function revelarLoQueQuedoAtras() {
-    if (!observadorSecciones) return;
-    Array.prototype.forEach.call(
-      document.querySelectorAll('main > .seccion:not([data-revelado])'),
-      function (sec) {
-        if (sec.getBoundingClientRect().top < window.innerHeight) {
-          observadorSecciones.unobserve(sec);
-          sec.dataset.revelado = 'listo';   // ya pasó: sin animación
-        }
+  /* ¿Sirve el IntersectionObserver en este navegador?
+     No alcanza con preguntar si existe: se comprobó un caso donde existe,
+     acepta observe() y NUNCA llama al callback, ni para un elemento
+     perfectamente visible. Con eso, todo lo que dependa de él queda
+     invisible para siempre.
+     Tampoco sirve preguntar "¿ya disparó alguna vez?": al cargar, un
+     observer sano tampoco disparó todavía para lo que está abajo del
+     pliegue, así que no se puede distinguir "roto" de "el visitante no
+     scrolleó". Por eso se lo prueba de verdad: se observa una sonda de
+     1px puesta en pantalla y se espera su callback. */
+  function probarObserver(listo) {
+    if (!observadorSecciones) return listo(false);
+
+    var sonda = document.createElement('div');
+    sonda.setAttribute('aria-hidden', 'true');
+    sonda.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;' +
+                          'pointer-events:none;opacity:0';
+    document.body.appendChild(sonda);
+
+    var respondio = false;
+    var io = new IntersectionObserver(function (entradas) {
+      if (entradas.some(function (e) { return e.isIntersecting; })) respondio = true;
+    });
+    io.observe(sonda);
+
+    window.setTimeout(function () {
+      io.disconnect();
+      if (sonda.parentNode) sonda.parentNode.removeChild(sonda);
+      listo(respondio);
+    }, 400);
+  }
+
+  // Revela una sección. `conAnimacion` decide si entra con transición
+  // (viene de abajo mientras se scrollea) o de una (ya estaba en pantalla).
+  function revelarSeccion(el, conAnimacion) {
+    if (el.dataset.revelado) return;
+    if (observadorSecciones) observadorSecciones.unobserve(el);
+
+    if (!conAnimacion) {
+      el.dataset.revelado = 'listo';
+      return;
+    }
+
+    el.dataset.revelado = 'animando';
+    var hecho = false;
+    var fin = function () {
+      if (hecho) return;
+      hecho = true;
+      el.removeEventListener('transitionend', fin);
+      el.dataset.revelado = 'listo';    // saca transform y will-change
+    };
+    el.addEventListener('transitionend', fin);
+    window.setTimeout(fin, 700);
+  }
+
+  function seccionesOcultas() {
+    return document.querySelectorAll('main > .seccion:not([data-revelado])');
+  }
+
+  // Revela TODO lo que ya esté dentro de la pantalla (o más arriba, si el
+  // scroll pasó de largo). No depende del observer: es lo que garantiza
+  // que nada visible quede invisible, ni al cargar ni después.
+  function revelarVisibles() {
+    Array.prototype.forEach.call(seccionesOcultas(), function (sec) {
+      if (sec.getBoundingClientRect().top < window.innerHeight) {
+        revelarSeccion(sec, false);
       }
-    );
+    });
+  }
+
+  // Revela TODO lo que quede oculto, incluso abajo del pliegue. Se usa
+  // cuando la sonda dice que el observer no responde: es preferible
+  // perder la animación que dejar contenido invisible esperando un
+  // callback que no va a llegar nunca.
+  function revelarTodo() {
+    Array.prototype.forEach.call(seccionesOcultas(), function (sec) {
+      revelarSeccion(sec, false);
+    });
   }
 
   function revelarSecciones() {
@@ -1910,46 +1973,94 @@
 
     if (!observadorSecciones || sinMovimiento()) {
       Array.prototype.forEach.call(objetivos, function (sec) {
-        sec.dataset.revelado = 'listo';
+        revelarSeccion(sec, false);
       });
       return;
     }
 
+    // Lo de más abajo queda a cargo del observer...
     Array.prototype.forEach.call(objetivos, function (sec) {
-      // Lo que ya entra en la primera pantalla se muestra directo, sin
-      // animación y sin depender de que el observer dispare. Son dos
-      // cosas a la vez: no tiene sentido "aparecer" algo que el visitante
-      // ya está mirando, y —más importante— así el contenido de arriba
-      // nunca queda invisible esperando un callback. En las páginas de
-      // catálogo eso importa mucho: la grilla es UNA sola sección, y si
-      // el observer no llegara a disparar la página se vería vacía.
-      if (sec.getBoundingClientRect().top < window.innerHeight) {
-        sec.dataset.revelado = 'listo';
-        return;
-      }
       observadorSecciones.observe(sec);
+    });
+    // ...y lo que ya se ve se muestra ahora mismo, sin esperarlo.
+    revelarVisibles();
+
+    // El layout sigue moviéndose un rato: fotos que cargan, fuentes que
+    // reemplazan la de sistema. Cada uno de esos momentos puede meter una
+    // sección dentro de la pantalla sin que haya scroll de por medio, así
+    // que se vuelve a mirar en todos ellos.
+    window.addEventListener('load', revelarVisibles);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(revelarVisibles).catch(function () {});
+    }
+    [100, 400, 1000, 2000].forEach(function (ms) {
+      window.setTimeout(revelarVisibles, ms);
+    });
+
+    // Y si el observer no responde, se muestra todo y listo.
+    probarObserver(function (sirve) {
+      if (!sirve) revelarTodo();
+    });
+  }
+
+  function tarjetasDelCatalogo() {
+    // TODAS las tarjetas de la sección, no sólo las de .grilla: el banner
+    // de combo vive FUERA de la grilla (en .combo-destacado) y si se lo
+    // deja afuera de esta consulta nunca recibe .is-visible y queda en
+    // opacity 0 — visible como un hueco blanco con su altura reservada.
+    return $('#catalogoSecciones').querySelectorAll('.card');
+  }
+
+  function mostrarTodasLasTarjetas() {
+    Array.prototype.forEach.call(tarjetasDelCatalogo(), function (c) {
+      c.classList.add('is-visible');
+    });
+  }
+
+  // Muestra las tarjetas que ya están dentro de la pantalla. Igual que con
+  // las secciones: no puede depender de que el observer dispare.
+  function mostrarTarjetasVisibles() {
+    Array.prototype.forEach.call(tarjetasDelCatalogo(), function (c) {
+      if (c.classList.contains('is-visible')) return;
+      if (c.getBoundingClientRect().top < window.innerHeight) {
+        if (observador) observador.unobserve(c);
+        c.classList.add('is-visible');
+      }
     });
   }
 
   function revelarTarjetas() {
-    var grillas = $('#catalogoSecciones').querySelectorAll('.grilla');
-
     // Sin observer, sin movimiento, o ya re-pintando (filtro/búsqueda):
     // el usuario ya está mirando el catálogo, no corresponde escalonar.
     if (!observador || sinMovimiento() || !primeraPintada) {
-      Array.prototype.forEach.call($('#catalogoSecciones').querySelectorAll('.card'), function (c) {
-        c.classList.add('is-visible');
-      });
+      mostrarTodasLasTarjetas();
       primeraPintada = false;
       return;
     }
 
-    Array.prototype.forEach.call(grillas, function (g) {
-      // el delay se reinicia en cada sección y se corta a 500ms
-      Array.prototype.forEach.call(g.children, function (card, i) {
-        card.style.setProperty('--delay', Math.min(i * 60, 500) + 'ms');
-        observador.observe(card);
-      });
+    var tarjetas = tarjetasDelCatalogo();
+    Array.prototype.forEach.call(tarjetas, function (card, i) {
+      // el escalonado se corta a 500ms para que una fila entera no tarde más
+      card.style.setProperty('--delay', Math.min(i * 60, 500) + 'ms');
+      observador.observe(card);
+    });
+
+    // Lo que ya se ve, se ve ahora: no espera al observer.
+    mostrarTarjetasVisibles();
+
+    // Mismos momentos de asentamiento que las secciones (fotos, fuentes).
+    window.addEventListener('load', mostrarTarjetasVisibles);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(mostrarTarjetasVisibles).catch(function () {});
+    }
+    [100, 400, 1000, 2000].forEach(function (ms) {
+      window.setTimeout(mostrarTarjetasVisibles, ms);
+    });
+
+    // Y si el observer no responde, se muestran todas: el catálogo es el
+    // contenido principal de la página, no puede quedar en blanco.
+    probarObserver(function (sirve) {
+      if (!sirve) mostrarTodasLasTarjetas();
     });
 
     primeraPintada = false;
