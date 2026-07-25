@@ -3353,6 +3353,105 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   .header { pointer-events: auto; }
   .header > .wrap { pointer-events: auto; }
 
+  /* ------------- LA CÁPSULA EN MOBILE: DOS FILAS FIJAS -------------
+     Antes esto era el mismo flex con flex-wrap:wrap del desktop y las
+     dos filas salían "de casualidad": los links tenían flex-basis 100%
+     y por eso caían solos. El problema es que la fila de arriba
+     (logotipo + tema + carrito) también podía romperse, y a 320px se
+     rompía: pedía 275px y sólo había 258, así que el carrito se caía a
+     una fila propia — tres filas, cápsula de 134px de alto y el
+     carrito suelto contra el borde izquierdo.
+     Con grid las filas dejan de ser una consecuencia del ancho y pasan
+     a ser la definición del layout: arriba SIEMPRE van los tres
+     controles, abajo SIEMPRE los links. No hay ancho de pantalla que
+     pueda partir la fila de arriba en dos. */
+  .navbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "marca tema carrito"
+      "nav   nav  nav";
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 2px;
+    /* 2px menos de padding lateral que en desktop: a 320px cada píxel
+       del ancho de la cápsula se reparte entre logotipo y controles */
+    padding: 6px 8px 6px 10px;
+  }
+  /* el logotipo también es un enlace (va a la portada): ocupa el alto
+     entero de la fila, que ya mide 44px, así queda con la misma medida
+     de toque que el resto sin agrandar nada */
+  .brand {
+    grid-area: marca;
+    min-width: 0;
+    margin-right: 0;
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .tema-btn { grid-area: tema; }
+  .cart-btn { grid-area: carrito; }
+  .nav { grid-area: nav; min-width: 0; }
+
+  /* El logotipo es el elemento más ancho de la fila (135px de los 258
+     disponibles a 320px) y es el único que puede ceder: los otros dos
+     son controles con medida mínima de toque. Se achica sólo lo
+     necesario y sólo en pantallas chicas — de 378px para arriba
+     conserva su tamaño de siempre. El tope de abajo (0.78rem ≈ 12.5px)
+     es el límite en que sigue leyéndose como logotipo. */
+  .logo {
+    font-size: clamp(0.78rem, 4vw, 0.92rem);
+  }
+  /* el interletrado ancho es lo que más engorda "IPHONE": se afloja un
+     poco en mobile, lo justo para no perder el aire de logotipo */
+  .navbar .logo__cat { letter-spacing: 0.14em; }
+
+  /* --------------- MEDIDA MÍNIMA DE TOQUE: 44px ---------------------
+     Los cuatro controles quedaban por debajo (el carrito 36px de alto,
+     el tema 38x38 y los links 23px). Se agrandan sólo en mobile: en
+     desktop la cápsula se maneja con mouse y las pastillas chicas son
+     parte del diseño. */
+  .tema-btn { width: 44px; height: 44px; }
+  .cart-btn { min-height: 44px; padding-inline: 12px; }
+  .nav__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    /* "Inicio" es el link más angosto y es el que manda: mide 42.8px en
+       las páginas de categoría (en la portada va en negrita y estira a
+       46). Con 6px de aire a cada lado los tres pasan de 44 holgados.
+       El gap baja de 18 a 12 para compensar, así la separación visual
+       entre links queda parecida a la de antes. */
+    padding-inline: 6px;
+  }
+  .nav-drop__btn { min-height: 44px; }
+
+  /* Los links no entran en el ancho de un celular chico si el día de
+     mañana se suma una entrada más: en vez de desbordar la cápsula o
+     caer a una tercera fila, la fila de abajo scrollea sola en
+     horizontal. Hoy los tres entran a 320px, así que esto no se activa
+     — es el respaldo para que nunca vuelva a cortarse nada.
+     El panel del desplegable NO lo recorta este overflow: cuelga de
+     .navbar (position:relative), que es ancestro de .nav, y el recorte
+     de un contenedor con scroll no alcanza a los absolutos anclados
+     por fuera de él. */
+  .nav {
+    gap: 12px;
+    /* el aire lateral ahora lo ponen los propios links con su padding:
+       si además lo pusiera el nav, se sumaría dos veces y a 320px es
+       justo el ancho que falta para que los tres links entren */
+    padding-inline: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+
+  /* la cápsula ahora es más alta (dos filas de 44px): el destino de los
+     saltos con ancla tiene que bajar otro tanto para no quedar tapado */
+  html { scroll-padding-top: 132px; }
+
   .nav-drop { position: static; }
   .nav-drop__panel {
     left: 6px;
