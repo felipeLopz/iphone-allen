@@ -32,6 +32,8 @@
       "id": "iphone-15-pro-256",
       "nombre": "iPhone 15 Pro 256 GB",
       "categoria": "iPhone",
+      "condicion": "usado",
+      "anio": 2023,
       "precio": 2599000,
       "destacado": true,
       "principal": false,
@@ -39,9 +41,16 @@
       "specs": [
         "256 GB",
         "Titanio azul",
-        "Batería 96%",
         "Liberado"
       ],
+      "estado": {
+        "bateria": 96,
+        "pantalla": "Sin rayones",
+        "carcasa": "Impecable, sin golpes",
+        "uso": "8 meses",
+        "reparaciones": "Ninguna",
+        "accesorios": "Con caja y cable USB-C"
+      },
       "detalle": {
         "Pantalla": "6.1\" Super Retina XDR",
         "Procesador": "A17 Pro",
@@ -85,6 +94,8 @@
       "id": "iphone-14-128",
       "nombre": "iPhone 14 128 GB",
       "categoria": "iPhone",
+      "condicion": "usado",
+      "anio": 2022,
       "precio": 1399000,
       "precioAnterior": 1549000,
       "destacado": false,
@@ -93,9 +104,16 @@
       "specs": [
         "128 GB",
         "Azul medianoche",
-        "Batería 92%",
         "Liberado"
       ],
+      "estado": {
+        "bateria": 92,
+        "pantalla": "Sin rayones",
+        "carcasa": "Marca leve en el borde inferior",
+        "uso": "1 año y medio",
+        "reparaciones": "Ninguna",
+        "accesorios": "Con caja, sin cargador"
+      },
       "detalle": {
         "Pantalla": "6.1\" Super Retina XDR",
         "Procesador": "A15 Bionic",
@@ -112,6 +130,8 @@
       "id": "iphone-13-128",
       "nombre": "iPhone 13 128 GB",
       "categoria": "iPhone",
+      "condicion": "usado",
+      "anio": 2021,
       "precio": 1099000,
       "destacado": false,
       "etiqueta": "oferta",
@@ -120,9 +140,16 @@
       "specs": [
         "128 GB",
         "Blanco estelar",
-        "Batería 89%",
         "Liberado"
       ],
+      "estado": {
+        "bateria": 89,
+        "pantalla": "Rayón fino, apenas visible",
+        "carcasa": "Desgaste leve en las esquinas",
+        "uso": "2 años",
+        "reparaciones": "Batería cambiada en servicio oficial",
+        "accesorios": "Sin caja"
+      },
       "detalle": {
         "Pantalla": "6.1\" Super Retina XDR",
         "Procesador": "A15 Bionic",
@@ -185,6 +212,44 @@
         "Puertos": "3x Thunderbolt 4, HDMI, SDXC, MagSafe 3",
         "Color": "Negro espacial",
         "Estado": "Sellado"
+      },
+      "imagen": ""
+    },
+    {
+      "id": "macbook-air-m2-13",
+      "nombre": "MacBook Air M2 13\"",
+      "categoria": "Mac",
+      "condicion": "usado",
+      "anio": 2022,
+      "precio": 1990000,
+      "precioAnterior": 2190000,
+      "destacado": false,
+      "etiqueta": "oferta",
+      "principal": false,
+      "stock": 1,
+      "specs": [
+        "Chip M2",
+        "8 GB RAM",
+        "256 GB SSD",
+        "Gris espacial"
+      ],
+      "estado": {
+        "bateria": 91,
+        "pantalla": "Sin rayones",
+        "carcasa": "Marca leve en la tapa",
+        "uso": "2 años",
+        "reparaciones": "Ninguna",
+        "accesorios": "Con caja y cargador original"
+      },
+      "detalle": {
+        "Pantalla": "13.6\" Liquid Retina, 500 nits",
+        "Procesador": "Chip M2 · 8 núcleos CPU / 8 GPU",
+        "Memoria": "8 GB unificada",
+        "Almacenamiento": "256 GB SSD",
+        "Batería": "Hasta 18 h de uso · salud 91%",
+        "Puertos": "2x Thunderbolt / USB-4, MagSafe 3, jack 3.5 mm",
+        "Color": "Gris espacial",
+        "Estado": "Usado, ciclos de batería bajos"
       },
       "imagen": ""
     },

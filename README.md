@@ -119,6 +119,9 @@ Estos son todos los campos que puede tener un producto:
 | `specs` | Sí | Una lista corta de 2 a 4 datos, entre corchetes (ej: `["128 GB", "Negro"]`). Se muestran unidos con `·` como descripción debajo del nombre en la tarjeta. Entran dos líneas: lo que se pase se recorta con puntos suspensivos. |
 | `detalle` | Sí | La ficha técnica completa que se ve al abrir el producto (el modal). Ver el ejemplo abajo. |
 | `imagen` | No | Casi nunca hace falta escribirlo. Ver la sección "Cómo agregar la foto de un producto" más abajo. |
+| `condicion` | No | `"nuevo"` o `"usado"`. Si no se escribe, se asume `"nuevo"`. Ver "Productos usados" más abajo. |
+| `anio` | No | Sólo para usados: el año del modelo (ej: `2022`). Ordena la sección de usados. |
+| `estado` | No | Sólo para usados: el informe del estado real del equipo. Ver "Productos usados" más abajo. |
 
 ### Ejemplo completo
 
@@ -148,6 +151,72 @@ Estos son todos los campos que puede tener un producto:
 El objeto `detalle` puede tener las claves que hagan falta (no tienen que ser siempre las mismas): cada clave se muestra como una fila en la ficha del producto, en el mismo orden en que están escritas.
 
 Notá que este ejemplo no tiene el campo `"imagen"` — justamente porque no hace falta, como se explica a continuación.
+
+## Productos usados
+
+Cada categoría se muestra partida en dos: arriba los equipos **nuevos** y abajo los **usados**, cada una con su título. La sección de usados aparece sola: si una categoría no tiene ningún usado cargado, no se muestra ningún título de más y la página queda igual que siempre.
+
+Para marcar un producto como usado se agregan tres campos:
+
+- **`"condicion": "usado"`** — es lo único que decide si el producto va a la sección de usados. Un producto sin este campo se considera nuevo.
+- **`"anio"`** — el año del modelo, en número (ej: `2022`). Sirve para ordenar: dentro de la sección de usados los equipos van **del modelo más nuevo al más viejo**. Un usado sin `anio` no desaparece: queda al final de la lista.
+- **`"estado"`** — el informe del estado real del equipo. Todos sus campos son opcionales; el que no se cargue simplemente no se muestra (no queda una línea vacía).
+
+Los campos de `estado` son:
+
+| Campo | Qué se escribe |
+|---|---|
+| `bateria` | La salud de la batería **en número**, sin el símbolo `%` (ej: `87`). La página le agrega el `%`. |
+| `pantalla` | Texto corto (ej: `"Sin rayones"`). |
+| `carcasa` | Texto corto (ej: `"Marca leve en el borde inferior"`). |
+| `uso` | Cuánto se usó (ej: `"6 meses"`). |
+| `reparaciones` | `"Ninguna"`, o qué se cambió (ej: `"Batería cambiada en servicio oficial"`). |
+| `accesorios` | Qué viene con el equipo (ej: `"Con caja y cargador"`). |
+
+### Ejemplo completo de un producto usado
+
+```json
+{
+  "id": "iphone-14-128",
+  "nombre": "iPhone 14 128 GB",
+  "categoria": "iPhone",
+  "condicion": "usado",
+  "anio": 2022,
+  "precio": 1399000,
+  "precioAnterior": 1549000,
+  "stock": 4,
+  "specs": ["128 GB", "Azul medianoche", "Liberado"],
+  "estado": {
+    "bateria": 92,
+    "pantalla": "Sin rayones",
+    "carcasa": "Marca leve en el borde inferior",
+    "uso": "1 año y medio",
+    "reparaciones": "Ninguna",
+    "accesorios": "Con caja, sin cargador"
+  },
+  "detalle": {
+    "Pantalla": "6.1\" Super Retina XDR",
+    "Procesador": "A15 Bionic",
+    "Almacenamiento": "128 GB",
+    "Color": "Azul medianoche",
+    "Conector": "Lightning",
+    "Estado": "Usado muy bueno, liberado"
+  }
+}
+```
+
+### Dónde se ve cada cosa
+
+- **En la tarjeta**: un cartelito ámbar que dice **"Usado"** arriba de la foto, y un resumen corto en la línea de descripción (la batería y el estado de la pantalla). Es a propósito que no esté todo: esa línea tiene el alto reservado para que todas las tarjetas midan lo mismo.
+- **Al abrir el producto**: un bloque **"Estado del equipo"** con *todos* los campos cargados, uno por fila, antes de la ficha técnica. La idea es que se lea como un informe de transparencia — mostrar la marca en el borde genera más confianza que esconderla.
+
+En la línea de descripción de la tarjeta conviene **no repetir la batería en `specs`** (ya la pone `estado`), como en el ejemplo de arriba.
+
+### Reglas de los usados
+
+- Se compran igual que cualquier otro producto: entran al carrito, al buscador, al filtro de precio y al orden por precio.
+- Un usado puede además estar en oferta (`"etiqueta": "oferta"`): los dos cartelitos se apilan sin pisarse, y el de "Sin stock" sigue yendo a la derecha.
+- **Un usado no puede entrar en un combo.** Los combos son sólo de productos nuevos: son una oferta repetible y un usado es una unidad única. Si un combo referencia un usado, se ignora entero y se avisa por consola.
 
 ## Los combos (la tarjeta grande de cada categoría)
 
@@ -179,6 +248,8 @@ Reglas que conviene tener presentes:
 
 - Una categoría muestra su combo **sólo si los dos productos tienen stock**. Si a alguno se le acaba, el combo desaparece solo y la categoría vuelve a mostrar su tarjeta principal de siempre (la del producto marcado con `"principal": true`).
 - Si una categoría no tiene combo definido, se ve como siempre.
+- **Los combos son sólo de productos nuevos.** Si alguno de los dos ids es un producto usado, el combo se ignora entero y queda avisado en la consola del navegador. Un usado es una unidad única con su propio estado: no se puede prometer el mismo combo dos veces.
+- El combo va siempre en la sección de **nuevos**; la de usados nunca lleva combo ni tarjeta grande.
 - El producto que era principal **no desaparece**: pasa a verse como una tarjeta normal más y se sigue vendiendo suelto.
 - Si el visitante está buscando algo o filtró por precio, el combo se esconde para no ocupar la celda grande con algo que no coincide con lo que pidió.
 - Si alguno de los ids no existe, el combo se ignora y se avisa por consola (no rompe la página).
@@ -242,7 +313,9 @@ Se le puede poner una etiqueta a un producto para que se destaque en la tarjeta.
 
 La etiqueta aparece arriba a la izquierda de la foto, y se ve en la tarjeta, en la tarjeta grande, en el carrusel de destacados y en el detalle del producto. El cartel de **"Sin stock"** va arriba a la derecha, así que un producto puede tener etiqueta y estar sin stock al mismo tiempo sin que se pisen.
 
-Hoy están marcados como ejemplo: el iPhone 16 Pro Max y los AirPods Pro 2 con `"nuevo"`, y el iPhone 15 128 GB y el iPhone 13 128 GB con `"oferta"` (este último además está sin stock, para que se vea que conviven).
+Hay un tercer cartelito, **"Usado"** (ámbar), que no sale de este campo sino de `"condicion": "usado"` — ver "Productos usados" más arriba. Va también a la izquierda, **debajo** de la etiqueta de oferta o de nuevo ingreso cuando el producto tiene las dos, así que los tres carteles pueden convivir sin pisarse.
+
+Hoy están marcados como ejemplo: el iPhone 16 Pro Max y los AirPods Pro 2 con `"nuevo"`, y el iPhone 15 128 GB, el iPhone 13 128 GB y la MacBook Air M2 con `"oferta"`. El iPhone 13 es el caso completo: está usado, en oferta y sin stock a la vez, para que se vea que los tres carteles conviven.
 
 ### La nota importante sobre `stock`
 

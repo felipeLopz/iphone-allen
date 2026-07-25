@@ -28,6 +28,11 @@
   --rojo-suave:   #C0392B;
   --error-suave:  #FDEDEA;
 
+  /* chapita "Usado" y encabezado del informe de estado */
+  --usado-fondo:  #FBF1DF;
+  --usado-texto:  #7A5312;
+  --usado-borde:  #E7D0A3;
+
   /* Semánticas que antes estaban hardcodeadas en los componentes; se
      movieron acá para que el tema oscuro pueda redefinirlas.
      --sobre-acento: texto/ícono que va ENCIMA de un fondo --acento-fuerte
@@ -116,6 +121,12 @@
 
   --rojo-suave:   #E28275;
   --error-suave:  #2A1B18;
+
+  /* el ámbar se invierte: fondo apagado y texto claro, como el resto de
+     los chips del tema oscuro */
+  --usado-fondo:  #2C2418;
+  --usado-texto:  #E5BE7C;
+  --usado-borde:  #4A3B24;
 
   /* el marco de las fotos se queda blanco: las fotos vienen con fondo
      blanco y, si el marco fuese oscuro, se vería un halo blanco de la
@@ -1338,6 +1349,29 @@ html[data-anim-entrada="no"] .card {
    ------------------------------------------------------------------ */
 /* Mismo tamaño y forma que .badge-stock, para que los dos se lean como
    marcas discretas de la foto y ninguna domine sobre la otra. */
+/* Columna de marcas de la esquina superior IZQUIERDA de la foto. Existe
+   porque un usado puede además estar en oferta: las dos chapitas tienen
+   que convivir, y apilarlas con flex evita el top: en píxeles que habría
+   que recalcular cada vez que cambia el alto de una. El badge "Sin stock"
+   sigue solo, del lado derecho, así que nunca se cruzan. */
+.marcas {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+/* Dentro de .marcas las posiciona el flex. Fuera (la chapita "Combo" de
+   la tarjeta y del modal de combo) siguen absolutas como siempre. */
+.marcas .etiqueta {
+  position: static;
+  top: auto;
+  left: auto;
+}
+
 .etiqueta {
   position: absolute;
   top: 8px;
@@ -1369,6 +1403,17 @@ html[data-anim-entrada="no"] .card {
 .etiqueta--combo {
   background: var(--acento-fuerte);
   color: var(--sobre-acento);
+}
+
+/* Usado: ámbar. No puede ser ni negro (lo usa "Oferta", con la que
+   convive apilada) ni jade (el acento, que en tema oscuro es el color de
+   todo lo bueno), así que se le da una familia propia. Los tres tonos
+   salen de variables porque en oscuro el ámbar claro sobre fondo claro
+   no funciona: ahí se invierte a fondo apagado con texto ámbar. */
+.etiqueta--usado {
+  background: var(--usado-fondo);
+  color: var(--usado-texto);
+  border: 1px solid var(--usado-borde);
 }
 
 /* ======================== TARJETA DE COMBO =========================
@@ -2516,20 +2561,49 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 
 @keyframes aparecer { from { opacity: 0; } }
 
-/* ------------------- [31] CARRITO VACÍO --------------------------- */
+/* ------------------- [31] CARRITO VACÍO ---------------------------
+   Centrado en el drawer: ícono en tono suave, qué pasa, qué hacer, y el
+   botón que lleva al catálogo. El ícono va en un círculo tenue para que
+   se lea como ilustración y no como un botón más. */
 .carrito-vacio {
   display: grid;
   justify-items: center;
-  gap: 10px;
+  gap: 8px;
   text-align: center;
-  padding: 54px 16px;
+  padding: 56px 20px;
   color: var(--texto-suave);
+  animation: aparecer 250ms ease backwards;
 }
-.carrito-vacio .ico {
-  color: var(--borde-fuerte);
+.carrito-vacio__ico {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  margin-bottom: 6px;
+  border-radius: 999px;
+  background: var(--superficie2);
+  color: var(--texto-tenue);
+}
+.carrito-vacio__ico .ico {
+  width: 30px;
+  height: 30px;
   animation: latido 3.2s ease-in-out infinite;
 }
-.carrito-vacio__texto { font-size: 0.95rem; }
+.carrito-vacio__titulo {
+  font-family: var(--display);
+  font-size: 1.12rem;
+  font-weight: 600;
+  color: var(--texto);
+}
+.carrito-vacio__texto {
+  font-size: 0.92rem;
+  max-width: 30ch;
+}
+/* el botón no tiene por qué estirarse al ancho del drawer */
+.carrito-vacio .btn {
+  margin-top: 10px;
+  width: auto;
+}
 
 @keyframes latido {
   0%, 100% { transform: scale(1); }
@@ -3196,6 +3270,42 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   font-size: 0.85rem;
   color: var(--texto-suave);
 }
+
+/* ------------- INFORME DE ESTADO DE UN USADO (MODAL) ---------------
+   Va antes de la ficha técnica porque en un usado es lo que decide la
+   compra. Se enmarca en un bloque tintado para que se lea como un
+   informe aparte y no como más specs: la idea es que mostrar todo —
+   incluso la marca en el borde — genere confianza, no que se disimule.
+   ------------------------------------------------------------------ */
+.estado-equipo {
+  margin-top: 22px;
+  padding: 14px 16px 4px;
+  border: 1px solid var(--usado-borde);
+  border-radius: var(--radio-sm);
+  background: var(--usado-fondo);
+}
+.estado-equipo__titulo {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--usado-texto);
+}
+.estado-equipo__nota {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  color: var(--usado-texto);
+  opacity: 0.85;
+}
+/* dentro del bloque tintado el separador de arriba sobra (ya lo hace el
+   borde del bloque) y las líneas tienen que tomar el color del ámbar */
+.detalle--estado {
+  margin-top: 10px;
+  border-top: 0;
+}
+.detalle--estado .detalle__fila { border-bottom-color: var(--usado-borde); }
+.detalle--estado .detalle__fila:last-child { border-bottom: 0; }
+.detalle--estado dt { color: var(--usado-texto); opacity: 0.9; }
 
 .detalle {
   margin: 22px 0 0;

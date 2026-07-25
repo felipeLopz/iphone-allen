@@ -341,6 +341,17 @@
         return null;
       }
 
+      // Los combos son sólo de productos nuevos. Un usado es una unidad
+      // única con su propio estado: no se puede prometer el mismo combo
+      // dos veces ni mezclar su ficha con la de un producto sellado.
+      var usados = items.filter(esUsado);
+      if (usados.length) {
+        console.warn('Combo "' + def.id + '": incluye producto(s) usado(s) (' +
+                     usados.map(function (p) { return p.id; }).join(', ') +
+                     '). Los combos son sólo de productos nuevos. Se ignora.');
+        return null;
+      }
+
       var suma = items.reduce(function (t, p) { return t + p.precio; }, 0);
       var pct = Number(def.descuento) || 0;
       var nombres = items.map(function (p) { return p.nombre; });
@@ -495,9 +506,138 @@
     return '<span class="etiqueta etiqueta--' + esc(p.etiqueta) + '">' + esc(texto) + '</span>';
   }
 
-  // Lo que va encima de la foto: etiqueta (izquierda) + stock (derecha).
+  /* =====================================================================
+     PRODUCTOS USADOS — campos "condicion", "anio" y "estado"
+     ---------------------------------------------------------------------
+     Cada categoría se parte en dos secciones: primero los nuevos, abajo
+     los usados. Un producto es usado sólo si lo dice explícitamente:
+
+       "condicion": "usado"     // sin el campo se asume "nuevo"
+       "anio": 2023             // año del modelo; ordena la sección
+       "estado": {              // TODOS los campos son opcionales:
+         "bateria": 87,                 // número, se muestra "87%"
+         "pantalla": "Sin rayones",
+         "carcasa": "Marca leve en el borde inferior",
+         "uso": "6 meses",
+         "reparaciones": "Ninguna",     // o qué se cambió
+         "accesorios": "Con caja y cargador"
+       }
+
+     El que falte no se muestra: ni en la tarjeta ni en el modal queda una
+     línea vacía. Ejemplo completo, tal como está cargado hoy:
+
+       {
+         "id": "iphone-14-128",
+         "nombre": "iPhone 14 128 GB",
+         "categoria": "iPhone",
+         "condicion": "usado",
+         "anio": 2022,
+         "precio": 1399000,
+         "precioAnterior": 1549000,
+         "stock": 4,
+         "specs": ["128 GB", "Azul medianoche", "Liberado"],
+         "estado": {
+           "bateria": 92,
+           "pantalla": "Sin rayones",
+           "carcasa": "Marca leve en el borde inferior",
+           "uso": "1 año y medio",
+           "reparaciones": "Ninguna",
+           "accesorios": "Con caja, sin cargador"
+         },
+         "detalle": { ... }
+       }
+
+     Dónde aparece cada cosa:
+     - La tarjeta lleva el chip "Usado" sobre la foto y un RESUMEN en la
+       línea de specs (batería + estado de pantalla). No va todo: el alto
+       de esa línea está reservado para que todas las tarjetas midan lo
+       mismo, así que el detalle completo va al modal.
+     - El modal abre con el bloque "Estado del equipo": todos los campos
+       cargados, uno por fila. Es el informe de transparencia.
+
+     Un usado se compra, se busca, se filtra y se ordena como cualquier
+     otro producto. Lo único que NO puede es entrar en un combo (ver
+     construirCombos): los combos son sólo de productos nuevos.
+     ================================================================== */
+  function esUsado(p) {
+    return p.condicion === 'usado';
+  }
+
+  // Año del modelo, o null si no está cargado (esos van al final).
+  function anioDe(p) {
+    var n = Number(p.anio);
+    return isFinite(n) && n > 0 ? n : null;
+  }
+
+  // Del modelo más nuevo al más viejo. Los que no tienen "anio" no se
+  // pierden: quedan al final, en el orden en que vienen del JSON.
+  function ordenarPorAnio(lista) {
+    return lista.slice().sort(function (a, b) {
+      var aa = anioDe(a), ab = anioDe(b);
+      if (aa === null && ab === null) return 0;
+      if (aa === null) return 1;
+      if (ab === null) return -1;
+      return ab - aa;
+    });
+  }
+
+  function etiquetaUsado(p) {
+    return esUsado(p) ? '<span class="etiqueta etiqueta--usado">Usado</span>' : '';
+  }
+
+  // Lo que va encima de la foto: las marcas de la IZQUIERDA (oferta/nuevo
+  // y "Usado", apiladas) + el badge de stock a la derecha. Van en un
+  // contenedor propio para que "Usado" y "Oferta" conviven sin pisarse:
+  // el que apila es el flex de .marcas, no un top: en píxeles.
   function marcasSobreFoto(p) {
-    return etiqueta(p) + badgeStock(p);
+    var izquierda = etiqueta(p) + etiquetaUsado(p);
+    return (izquierda ? '<div class="marcas">' + izquierda + '</div>' : '') + badgeStock(p);
+  }
+
+  /* --------------------- ESTADO DE UN USADO --------------------------
+     El orden de las filas del modal lo fija ESTADO_ORDEN, no el orden en
+     que estén escritas en el JSON: así todas las fichas se leen igual.
+     Una clave que no esté en la lista igual se muestra (al final): más
+     vale mostrar de más que esconder algo que el vendedor cargó.
+     ------------------------------------------------------------------ */
+  var ESTADO_ETIQUETAS = {
+    bateria:      'Batería',
+    pantalla:     'Pantalla',
+    carcasa:      'Carcasa',
+    uso:          'Tiempo de uso',
+    reparaciones: 'Reparaciones',
+    accesorios:   'Accesorios'
+  };
+  var ESTADO_ORDEN = ['bateria', 'pantalla', 'carcasa', 'uso', 'reparaciones', 'accesorios'];
+
+  function valorEstado(clave, valor) {
+    // la batería se carga como número y se muestra como porcentaje
+    return clave === 'bateria' && typeof valor === 'number' ? valor + '%' : String(valor);
+  }
+
+  // Claves cargadas, en el orden de ESTADO_ORDEN y con las desconocidas
+  // detrás. Descarta vacíos para no dejar filas huérfanas.
+  function clavesEstado(p) {
+    var e = p.estado || {};
+    var cargada = function (k) {
+      return e[k] !== undefined && e[k] !== null && String(e[k]).trim() !== '';
+    };
+    var conocidas = ESTADO_ORDEN.filter(cargada);
+    var otras = Object.keys(e).filter(function (k) {
+      return ESTADO_ORDEN.indexOf(k) === -1 && cargada(k);
+    });
+    return conocidas.concat(otras);
+  }
+
+  // Resumen para la TARJETA: lo mínimo para decidir sin abrir el modal.
+  // Devuelve un array porque se suma a las specs con el mismo separador.
+  function resumenEstado(p) {
+    var e = p.estado || {};
+    var partes = [];
+    if (typeof e.bateria === 'number') partes.push('Batería ' + e.bateria + '%');
+    if (e.pantalla) partes.push(String(e.pantalla));
+    else if (e.carcasa) partes.push(String(e.carcasa));
+    return partes;
   }
 
   /* =====================================================================
@@ -1532,9 +1672,40 @@
   // una línea. El CSS la recorta a dos líneas y le reserva esa altura
   // siempre, para que todas las tarjetas de la grilla sigan midiendo lo
   // mismo aunque un producto tenga menos specs que otro.
+  //
+  // En un usado esa misma línea lleva el resumen de estado (batería +
+  // pantalla) en lugar de las specs de más atrás. Va ACÁ y no en una
+  // línea nueva justamente por el alto reservado: una línea extra sólo en
+  // las tarjetas de usado las haría más altas que las de al lado, que es
+  // el desalineado que estas reglas vienen evitando.
   function descripcionCorta(p) {
-    var specs = (p.specs || []).join(' · ');
-    return '<p class="card__specs">' + esc(specs) + '</p>';
+    var partes = (p.specs || []).slice();
+    if (esUsado(p)) {
+      var resumen = resumenEstado(p);
+      if (resumen.length) partes = partes.slice(0, 2).concat(resumen);
+    }
+    return '<p class="card__specs">' + esc(partes.join(' · ')) + '</p>';
+  }
+
+  // Bloque "Estado del equipo" del modal: todos los campos cargados, uno
+  // por fila. Es lo primero que se lee después del precio porque en un
+  // usado es lo que decide la compra, antes que la ficha técnica.
+  function bloqueEstado(p) {
+    if (!esUsado(p)) return '';
+    var e = p.estado || {};
+    var filas = clavesEstado(p).map(function (k) {
+      var nombre = ESTADO_ETIQUETAS[k] || (k.charAt(0).toUpperCase() + k.slice(1));
+      return '<div class="detalle__fila"><dt>' + esc(nombre) + '</dt>' +
+             '<dd>' + esc(valorEstado(k, e[k])) + '</dd></div>';
+    }).join('');
+    if (!filas) return '';
+
+    return '<section class="estado-equipo">' +
+             '<h3 class="estado-equipo__titulo">Estado del equipo</h3>' +
+             '<p class="estado-equipo__nota">Equipo usado, revisado y probado. ' +
+               'Esto es lo que encontramos:</p>' +
+             '<dl class="detalle detalle--estado">' + filas + '</dl>' +
+           '</section>';
   }
 
   /* ------------------------- TARJETA DE COMBO ------------------------
@@ -1680,16 +1851,27 @@
            '</header>';
   }
 
-  function seccionGrilla(titulo, lista, idAncla, conEncabezado, categoria) {
-    var combo = comboDeSeccion(categoria, titulo);
+  // opts.combo    — el combo a mostrar, o null. Si no se pasa, lo busca.
+  //                 La sección de usados pasa null a propósito.
+  // opts.uniforme — grilla pareja sin tarjeta principal. La usan los
+  //                 usados: ahí la jerarquía la da el año, no una celda
+  //                 grande, y así todas las tarjetas miden igual.
+  function seccionGrilla(titulo, lista, idAncla, conEncabezado, categoria, opts) {
+    opts = opts || {};
+    var combo = ('combo' in opts) ? opts.combo : comboDeSeccion(categoria, titulo);
+    var porPrecio = orden !== 'defecto';
 
     // Ordenado por precio: la grilla se vuelve UNIFORME. No hay celda
     // grande ni combo destacado, porque una tarjeta fija arriba que no es
     // la más barata se lee como un error. El combo no se pierde: entra
     // como una tarjeta normal más, con su precio de combo, en el lugar
     // que le toca por precio.
-    if (orden !== 'defecto') {
-      var todo = ordenarPorPrecio(combo ? lista.concat([combo]) : lista);
+    // La sección de usados entra por acá siempre (opts.uniforme), pero
+    // sin reordenar cuando el orden es el de defecto: ahí ya viene
+    // ordenada del modelo más nuevo al más viejo.
+    if (porPrecio || opts.uniforme) {
+      var todo = combo ? lista.concat([combo]) : lista;
+      if (porPrecio) todo = ordenarPorPrecio(todo);
       return '<section class="cat" id="' + esc(idAncla) + '"' +
                (conEncabezado ? ' aria-labelledby="tit-' + esc(idAncla) + '"' : '') + '>' +
                encabezadoSeccion(titulo, idAncla, conEncabezado, categoria, lista) +
@@ -1719,6 +1901,35 @@
            '</section>';
   }
 
+  /* --------------- NUEVOS ARRIBA, USADOS ABAJO -----------------------
+     Cada sección del catálogo se parte en dos. Si la categoría no tiene
+     ningún usado no se pinta ningún título de más: queda exactamente la
+     sección de siempre, con su combo y su tarjeta principal.
+     ------------------------------------------------------------------ */
+  function seccionesNuevosYUsados(titulo, lista, idAncla, conEncabezado, categoria) {
+    var nuevos = lista.filter(function (p) { return !esUsado(p); });
+    var usados = lista.filter(esUsado);
+
+    if (!usados.length) {
+      return seccionGrilla(titulo, nuevos, idAncla, conEncabezado, categoria);
+    }
+
+    var html = '';
+
+    // Con dos secciones la de arriba necesita título sí o sí: en una
+    // página de una sola categoría el <h1> dejó de alcanzar, porque
+    // ahora estaría encabezando a las dos por igual.
+    if (nuevos.length) {
+      html += seccionGrilla(conEncabezado ? titulo : 'Nuevos', nuevos, idAncla, true, categoria,
+                            { combo: comboDeSeccion(categoria, titulo) });
+    }
+
+    html += seccionGrilla(conEncabezado ? titulo + ' usados' : 'Usados',
+                          ordenarPorAnio(usados), idAncla + '-usados', true, categoria,
+                          { combo: null, uniforme: true });
+    return html;
+  }
+
   // Cuenta para el subtítulo de la página. En productos.html se mezclan
   // equipos y accesorios, así que ahí la palabra tiene que ser neutra.
   function conteoPagina(n) {
@@ -1746,7 +1957,7 @@
 
       var subs = subcategoriasDe(c);
       if (!subs.length) {
-        html += seccionGrilla(c, deLaCat, slug(c), conEncabezado, c);
+        html += seccionesNuevosYUsados(c, deLaCat, slug(c), conEncabezado, c);
         return;
       }
 
@@ -1754,13 +1965,13 @@
       // dentro de la misma categoría.
       subs.forEach(function (sub) {
         var deLaSub = deLaCat.filter(function (p) { return p.subcategoria === sub; });
-        if (deLaSub.length) html += seccionGrilla(sub, deLaSub, slug(sub), true, c);
+        if (deLaSub.length) html += seccionesNuevosYUsados(sub, deLaSub, slug(sub), true, c);
       });
 
       // Un accesorio sin subcategoría quedaría fuera de todas las
       // secciones: va al final, agrupado, en vez de desaparecer.
       var sueltos = deLaCat.filter(function (p) { return !p.subcategoria; });
-      if (sueltos.length) html += seccionGrilla('Otros', sueltos, slug(c) + '-otros', true, c);
+      if (sueltos.length) html += seccionesNuevosYUsados('Otros', sueltos, slug(c) + '-otros', true, c);
     });
 
     $('#catalogoSecciones').innerHTML = html;
@@ -2585,6 +2796,7 @@
       '</p>' +
       htmlStock(p) +
       (hayStock(p) ? '' : '<p class="modal__agotado">Sin stock por ahora. Dejanos tu mensaje y te avisamos apenas entre.</p>') +
+      bloqueEstado(p) +
       (filas ? '<dl class="detalle">' + filas + '</dl>' : '') +
       '<div class="modal__acciones">' +
         '<a class="btn btn--sec btn--compacto" href="' + urlWhatsapp(msgConsulta(p)) + '" ' +
@@ -2917,12 +3129,18 @@
     var cont = $('#carritoItems');
 
     if (!ls.length) {
-      // [31] carrito vacío
+      // [31] carrito vacío. No es sólo un cartel: el ícono en tono suave
+      // explica DE QUÉ está vacío, y el botón da la salida al catálogo
+      // completo (productos.html, que sirve para cualquier página desde
+      // la que se haya abierto el drawer).
       cont.innerHTML =
         '<div class="carrito-vacio">' +
-          icono('carrito', 'ico--grande') +
-          '<p class="carrito-vacio__texto">Todavía no agregaste nada</p>' +
-          '<a class="enlace link-sub" href="#destacados" data-ir-destacados>Ver los destacados</a>' +
+          '<span class="carrito-vacio__ico" aria-hidden="true">' + icono('carrito') + '</span>' +
+          '<p class="carrito-vacio__titulo">Tu carrito está vacío</p>' +
+          '<p class="carrito-vacio__texto">Descubrí nuestros iPhones y accesorios.</p>' +
+          '<a class="btn btn--sec btn--compacto" href="productos.html" data-ir-catalogo>' +
+            btnPartes('lista', 'Ver el catálogo') +
+          '</a>' +
         '</div>';
     } else {
       cont.innerHTML = ls.map(function (l) {
@@ -3111,8 +3329,11 @@
       return;
     }
 
-    var irDestacados = e.target.closest('[data-ir-destacados]');
-    if (irDestacados) cerrarDrawer();
+    // El botón del carrito vacío navega a otra página, pero si ya se está
+    // en productos.html el href no cambia nada: cerrar el drawer deja ver
+    // el catálogo igual.
+    var irCatalogo = e.target.closest('[data-ir-catalogo]');
+    if (irCatalogo) cerrarDrawer();
   });
 
   $('#carritoItems').addEventListener('click', function (e) {
