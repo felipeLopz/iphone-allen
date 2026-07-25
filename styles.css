@@ -409,9 +409,18 @@ button {
   background: var(--superficie);
   border: 1px solid var(--borde-superficie);
   box-shadow: var(--sombra-superficie);
-  /* mobile: los links caen a una 2da fila; la de arriba mantiene el
-     redondeo de píldora y abajo se corta para no hacer un arco enorme */
-  border-radius: 99px 99px 22px 22px;
+  /* Mobile: bloque de dos filas, así que redondeo parejo de tarjeta.
+     Antes acá iba 99px arriba (píldora) y 22px abajo, que servía cuando
+     la cápsula medía una fila baja. Con las dos filas de 44px la caja
+     pasó a 104px de alto y ese radio dejó de entrar: como 99+22=121
+     supera los 104, el navegador escala los radios y las esquinas de
+     arriba se comían 26px de fondo a cada lado. El resultado era un
+     domo — angosto arriba, ancho abajo — con el logotipo y el carrito
+     pisando fuera del blanco y la curva barriendo entre las dos filas,
+     que es justo lo que se leía como "los links quedaron afuera".
+     El desktop, que sigue siendo una sola fila, mantiene su píldora de
+     99px más abajo, en su propia media query. */
+  border-radius: 22px;
   padding: 6px 8px 6px 12px;
   backdrop-filter: blur(12px);
 }
@@ -1723,22 +1732,6 @@ html[data-anim-entrada="no"] .card {
 }
 .footer__brand { margin-bottom: 9px; }
 .footer__legal { margin-top: 12px; max-width: 62ch; font-size: 0.78rem; opacity: 0.75; }
-
-/* Ícono circular para un enlace de red/contacto. Hoy lo usa sólo el
-   Instagram que acompaña al WhatsApp del hero: el footer y el "¿Otra
-   consulta?" de las preguntas ya no llevan redes. */
-.red-link {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border: 1px solid var(--borde);
-  border-radius: 999px;
-  color: var(--texto-suave);
-  transition: color var(--transicion), border-color var(--transicion);
-}
-.red-link:hover,
-.red-link:focus-visible { color: var(--acento); border-color: var(--acento-fuerte); }
 
 /* ----------------------------- CARRITO ---------------------------- */
 .overlay {

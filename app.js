@@ -106,8 +106,8 @@
   // Datos de contacto. Un valor que quede con el placeholder ("[ALGO]")
   // sencillamente no se renderiza: un ícono que lleva a una cuenta que
   // no existe es peor que no tenerlo.
-  // Se usan en la sección Contacto y en el hero/FAQ (Instagram junto al
-  // WhatsApp). El footer ya no muestra redes.
+  // El WhatsApp se usa en el hero, en el FAQ y en la compra; Instagram
+  // sólo en la sección Contacto. Ni el footer ni el hero muestran redes.
   // OJO: "email" hoy no se muestra en ninguna parte — queda acá como dato
   // del negocio para cuando se defina dónde publicarlo.
   var CONTACTO = {
@@ -3635,31 +3635,20 @@
     return !valor || /^\[.*\]$/.test(valor);
   }
 
-  // Ícono de Instagram solo: lo usan tanto el footer como cualquier lugar
-  // de "contacto general" donde tenga que verse junto al WhatsApp
-  // (ver pintarRedesContacto). Nunca en los WhatsApp de un paso concreto
-  // de la compra (confirmar pedido, consultar un producto, avisar stock).
-  function enlaceInstagram() {
-    if (esPlaceholder(CONTACTO.instagram)) return '';
-    return '<a class="red-link" href="https://instagram.com/' + encodeURIComponent(CONTACTO.instagram) + '" ' +
-           'target="_blank" rel="noopener" aria-label="Instagram de ' + esc(NEGOCIO) + '">' + icono('instagram') + '</a>';
-  }
-
   // Botón de Instagram con el mismo tratamiento de bloque que el resto de
-  // los botones del sitio (a diferencia de enlaceInstagram(), que es el
-  // ícono circular chico del footer/hero/FAQ). Placeholder sin reemplazar
-  // => no se renderiza, igual que el resto de los enlaces de CONTACTO.
+  // los botones del sitio. Placeholder sin reemplazar => no se renderiza,
+  // igual que el resto de los enlaces de CONTACTO.
   function botonInstagram(clase) {
     if (esPlaceholder(CONTACTO.instagram)) return '';
     return '<a class="btn ' + (clase || '') + '" href="https://instagram.com/' + encodeURIComponent(CONTACTO.instagram) + '" ' +
            'target="_blank" rel="noopener">' + btnPartes('instagram', 'Seguinos en Instagram') + '</a>';
   }
 
-  // Instagram al lado de los WhatsApp de "contacto general" (hero y FAQ:
-  // ícono chico). La sección de Contacto usa el botón completo en vez del
-  // ícono circular. Si Instagram está en placeholder, ambos quedan vacíos.
+  // Instagram vive sólo en la sección Contacto, como botón completo al
+  // lado del WhatsApp. El hero ya no lleva un ícono suelto: ahí quedan
+  // nada más los dos botones de acción ("Ver iPhones" y "Escribinos").
+  // Si Instagram está en placeholder, el botón no se renderiza.
   function pintarRedesContacto() {
-    $('#instaHero').innerHTML = enlaceInstagram();
     $('#ctaInstagramWrap').innerHTML = botonInstagram('btn--sec');
   }
 
