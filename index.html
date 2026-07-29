@@ -172,11 +172,19 @@
        texto definitivo. -->
   <section class="seccion" id="promo" aria-label="Promociones bancarias">
     <div class="wrap">
+      <!-- PROVISORIO: las cuotas (3, 6 y 12 sin interés) y los medios de
+           pago con tarjeta de acá abajo están puestos como ejemplo y hay
+           que CONFIRMARLOS CON EL CLIENTE antes de publicar. Los nombres
+           de las tarjetas van en texto al lado de un ícono genérico: no
+           se usan los logos oficiales de Visa, Mastercard ni Cabal
+           porque son marcas registradas. La lista de tarjetas la arma
+           app.js (TARJETAS), que es donde se agrega o saca una. -->
       <div class="promo">
         <span class="promo__tag">Promociones</span>
         <div class="promo__cuerpo">
-          <p class="promo__titulo">Consultá por promociones bancarias</p>
-          <p class="promo__sub">Escribinos para conocer las opciones vigentes.</p>
+          <p class="promo__titulo promo__titulo--fuerte">3, 6 y 12 cuotas sin interés</p>
+          <ul class="promo__tarjetas" id="promoTarjetas"></ul>
+          <p class="promo__sub">Consultanos por las promociones vigentes.</p>
         </div>
       </div>
     </div>

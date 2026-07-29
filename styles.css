@@ -558,7 +558,16 @@ button {
 /* --------------------- DESPLEGABLE "PRODUCTOS" -------------------- */
 .nav-drop { position: relative; flex: 0 0 auto; }
 
-.nav-drop__btn {
+/* OJO CON EL ORDEN: estas dos reglas las pisaban, por venir antes en el
+   archivo y con la misma especificidad, `.link-sub { display:inline-block }`
+   y `.ico { width:20px; height:20px }` (los dos ~1800 líneas más abajo).
+   El botón terminaba siendo inline-block —o sea que su align-items no
+   hacía nada— y el chevron medía 20px en vez de 14, apoyado en la línea
+   de base como cualquier elemento inline: eso estiraba la caja de línea
+   del botón y bajaba SU texto 1.2px respecto de "Inicio" y "Contacto".
+   Por eso van calificadas con .nav: así ganan por especificidad y no
+   dependen de quién esté escrito más abajo. */
+.nav .nav-drop__btn {
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -567,7 +576,7 @@ button {
   padding: 0;
   cursor: pointer;
 }
-.nav-drop__chevron {
+.nav .nav-drop__chevron {
   width: 14px;
   height: 14px;
   transition: transform 200ms ease;
@@ -1771,7 +1780,50 @@ html[data-anim-entrada="no"] .card {
   font-weight: 600;
   color: var(--texto-suave);
 }
-.promo__sub { margin-top: 6px; color: var(--texto-tenue); font-size: 0.9rem; }
+/* Las cuotas son el dato principal de la franja: van en el color de
+   texto pleno, no en el gris que usaba el placeholder. */
+.promo__titulo--fuerte {
+  color: var(--texto);
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
+}
+
+/* Fila de medios de pago con tarjeta. Envuelve a dos líneas en celular
+   en vez de desbordar: por eso flex-wrap y el centrado. */
+.promo__tarjetas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px 10px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.promo__tarjeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie2);
+  color: var(--texto);
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.promo__tarjeta-ico {
+  width: 18px;
+  height: 18px;
+  color: var(--texto-suave);
+}
+
+/* --texto-suave y no --texto-tenue: dejó de ser una leyenda de relleno,
+   ahora es la aclaración de que las cuotas hay que consultarlas. Con
+   --texto-tenue quedaba en 3.1 de contraste. */
+.promo__sub { margin-top: 6px; color: var(--texto-suave); font-size: 0.9rem; }
+/* con la fila de tarjetas en el medio, la aclaración necesita más aire */
+.promo__tarjetas + .promo__sub { margin-top: 14px; }
 
 /* ---------------------------- CONTACTO ----------------------------
    Sólo título + dos botones (WhatsApp e Instagram), centrado. Sin
@@ -3599,6 +3651,51 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
      el doble de alto. */
   .grilla { grid-template-columns: repeat(3, 1fr); }
   .card--principal { grid-column: 1; grid-row: span 2; }
+
+  /* ---------------- TARJETA COMPACTA EN ESCRITORIO ------------------
+     La tarjeta estaba dimensionada para tres columnas anchas y con el
+     mouse se leía enorme. Se recorta el aire (padding y gap), se bajan
+     un escalón el nombre y el precio y se achica el botón de agregar.
+     TODO va dentro de esta media query: en mobile la tarjeta y el botón
+     quedan como estaban, con sus 44px de área de toque.
+     Nada de esto rompe la altura pareja: se achican por igual en todas,
+     y los altos reservados (nombre, specs, ahorro, stock) siguen
+     estando — sólo cambian de valor, no de criterio. */
+  .card { padding: 12px; gap: 10px; }
+  .card__nombre { font-size: 0.95rem; }
+  .card__specs { margin-top: 4px; font-size: 0.79rem; }
+  .card__precios .precio { font-size: 1.2rem; }
+  .card__acciones { gap: 6px; }
+
+  /* Botón de acción más contenido: el bloque del ícono y el del texto
+     pierden 2px arriba y abajo, el ícono baja de 16 a 14 y se libera el
+     min-height de 44px, que es una medida pensada para el dedo. Con
+     mouse, 32px es cómodo y deja respirar la tarjeta. */
+  .card .btn,
+  .modal__acciones .btn {
+    min-height: 0;
+    font-size: 11.5px;
+  }
+  .card .btn__ico,
+  .modal__acciones .btn__ico { padding: 7px 9px; }
+  .card .btn__txt,
+  .modal__acciones .btn__txt { padding: 7px 10px; }
+  .card .btn__ico .ico,
+  .modal__acciones .btn__ico .ico { width: 14px; height: 14px; }
+}
+
+/* Cuatro por fila cuando el ancho da: con la tarjeta ya compacta, tres
+   columnas dejaban tarjetas de 330px que se leían enormes.
+   EL CORTE ESTÁ EN 1180px A PROPÓSITO, que es donde .wrap llega a su
+   ancho máximo y las columnas dejan de crecer. Más abajo, la cuarta
+   columna dejaba la fila de botones al límite: "Avisame" (sin stock)
+   mide 2.7px más que "Agregar", y en ese margen unas tarjetas apilaban
+   los dos botones y otras no — con lo cual dejaban de medir todas lo
+   mismo, que es justo lo que no puede pasar. Con 4 columnas recién a
+   partir de 1180px sobran ~24px y las dos variantes entran siempre en
+   una sola fila. */
+@media (min-width: 1180px) {
+  .grilla { grid-template-columns: repeat(4, 1fr); }
 }
 
 /* Mobile (<720px): el panel no es un flotante chico sino un bloque de

@@ -46,8 +46,11 @@ Los textos provisorios ya no se ven como corchetes en pantalla: se reemplazaron 
 4. **La dirección del local.**
    Hoy figura "Río Cuarto 2341, Allen, Río Negro" en el hero y en el pie. Es **provisoria**: está marcada con el comentario `DIRECCIÓN PROVISORIA` en `index.html` y en `app.js` (constante `DIRECCION`). Confirmarla con el cliente antes de publicar.
 
-5. **La promo bancaria.**
-   Archivo `index.html`, sección `#promo`. Hoy dice "Consultá por promociones bancarias" — un texto que no afirma ninguna promo concreta. Cuando exista una promoción real, se reemplaza el contenido de `.promo__cuerpo` por el flyer o el texto definitivo.
+5. **La promo bancaria: las cuotas y las tarjetas.**
+   La franja `#promo` de `index.html` anuncia **"3, 6 y 12 cuotas sin interés"** y muestra tres medios de pago (Visa, Mastercard, Cabal). **Las dos cosas son provisorias y hay que confirmarlas con el cliente**: las cuotas dependen de lo que le ofrezca cada banco.
+   - El título de las cuotas se edita en `index.html`, en `.promo__titulo`.
+   - La lista de tarjetas se edita en `app.js`, array `TARJETAS`: agregar o sacar un nombre y listo.
+   - **No se usan los logos oficiales** de Visa, Mastercard ni Cabal: son marcas registradas. Cada una se muestra con el mismo ícono genérico de tarjeta (`ICONOS.tarjetaGenerica`) y el nombre en texto al lado. Si algún día se quieren poner los logos reales, hay que conseguir la autorización de cada marca.
 
 6. **El catálogo real.**
    Archivo `productos.json`. Hoy tiene 12 productos de ejemplo con precios y datos inventados. Hay que revisar, producto por producto: el nombre, el precio, si hay stock o no, las especificaciones cortas (`specs`) y la ficha técnica completa (`detalle`). Más abajo está la explicación completa de cómo se edita cada campo.
@@ -311,6 +314,12 @@ img/iphone-16e-128.jpg
 ```
 
 En cuanto el archivo está ahí con ese nombre exacto, la foto aparece sola en la tarjeta, en el carrusel, en el detalle del producto y en el comparador. Si el archivo todavía no existe (o el nombre no coincide), se ve el cuadro gris con el nombre del producto — nunca el ícono roto típico de una imagen que no cargó.
+
+**Tamaño de las fotos: 1000 × 1000 píxeles, cuadradas y con fondo blanco.** Todas las que están hoy en `img/` se dejaron en esa medida para que el recuadro mida siempre lo mismo. Al agregar una foto nueva conviene respetarlo: no hace falta recortar el producto, alcanza con centrarlo en un lienzo cuadrado y rellenar con blanco lo que sobre.
+
+Ojo con una distinción: esto empareja **el lienzo**, no cuánto ocupa el producto adentro. Si en una foto el equipo sale más "de cerca" que en otra, eso viene de la foto original y hay que reencuadrarla a mano para emparejarlo.
+
+Tres de las fotos actuales venían más chicas que 1000 px (el iPhone 15 a 300, el iPhone 13 a 500 y la MacBook Air a 900) y se ampliaron para unificar la medida. Ampliar no inventa detalle: **esas tres conviene reemplazarlas por fotos sacadas en mayor resolución** cuando se pueda.
 
 **Dos productos que comparten la misma foto** (por ejemplo, dos capacidades del mismo modelo): en vez de duplicar el archivo, se usa el campo `"imagen"` en el producto que NO tiene foto propia, apuntando a la ruta de la foto del otro. Ese campo, cuando está escrito, le gana a la convención automática. Ejemplo real ya aplicado en el catálogo: el "iPhone 15 128 GB" no tiene foto propia y usa la del "iPhone 15 Pro 256 GB":
 

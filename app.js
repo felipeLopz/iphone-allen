@@ -127,6 +127,18 @@
   var ENTREGA_ESTIMADA = '12 a 36 hs';
   var ENTREGA_NOTA = 'Coordinamos por WhatsApp';
 
+  // ---------------------------------------------------------------------
+  // TARJETAS DE LA FRANJA DE PROMO — TEXTO PROVISORIO.
+  // Las cuotas (el título de la franja, en index.html) y esta lista de
+  // medios de pago están puestas como ejemplo: hay que CONFIRMARLAS CON
+  // EL CLIENTE antes de publicar, porque dependen de lo que le ofrezca
+  // cada banco y de las promos vigentes.
+  // Todas se pintan con el MISMO ícono genérico de tarjeta y el nombre al
+  // lado: no se usan los logos oficiales, que son marcas registradas.
+  // Agregar o sacar una tarjeta es editar este array y nada más.
+  // ---------------------------------------------------------------------
+  var TARJETAS = ['Visa', 'Mastercard', 'Cabal'];
+
   // Opciones del filtro nuevo/usado de la barra del catálogo. Va acá
   // arriba y no al lado de htmlCondicion() porque montarPaginaCatalogo()
   // se ejecuta antes de esa parte del archivo: declarada más abajo, el
@@ -278,7 +290,12 @@
          '<path d="M3 12h1M20 12h1M12 3v1M12 20v1M5.6 5.6l.7 .7M17.7 17.7l.7 .7M18.4 5.6l-.7 .7M6.3 17.7l-.7 .7"></path>',
     luna: '<path d="M12 3c.13 0 .26 0 .39 .04a6.5 6.5 0 1 0 8.57 8.57 .5 .5 0 0 1 .87 .38 9 9 0 1 1 -9.83 -9.83Z"></path>',
     flechaArriba: '<path d="M12 19V5"></path><path d="M5 12l7 -7l7 7"></path>',
-    reloj: '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>'
+    reloj: '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>',
+    // tarjeta genérica de la franja de promo: a propósito NO es el logo de
+    // ninguna marca (Visa/Mastercard/Cabal son marcas registradas), es una
+    // tarjeta dibujada con el mismo trazo que el resto de los íconos
+    tarjetaGenerica: '<rect x="2.5" y="5" width="19" height="14" rx="2.5"></rect>' +
+                     '<path d="M2.5 9.5h19"></path><path d="M6 15h3"></path>'
   };
 
   function icono(nombre, clase) {
@@ -1054,7 +1071,7 @@
 
             '<div class="campo" id="campoDireccion">' +
               '<label class="campo__label" for="entregaDireccion">Dirección completa <span class="req" aria-hidden="true">*</span></label>' +
-              '<input class="input" type="text" id="entregaDireccion" name="direccion" placeholder="Calle, número, piso, ciudad, CP" autocomplete="street-address">' +
+              '<input class="input" type="text" id="entregaDireccion" name="direccion" placeholder="Ej: Río Cuarto 2341" autocomplete="street-address">' +
               '<p class="campo__error" id="errorDireccion" hidden></p>' +
             '</div>' +
 
@@ -1093,7 +1110,13 @@
             '</p>' +
 
             '<p class="form-entrega__nota">Se abrirá WhatsApp con los productos del carrito para coordinar el pago y la entrega.</p>' +
-            '<p class="form-entrega__privacidad">Tus datos se envían sólo por WhatsApp, no se guardan en el sitio.</p>' +
+            '<p class="form-entrega__privacidad">Tus datos se envían sólo por WhatsApp, no se guardan en el sitio. ' +
+              'Quedan escritos en este navegador para no tener que repetirlos.</p>' +
+            // Los campos se completan solos con lo último que se escribió
+            // (ver aplicarDatosGuardados). Sin una salida, un dato mal
+            // cargado —o una prueba— se queda para siempre y parece parte
+            // del formulario. Este botón sólo aparece si hay algo guardado.
+            '<button class="btn-plano" type="button" id="olvidarDatos" hidden>Borrar mis datos guardados</button>' +
           '</form>' +
             '</div>' +
 
@@ -1181,6 +1204,7 @@
     pintarPagos();
     pintarFaq();
     pintarRedesContacto();
+    pintarTarjetasPromo();
   }
 
   fetch('productos.json')
@@ -3857,11 +3881,41 @@
     actualizarSegunMetodo();
   }
 
+  // ¿Hay algo escrito de antes? De eso depende que se ofrezca borrarlo.
+  function hayDatosGuardados() {
+    var d = leerDatosEntrega();
+    return !!(d && (d.nombre || d.direccion || d.telefono || d.email));
+  }
+
+  function actualizarBotonOlvidar() {
+    $('#olvidarDatos').hidden = !hayDatosGuardados();
+  }
+
   // Cualquier tecleo o cambio de opción guarda: no hace falta esperar al envío.
-  formEntrega.addEventListener('input', guardarDatosEntrega);
-  formEntrega.addEventListener('change', guardarDatosEntrega);
+  formEntrega.addEventListener('input', function () {
+    guardarDatosEntrega();
+    actualizarBotonOlvidar();
+  });
+  formEntrega.addEventListener('change', function () {
+    guardarDatosEntrega();
+    actualizarBotonOlvidar();
+  });
+
+  // Vacía los campos y borra lo guardado en este navegador. Es la salida
+  // para cuando quedó cargado un dato equivocado o una prueba.
+  $('#olvidarDatos').addEventListener('click', function () {
+    try { localStorage.removeItem(ENTREGA_STORAGE_KEY); } catch (e) {}
+    $('#entregaNombre').value = '';
+    $('#entregaDireccion').value = '';
+    $('#entregaTelefono').value = '';
+    $('#entregaEmail').value = '';
+    limpiarErrores();
+    actualizarBotonOlvidar();
+    $('#entregaNombre').focus();
+  });
 
   aplicarDatosGuardados();
+  actualizarBotonOlvidar();
 
   /* ------------------------------ VALIDACIÓN --------------------------- */
 
@@ -4090,6 +4144,20 @@
   // Si Instagram está en placeholder, el botón no se renderiza.
   function pintarRedesContacto() {
     $('#ctaInstagramWrap').innerHTML = botonInstagram('btn--sec');
+  }
+
+  // Fila de medios de pago con tarjeta de la franja de promo. Mismo ícono
+  // genérico para todas (ver ICONOS.tarjetaGenerica) y el nombre al lado;
+  // la lista sale de TARJETAS.
+  function pintarTarjetasPromo() {
+    var cont = $('#promoTarjetas');
+    if (!cont) return;
+    cont.innerHTML = TARJETAS.map(function (nombre) {
+      return '<li class="promo__tarjeta">' +
+               icono('tarjetaGenerica', 'promo__tarjeta-ico') +
+               '<span>' + esc(nombre) + '</span>' +
+             '</li>';
+    }).join('');
   }
 
   /* =====================================================================
