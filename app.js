@@ -228,12 +228,41 @@
 
   function precio(valor) { return pesos.format(valor); }
 
+  /* --------------------- ESCAPE PARA HTML ----------------------------
+     Todo dato que venga de productos.json o de lo que escriba el visitante
+     pasa por acá antes de entrar en un innerHTML. El & va PRIMERO a
+     propósito: si fuera al final volvería a escapar los & que generan los
+     reemplazos de abajo y saldría "&amp;lt;".
+
+     La comilla simple se escapa aunque hoy todos los atributos que arma
+     este archivo usen comilla doble. Es a propósito: el día que alguien
+     escriba href='...' con comilla simple, un dato con ' cerraría el
+     atributo y se podría inyectar. Escapar los cinco caracteres deja de
+     depender de esa convención.
+     ------------------------------------------------------------------ */
   function esc(txt) {
     return String(txt)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  /* ------------------ ESCAPE PARA SELECTORES CSS ---------------------
+     Distinto problema que esc(): acá el dato no va a un innerHTML sino
+     adentro de un querySelector. Un id de producto con comilla doble
+     rompe el selector con SyntaxError y deja de funcionar lo que
+     dependa de él (cambiar cantidades, quitar del carrito).
+     Comprobado: querySelector('[data-linea="ab"cd"]') tira SyntaxError.
+     CSS.escape existe en todos los navegadores actuales; el respaldo
+     cubre los muy viejos escapando lo que rompe un selector entre
+     comillas dobles.
+     ------------------------------------------------------------------ */
+  function escSel(valor) {
+    var s = String(valor);
+    if (window.CSS && typeof CSS.escape === 'function') return CSS.escape(s);
+    return s.replace(/["\\\]]/g, '\\$&');
   }
 
   // Para buscar sin depender de tildes ni mayusculas. NFD separa el acento
@@ -3329,7 +3358,8 @@
 
   // [27] la línea se va a la derecha y colapsa; las de abajo suben suave
   function quitar(id) {
-    var nodo = $('#carritoItems').querySelector('[data-linea="' + id + '"]');
+    // escSel: el id sale de productos.json y va adentro de un selector
+    var nodo = $('#carritoItems').querySelector('[data-linea="' + escSel(id) + '"]');
 
     if (!nodo || sinMovimiento()) { quitarDelEstado(id); return; }
     if (nodo.classList.contains('linea-wrap--sale')) return;   // ya está saliendo
@@ -3865,8 +3895,11 @@
     var datos = leerDatosEntrega();
     if (!datos) return;
 
+    // escSel en los dos: estos valores salen de localStorage, que el
+    // visitante puede editar. Sin escapar, un valor armado a mano rompe
+    // el selector o hace que seleccione un campo distinto del buscado.
     if (datos.metodo) {
-      var radioMetodo = formEntrega.querySelector('input[name="metodoEntrega"][value="' + datos.metodo + '"]');
+      var radioMetodo = formEntrega.querySelector('input[name="metodoEntrega"][value="' + escSel(datos.metodo) + '"]');
       if (radioMetodo) radioMetodo.checked = true;
     }
     $('#entregaNombre').value = datos.nombre || '';
@@ -3874,7 +3907,7 @@
     $('#entregaTelefono').value = datos.telefono || '';
     $('#entregaEmail').value = datos.email || '';
     if (datos.horario) {
-      var radioHorario = formEntrega.querySelector('input[name="horario"][value="' + datos.horario + '"]');
+      var radioHorario = formEntrega.querySelector('input[name="horario"][value="' + escSel(datos.horario) + '"]');
       if (radioHorario) radioHorario.checked = true;
     }
 
