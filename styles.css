@@ -375,6 +375,22 @@ button {
 
 .btn--comparar { width: auto; }
 
+/* ------------------- BOTÓN DE ACCIÓN PRINCIPAL --------------------
+   Un escalón por encima del botón normal, para que en el checkout se
+   note cuál es LA acción de la pantalla. Es un escalón, no el tamaño
+   desmedido de antes: el texto sube de 12 a 14px y los dos bloques
+   ganan 3px arriba y abajo (44px de alto contra los 34 del botón
+   compacto en escritorio). En mobile el botón normal ya mide 44 por el
+   min-height global, así que acá la diferencia la marca la tipografía.
+   Ver htmlCheckout(): lo usa "Finalizar compra". */
+.btn--principal {
+  font-size: 14px;
+  margin-top: 4px;
+}
+.btn--principal .btn__ico { padding: 12px 14px; }
+.btn--principal .btn__txt { padding: 12px 18px; }
+.btn--principal .btn__ico .ico { width: 18px; height: 18px; }
+
 /* Botón sin tratamiento de bloque: acción menor, sólo texto.
    Hoy lo usa "Vaciar carrito". */
 .btn-plano {
@@ -1571,6 +1587,17 @@ html[data-anim-entrada="no"] .card {
      principal de la tarjeta [ver .card__precios .precio, más abajo] */
   font-weight: 400;
   line-height: 1.25;
+  /* El nombre de la tarjeta era un <h4> y pasó a <h3> para no saltar de
+     h2 a h4 en la jerarquía de la página. El <h4> no estaba alcanzado
+     por la regla `h1, h2, h3` de arriba, así que traía DOS cosas del
+     navegador de las que la tarjeta dependía: 1.33em de margen vertical
+     y letter-spacing normal. Al pasar a h3 esa regla se las llevaba
+     (margin: 0 y letter-spacing: -0.015em) y cambiaba el alto de todas
+     las tarjetas. Se declaran acá para que el cambio sea sólo semántico
+     y no se mueva un píxel. En em, no en px: así siguen escalando con
+     el font-size más chico de escritorio. */
+  margin-block: 1.33em;
+  letter-spacing: normal;
 }
 
 /* Descripción corta debajo del nombre: son las specs del JSON unidas.
@@ -3804,6 +3831,16 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
        si además lo pusiera el nav, se sumaría dos veces y a 320px es
        justo el ancho que falta para que los tres links entren */
     padding-inline: 0;
+    /* ANILLO DE FOCO Y OVERFLOW: overflow-x recorta todo lo que se salga
+       de la caja, y el anillo de :focus-visible se dibuja 3px POR FUERA
+       del link (outline-offset). Sin esto, al llegar con Tab a los links
+       de la navbar el anillo quedaba cortado arriba y abajo — medido:
+       el anillo iba de 61.8 a 115.8 y el contenedor recortaba en 66.8 y
+       110.8. El padding hace lugar para el anillo y el margen negativo
+       lo devuelve, así que la cápsula no cambia de alto. Es la misma
+       solución que ya usaba .filtros (las pastillas de categoría). */
+    padding-block: 6px;
+    margin-block: -6px;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;

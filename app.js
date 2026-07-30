@@ -1126,8 +1126,14 @@
               '<p class="campo__error" id="errorHorario" hidden></p>' +
             '</fieldset>' +
 
-            '<button class="btn btn--compacto" type="submit">' +
-              btnPartes('whatsapp', 'Confirmar compra por WhatsApp') +
+            // Acción principal de la pantalla: el texto visible es corto
+            // ("Finalizar compra") y el ícono de WhatsApp más la nota de
+            // abajo son los que cuentan por dónde sale el pedido. El
+            // aria-label lo dice completo, porque quien no ve el ícono
+            // sólo escucharía "Finalizar compra".
+            '<button class="btn btn--compacto btn--principal" type="submit" ' +
+                    'aria-label="Finalizar compra y enviar el pedido por WhatsApp">' +
+              btnPartes('whatsapp', 'Finalizar compra') +
             '</button>' +
 
             '<p class="enviado" id="pedidoEnviado" hidden>' +
@@ -1518,10 +1524,13 @@
     var titulo = catalogoCompleto ? 'Todos los productos' : categoriaPagina;
 
     mainEl.innerHTML =
-      '<section class="seccion" id="catalogo">' +
+      // aria-labelledby al <h1>: al navegar por regiones, la sección del
+      // catálogo se anuncia con el nombre de la categoría en vez de como
+      // una región sin nombre.
+      '<section class="seccion" id="catalogo" aria-labelledby="tituloCatalogo">' +
         '<div class="wrap">' +
           '<header class="seccion__head seccion__head--catalogo">' +
-            '<h1 class="seccion__titulo">' + esc(titulo) + '</h1>' +
+            '<h1 class="seccion__titulo" id="tituloCatalogo">' + esc(titulo) + '</h1>' +
             '<p class="seccion__sub" id="conteoCategoria">Precios finales en pesos. Consultá por financiación.</p>' +
           '</header>' +
           '<div class="barra-catalogo">' +
@@ -1886,11 +1895,11 @@
              media(p, '', marcasSobreFoto(p)) +
              '<div>' +
                '<p class="card__cat">' + esc(p.categoria) + '</p>' +
-               '<h4 class="card__nombre">' +
+               '<h3 class="card__nombre">' +
                  '<button class="card__abrir" type="button" data-modal="' + esc(p.id) + '">' +
                    '<span class="card__nombre-txt">' + esc(p.nombre) + '</span>' +
                  '</button>' +
-               '</h4>' +
+               '</h3>' +
                descripcionCorta(p) +
              '</div>' +
              bloquePrecios(p) +
@@ -1978,11 +1987,11 @@
 
              '<div class="combo__info">' +
                '<p class="card__cat">' + esc(c.categoria) + '</p>' +
-               '<h4 class="card__nombre">' +
+               '<h3 class="card__nombre">' +
                  '<button class="card__abrir" type="button" data-modal="' + esc(c.id) + '">' +
                    esc(c.nombre) +
                  '</button>' +
-               '</h4>' +
+               '</h3>' +
                '<p class="combo__label">Incluye</p>' +
                '<ul class="combo__incluye">' + incluye + '</ul>' +
              '</div>' +
@@ -2020,11 +2029,11 @@
              media(p, 'media--principal', marcasSobreFoto(p)) +
              '<div>' +
                '<p class="card__cat">' + esc(p.categoria) + '</p>' +
-               '<h4 class="card__nombre">' +
+               '<h3 class="card__nombre">' +
                  '<button class="card__abrir" type="button" data-modal="' + esc(p.id) + '">' +
                    esc(p.nombre) +
                  '</button>' +
-               '</h4>' +
+               '</h3>' +
                descripcionCorta(p) +
              '</div>' +
              bloquePrecios(p) +
