@@ -1,5 +1,5 @@
 /* =====================================================================
-   IPHONE ALLEN — lógica de la tienda
+   miIphoneMZA — lógica de la tienda
    Vanilla JS, sin dependencias, sin build step.
    =====================================================================
 
@@ -65,7 +65,7 @@
   /* ------------------------- CONFIGURACIÓN ------------------------- */
 
   // Nombre del negocio: se usa en todos los mensajes de WhatsApp.
-  var NEGOCIO = 'IPHONE ALLEN';
+  var NEGOCIO = 'miIphoneMZA';
 
   // WhatsApp en formato internacional, sin + ni espacios.
   var WHATSAPP = '5492613900039';
@@ -76,12 +76,18 @@
 
   // DIRECCIÓN PROVISORIA - confirmar con el cliente antes de publicar
   // (aparece también en index.html, con el mismo comentario)
-  var DIRECCION = 'Río Cuarto 2341, Allen, Río Negro';
+  var DIRECCION = 'Dorrego, Guaymallén · Río Cuarto 2341';
 
   // URL pública del sitio. Se usa para armar el link que se comparte desde
   // el modal de producto.
-  // OJO: si el sitio pasa a un dominio propio hay que cambiarla acá Y en
-  // las etiquetas og:url / og:image de los seis HTML.
+  // OJO: sigue apuntando al dominio de Vercel con el nombre viejo
+  // (iphone-allen.vercel.app) A PROPÓSITO — es el dominio REAL donde el
+  // sitio está desplegado hoy; cambiar este string no renombra el
+  // proyecto en Vercel, así que hacerlo ahora dejaría los links
+  // compartidos y las vistas previas (og:url/og:image) apuntando a una
+  // URL que no existe. Cuando el proyecto de Vercel se renombre o pase a
+  // dominio propio, actualizar acá Y en las etiquetas og:url / og:image
+  // de los seis HTML.
   var SITIO = 'https://iphone-allen.vercel.app/';
 
   var STORAGE_KEY = 'nombre-carrito-v1';
@@ -110,6 +116,11 @@
   // sólo en la sección Contacto. Ni el footer ni el hero muestran redes.
   // OJO: "email" hoy no se muestra en ninguna parte — queda acá como dato
   // del negocio para cuando se defina dónde publicarlo.
+  // OJO: "instagram" todavía tiene el usuario de la marca vieja
+  // ('iphone.allen'). No se adivinó un usuario nuevo porque publicar un
+  // link a una cuenta equivocada es peor que dejar el dato viejo a la
+  // vista: confirmar con el cliente el usuario real de @miIphoneMZA (o
+  // el que corresponda) antes de publicar.
   var CONTACTO = {
     whatsapp: WHATSAPP,
     instagram: 'iphone.allen',
@@ -178,7 +189,7 @@
     { p: '¿Qué garantía tienen?', r: 'Consultanos por la garantía disponible según el equipo.' },
     { p: '¿Los equipos vienen liberados?', r: 'Sí, los equipos vienen liberados para usar con cualquier compañía.' },
     { p: '¿Cómo puedo pagar?', r: 'Aceptamos efectivo, transferencia y tarjeta. Escribinos para coordinar la forma de pago.' },
-    { p: '¿Hacen envíos? ¿A qué zonas?', r: 'Hacemos envíos a Allen y ciudades vecinas. Consultanos por tu zona.' },
+    { p: '¿Hacen envíos? ¿A qué zonas?', r: 'Hacemos envíos a Guaymallén y ciudades vecinas. Consultanos por tu zona.' },
     { p: '¿Puedo retirar en persona?', r: 'Sí, podés retirar tu pedido en el local. Coordinamos el horario por WhatsApp.' },
     { p: '¿Qué pasa si el equipo viene con una falla?', r: 'Escribinos apenas lo notes y lo resolvemos juntos.' }
   ];
@@ -957,17 +968,24 @@
   }
 
   /* --------------------------- LOGOTIPO -----------------------------
-     Marca tipográfica, sin nada de Apple. Parte NEGOCIO en dos: la
-     primera palabra (categoría) va liviana y espaciada, el resto (el
-     lugar, que es lo distintivo) va en negrita. El elemento gráfico lo
-     pone el CSS con un ::before, así no agrega nodos al árbol de
-     accesibilidad: el texto sigue leyéndose "IPHONE ALLEN".
+     Marca tipográfica, sin nada de Apple. Si NEGOCIO tiene dos palabras,
+     la primera (categoría) va liviana y espaciada, y el resto (el
+     lugar, que es lo distintivo) va en negrita, con un separador entre
+     las dos que pone el CSS con un ::before (no agrega nodos al árbol
+     de accesibilidad: el texto sigue leyéndose entero).
 
-     Para cambiar de variante, tocar sólo esta constante:
-       'regla'   — IPHONE │ ALLEN   (línea vertical fina)   [actual]
-       'punto'   — IPHONE · ALLEN   (punto)
-       'apilado' — IPHONE           (dos líneas)
-                   ALLEN
+     "miIphoneMZA" es una sola palabra, así que no hay segunda mitad que
+     resaltar: se rinde entera con la clase .logo--unico (peso 700, el
+     mismo que tenía la mitad "distintiva" antes). Si el nombre volviera
+     a tener dos palabras, el contraste categoría/lugar se recupera solo
+     — no hay que tocar esta función.
+
+     Para cambiar de variante (sólo aplica con dos palabras), tocar esta
+     constante:
+       'regla'   — CATEGORÍA │ LUGAR   (línea vertical fina)   [actual]
+       'punto'   — CATEGORÍA · LUGAR   (punto)
+       'apilado' — CATEGORÍA           (dos líneas)
+                   LUGAR
      ------------------------------------------------------------------ */
   var LOGO_VARIANTE = 'regla';
 
@@ -977,8 +995,9 @@
     var resto = partes.join(' ');
 
     var cls = 'logo logo--' + LOGO_VARIANTE + (clase ? ' ' + clase : '');
-    // Sin segunda palabra no hay contraste que hacer: se rinde tal cual.
-    if (!resto) return '<span class="' + cls + '">' + esc(primera) + '</span>';
+    // Sin segunda palabra no hay contraste que hacer: se rinde tal cual,
+    // con el mismo peso que tendría la mitad "lugar" (ver .logo--unico).
+    if (!resto) return '<span class="' + cls + ' logo--unico">' + esc(primera) + '</span>';
 
     // El espacio entre los dos <span> es literal a propósito: es lo que
     // separa las palabras para un lector de pantalla.
@@ -3394,7 +3413,7 @@
   }
 
   /* ------------- CONTADOR DEL CARRITO EN LA PESTAÑA ------------------
-     "(2) iPhones — IPHONE ALLEN…". El title propio de cada página no se
+     "(2) iPhones — miIphoneMZA…". El title propio de cada página no se
      reemplaza: TITULO_BASE se guarda arriba de todo, al arrancar, y el
      número se le antepone, así las seis páginas conservan el suyo.
      Se lee del carrito, que vive en localStorage, de modo que el número
