@@ -1,5 +1,5 @@
 /* =====================================================================
-   miIphoneMZA — hoja de estilos única
+   IPHONE ALLEN — hoja de estilos única
    Mobile primero. Sin dependencias salvo las fuentes de Fontshare.
    ===================================================================== */
 
@@ -521,15 +521,6 @@ button {
 
 /* El footer tiene aire de sobra: la marca puede respirar un poco más */
 .logo--grande { font-size: 1.05rem; }
-
-/* Nombre de una sola palabra (ver htmlLogo() en app.js): sin la mitad
-   "categoría" liviana con la que contrastar, toma directamente el peso
-   y el interletrado que antes llevaba sólo la mitad "lugar", para no
-   quedar en el peso por defecto (fino) de la tipografía de display. */
-.logo--unico {
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
 
 /* separador entre logotipo y links: sólo cuando van en la misma fila */
 .navbar__sep {

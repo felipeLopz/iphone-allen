@@ -1,6 +1,6 @@
-# miIphoneMZA — landing de la tienda
+# IPHONE ALLEN — landing de la tienda
 
-Landing de una tienda online que revende productos Apple en Guaymallén, Mendoza. Está hecha con HTML, CSS y JavaScript simple: no usa React, Vue, ni ningún framework, y no hace falta instalar nada para editarla ni para probarla.
+Landing de una tienda online que revende productos Apple en Allen, Río Negro. Está hecha con HTML, CSS y JavaScript simple: no usa React, Vue, ni ningún framework, y no hace falta instalar nada para editarla ni para probarla.
 
 Los cuatro archivos que la forman son:
 
@@ -44,7 +44,7 @@ Los textos provisorios ya no se ven como corchetes en pantalla: se reemplazaron 
    Archivo `app.js`, objeto `CONTACTO`, campo `email`. Hoy dice `'[CORREO]'`. **No se muestra en ninguna parte**: el pie de página ya no lleva íconos de redes (WhatsApp e Instagram quedaron sólo en la sección Contacto). El campo queda ahí como dato del negocio, para cuando se decida dónde publicarlo.
 
 4. **La dirección del local.**
-   Hoy figura "Dorrego, Guaymallén · Río Cuarto 2341" en el hero y en el pie. Es **provisoria**: está marcada con el comentario `DIRECCIÓN PROVISORIA` en `index.html` y en `app.js` (constante `DIRECCION`). Confirmarla con el cliente antes de publicar.
+   Hoy figura "Río Cuarto 2341, Allen, Río Negro" en el hero y en el pie. Es **provisoria**: está marcada con el comentario `DIRECCIÓN PROVISORIA` en `index.html` y en `app.js` (constante `DIRECCION`). Confirmarla con el cliente antes de publicar.
 
 5. **La promo bancaria: las cuotas y las tarjetas.**
    La franja `#promo` de `index.html` anuncia **"3, 6 y 12 cuotas sin interés"** y muestra tres medios de pago (Visa, Mastercard, Cabal). **Las dos cosas son provisorias y hay que confirmarlas con el cliente**: las cuotas dependen de lo que le ofrezca cada banco.
@@ -108,7 +108,7 @@ Se edita ahí y cambia en los dos lugares a la vez. Vale igual para nuevos y usa
 
 ### El contador de la pestaña
 
-Cuando el carrito tiene productos, el título de la pestaña del navegador arranca con la cantidad: `(3) iPhones — miIphoneMZA…`. Con el carrito vacío se ve el título normal. El número son **unidades** (respeta las cantidades, no cuenta líneas), se actualiza al agregar, quitar y cambiar cantidades, y como el carrito vive en `localStorage` sigue estando al pasar de una página a otra. Cada página conserva su propio título: el número se le antepone.
+Cuando el carrito tiene productos, el título de la pestaña del navegador arranca con la cantidad: `(3) iPhones — IPHONE ALLEN…`. Con el carrito vacío se ve el título normal. El número son **unidades** (respeta las cantidades, no cuenta líneas), se actualiza al agregar, quitar y cambiar cantidades, y como el carrito vive en `localStorage` sigue estando al pasar de una página a otra. Cada página conserva su propio título: el número se le antepone.
 
 ---
 
