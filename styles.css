@@ -1226,9 +1226,31 @@ html[data-anim-entrada="no"] .card {
 .card,
 .carrusel__slide { position: relative; }
 
+/* Qué va en esta lista: TODO control clickeable que viva dentro de .card o
+   de .carrusel__slide. No un atributo puntual — un control. Es la regla
+   práctica, y sale de haberla incumplido:
+
+   El botón "Comparar" del catálogo NO es un <button data-comparar>: es un
+   <a class="btn btn--sec btn--comparar"> (lo arma botonComparar() en
+   app.js; la rama que pone data-comparar necesita esInicio, y en el inicio
+   no se pintan tarjetas). O sea que .card [data-comparar] NO matchea nada
+   en producción — se conserva por si esa rama alguna vez se usa.
+
+   Como .btn--comparar no figuraba acá, el <a> quedaba en position:static y
+   .card__abrir::after (absolute, inset:0, sin pointer-events:none) se
+   pintaba por encima y se comía el clic: apretar "Comparar" abría el modal
+   del producto en vez de navegar al comparador. Medido con
+   elementsFromPoint, el tope del punto era .card__abrir; y el handler
+   delegado evalúa closest('[data-modal]') ANTES que
+   closest('[data-comparar]'), así que ni siquiera había empate.
+
+   El carrusel no lleva "Comparar" (su slide sólo pinta botonAccion), por
+   eso no hay .carrusel__slide .btn--comparar. Si algún día se le agrega,
+   hay que sumarlo o vuelve el mismo bug. */
 .card [data-agregar],
 .card [data-avisar],
 .card [data-comparar],
+.card .btn--comparar,
 .card .btn[data-modal],
 .carrusel__slide [data-agregar],
 .carrusel__slide [data-avisar] { position: relative; z-index: 2; }
