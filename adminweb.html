@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Mismo script anti-parpadeo que el sitio: aplica el tema guardado
+     ANTES del primer pintado. Comparte la clave de localStorage
+     ("nombre-tema") con app.js, así el panel abre con el mismo tema que
+     el visitante dejó elegido en la tienda. -->
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('nombre-tema');
+      if (t !== 'claro' && t !== 'oscuro') t = 'claro';
+      document.documentElement.setAttribute('data-tema', t);
+    } catch (e) {
+      document.documentElement.setAttribute('data-tema', 'claro');
+    }
+  })();
+</script>
+
+<title>Panel de administración — IPHONE ALLEN</title>
+
+<!-- ===================================================================
+     ESTA PÁGINA NO SE INDEXA. Y NO, LA URL NO ES EL CANDADO.
+     ===================================================================
+     El noindex de acá abajo sólo evita que aparezca en Google. NO es una
+     medida de seguridad: cualquiera que escriba /adminweb.html llega a
+     esta pantalla, y eso está bien.
+
+     Lo que realmente protege los datos son DOS cosas, las dos del lado
+     del servidor:
+
+       1. EL LOGIN. Sin correo y contraseña válidos no hay token, y sin
+          token el panel no muestra ni un producto.
+       2. LAS POLÍTICAS RLS de la base (ver supabase/schema.sql). Aunque
+          alguien copie la clave publishable que está en admin.js —que es
+          pública por diseño— con ella sólo puede LEER. Para escribir,
+          Postgres exige un token de usuario autenticado.
+
+     O sea: esconder la URL no aportaría seguridad, y dejarla a la vista
+     no se la quita. Por eso no se ofusca ni se "protege" el nombre del
+     archivo.
+     =================================================================== -->
+<meta name="robots" content="noindex, nofollow">
+
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=general-sans@400,500,600&display=swap">
+<!-- La hoja del sitio: es lo que hace que las tarjetas del panel se vean
+     EXACTAMENTE como las del catálogo real. admin.css sólo agrega lo
+     propio del panel (login, editor, barra de herramientas). -->
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin">
+
+<!-- ===================== PANTALLA DE LOGIN =====================
+     Es lo único que se ve sin sesión. El panel entero vive en
+     #panel, que arranca oculto. -->
+<main class="login" id="login" hidden>
+  <form class="login__caja" id="loginForm" novalidate>
+    <h1 class="login__titulo">Panel de administración</h1>
+    <p class="login__sub">Entrá con tu cuenta para editar el catálogo.</p>
+
+    <div class="campo">
+      <label class="campo__label" for="loginEmail">Correo</label>
+      <input class="input" type="email" id="loginEmail" name="email"
+             autocomplete="username" placeholder="Ej: vos@tucorreo.com" required>
+    </div>
+
+    <div class="campo">
+      <label class="campo__label" for="loginPass">Contraseña</label>
+      <input class="input" type="password" id="loginPass" name="password"
+             autocomplete="current-password" placeholder="Tu contraseña" required>
+    </div>
+
+    <!-- role=alert para que el lector de pantalla lo anuncie solo -->
+    <p class="login__error" id="loginError" role="alert" hidden></p>
+
+    <button class="btn btn--compacto btn--principal" type="submit" id="loginBtn">
+      <span class="btn__ico" data-ico="flecha"></span><span class="btn__txt">Entrar</span>
+    </button>
+  </form>
+</main>
+
+
+<!-- ========================= EL PANEL ========================= -->
+<div class="panel" id="panel" hidden>
+
+  <header class="panel__head">
+    <div class="wrap panel__head-inner">
+      <div class="panel__marca">
+        <span class="panel__logo" id="panelLogo"></span>
+        <span class="panel__chip">Administración</span>
+      </div>
+      <div class="panel__acciones">
+        <span class="panel__usuario" id="panelUsuario"></span>
+        <button class="tema-btn" type="button" id="temaBtn" aria-label="Cambiar tema">
+          <span class="tema-btn__ico" id="temaBtnIco" aria-hidden="true"></span>
+        </button>
+        <button class="btn-plano" type="button" id="salirBtn">Cerrar sesión</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="panel__cuerpo">
+    <div class="wrap">
+
+      <div class="panel__intro">
+        <h1 class="seccion__titulo">Catálogo</h1>
+        <p class="seccion__sub" id="panelConteo">Cargando…</p>
+      </div>
+
+      <!-- Mismas pastillas y buscador que el catálogo real -->
+      <div class="barra-catalogo">
+        <nav class="filtros" id="filtrosCat" aria-label="Filtrar por categoría"></nav>
+        <div class="herramientas">
+          <label class="admin-buscador">
+            <span class="sr-only">Buscar producto</span>
+            <input class="input admin-buscador__campo" type="search" id="buscador"
+                   placeholder="Buscar por nombre o id…" autocomplete="off">
+          </label>
+        </div>
+      </div>
+
+      <div id="panelSecciones" aria-live="polite"></div>
+      <p class="admin-vacio" id="panelVacio" hidden></p>
+
+    </div>
+  </main>
+</div>
+
+
+<!-- ========================= EL EDITOR =========================
+     Vista previa a la izquierda (la MISMA tarjeta que ve el comprador,
+     redibujada en vivo con cada tecla) y campos a la derecha. -->
+<div class="editor" id="editor" hidden>
+  <div class="editor__velo" id="editorVelo"></div>
+
+  <section class="editor__panel" role="dialog" aria-modal="true"
+           aria-labelledby="editorTitulo" id="editorPanel">
+
+    <header class="editor__head">
+      <h2 class="editor__titulo" id="editorTitulo">Editar producto</h2>
+      <button class="editor__cerrar" type="button" id="editorCerrar" aria-label="Cerrar editor">
+        <span aria-hidden="true">✕</span>
+      </button>
+    </header>
+
+    <div class="editor__cuerpo">
+
+      <!-- VISTA PREVIA -->
+      <aside class="editor__previa" aria-labelledby="previaTitulo">
+        <h3 class="editor__subtitulo" id="previaTitulo">Así se ve en la tienda</h3>
+        <div class="editor__previa-caja">
+          <div class="grilla grilla--uniforme" id="previaTarjeta"></div>
+        </div>
+        <p class="editor__nota">Se actualiza mientras escribís. Todavía no se guardó nada.</p>
+      </aside>
+
+      <!-- CAMPOS -->
+      <form class="editor__form" id="editorForm" novalidate>
+        <div id="editorCampos"></div>
+
+        <p class="editor__aviso" id="editorAviso" role="alert" hidden></p>
+
+        <div class="editor__pie">
+          <button class="btn btn--sec btn--compacto" type="button" id="cancelarBtn">
+            <span class="btn__ico" data-ico="volver"></span><span class="btn__txt">Cancelar</span>
+          </button>
+          <!-- "cambios" se oculta en celular: ahí el botón es angosto y
+               el texto entero envolvía a tres líneas (ver admin.css). -->
+          <button class="btn btn--compacto btn--principal" type="submit" id="guardarBtn">
+            <span class="btn__ico" data-ico="check"></span><span class="btn__txt">Guardar<span class="editor__pie-extra"> cambios</span></span>
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </section>
+</div>
+
+<!-- Confirmación breve tras guardar (mismo componente que el sitio) -->
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="admin.js"></script>
+</body>
+</html>

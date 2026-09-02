@@ -110,8 +110,109 @@ Dos formas de manejarlo, según cuánto trabajo quieras:
 - **Asumir que se desactualiza**: dejarlo como una foto del catálogo al día de
   hoy. El sitio nunca se cae, pero el respaldo muestra precios viejos.
 
-Cuando esté el panel de administración (próxima etapa), lo natural es que exporte
-el JSON de respaldo solo, y este problema desaparece.
+Más adelante lo natural es que el panel exporte el JSON de respaldo solo, y este
+problema desaparece. Por ahora es a mano.
+
+---
+
+## El panel de administración
+
+Sirve para **editar los productos del catálogo sin tocar código**. Está en:
+
+```
+tusitio.com/adminweb.html
+```
+
+Son tres archivos, y **el sitio público no carga ninguno**: `adminweb.html`,
+`admin.js` y `admin.css`. Las seis páginas de la tienda siguen cargando
+únicamente `app.js` y `styles.css`.
+
+### Primero: crear tu usuario en Supabase
+
+El panel no tiene registro: los usuarios se crean desde el panel de Supabase.
+Se hace una sola vez.
+
+1. Entrar a **Supabase → Authentication → Users**.
+2. Botón **Add user → Create new user**.
+3. Poner el correo y una contraseña.
+4. Marcar **Auto Confirm User** (si no, Supabase manda un mail de confirmación y
+   hasta que no se confirme, ese usuario no puede entrar).
+
+Listo: con ese correo y esa contraseña ya se entra al panel.
+
+> Para sumar a otra persona, se repite el paso. Cualquier usuario autenticado
+> puede editar: por ahora no hay roles ni permisos por persona.
+
+### Cómo se entra
+
+Se abre `adminweb.html`, se pone correo y contraseña, y ya. **La sesión queda
+guardada**: al volver más tarde, o al recargar, entra derecho sin pedir la clave
+otra vez. El acceso dura aproximadamente una hora y **se renueva solo** mientras
+la pestaña esté abierta, así que no corta a mitad de una edición.
+
+Para salir, el botón **Cerrar sesión** arriba a la derecha.
+
+Si no hay sesión, lo único que se ve es la pantalla de login: ni un producto.
+
+### Qué se puede editar en esta versión
+
+El panel muestra los productos **como los ve un comprador** —la misma tarjeta,
+la misma grilla, agrupados por categoría— y se edita ahí mismo. Al tocar
+**Editar**, se abre un panel con la **vista previa a un lado y los campos al
+otro**: la tarjeta se redibuja mientras escribís, así ves cómo va a quedar antes
+de guardar.
+
+Se puede cambiar:
+
+| | |
+|---|---|
+| Nombre, categoría, subcategoría | |
+| Precio, precio anterior, stock | |
+| Specs | una por línea |
+| Ficha técnica | los nombres y los valores, **respetando el orden** |
+| Etiqueta | Sin etiqueta / Nuevo ingreso / Oferta |
+| Destacado, Principal | |
+| Condición | nuevo o usado |
+| De los usados | año, id del modelo nuevo equivalente, y el informe de estado completo |
+
+Arriba hay un **buscador** (por nombre o por id) y **filtros por categoría**.
+
+### Qué NO se puede todavía
+
+- **Crear** productos nuevos.
+- **Borrar** productos.
+- **Subir fotos** (siguen yendo a mano a `img/`, con el nombre del id).
+- **Editar los combos**.
+- Cambiar el **id** de un producto: es el nombre de su foto y lo usan los combos,
+  así que se muestra pero no se edita.
+
+Todo eso queda para la próxima etapa.
+
+### Un par de cosas que conviene saber
+
+- **Cancelar descarta.** Si te arrepentís a mitad de una edición, "Cancelar"
+  (o Escape) deja el producto como estaba.
+- **Si falla el guardado, no perdés nada.** Aparece el error y tus cambios siguen
+  en pantalla para reintentar.
+- **Precio anterior menor que el precio:** el panel te avisa (porque se muestra
+  tachado, como si fuera un descuento, y queda raro) pero **te deja guardar
+  igual** por si es a propósito.
+- **El cambio se ve en la tienda al recargarla.** El sitio lee el catálogo cada
+  vez que se abre una página.
+- **Acordate del respaldo.** Lo que edites acá cambia Supabase, no
+  `productos.json` (ver la sección de arriba).
+
+### Sobre la seguridad
+
+La URL `/adminweb.html` **no es secreta y no hace falta que lo sea**. Cualquiera
+que la escriba llega a la pantalla de login y no pasa de ahí. Lo que protege los
+datos son dos cosas del lado del servidor:
+
+1. **El login**: sin correo y contraseña válidos no hay acceso.
+2. **Las políticas RLS** de la base: aunque alguien copie la clave publishable
+   que está en el código —que es pública por diseño— con ella sólo puede
+   **leer**. Para escribir, Postgres exige el token de un usuario autenticado,
+   que es el que manda este panel.
 
 ---
 

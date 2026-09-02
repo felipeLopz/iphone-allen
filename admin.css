@@ -1,0 +1,405 @@
+/* =====================================================================
+   IPHONE ALLEN — estilos del panel de administración
+   =====================================================================
+   Sólo lo carga adminweb.html. Va DESPUÉS de styles.css y no pisa nada
+   del sitio: agrega lo que el panel tiene de más (login, barra, editor)
+   y reusa tal cual lo que ya existe — .card, .grilla, .btn, .input,
+   .filtro, .campo, .toast — para que las tarjetas se vean idénticas a
+   las del catálogo real.
+
+   Todos los colores salen de las variables del tema, así el panel
+   funciona en claro y oscuro sin declarar un solo color propio.
+   ================================================================== */
+
+.admin { background: var(--fondo); }
+
+/* Cuando el editor está abierto, el fondo no scrollea */
+body.sin-scroll { overflow: hidden; }
+
+
+/* ============================== LOGIN ============================== */
+
+.login {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px 20px;
+}
+
+.login__caja {
+  width: 100%;
+  max-width: 380px;
+  display: grid;
+  gap: 14px;
+  padding: 26px 22px;
+  background: var(--superficie);
+  border: 1px solid var(--borde-superficie);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-superficie);
+}
+
+.login__titulo {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.login__sub {
+  margin-top: -8px;
+  font-size: 0.9rem;
+  color: var(--texto-suave);
+}
+
+.login__error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radio-sm);
+  background: var(--error-suave);
+  border: 1px solid var(--rojo-suave);
+  color: var(--rojo-suave);
+  font-size: 0.88rem;
+}
+
+.login .btn { justify-self: stretch; }
+.login .btn .btn__txt { flex: 1; text-align: center; }
+
+
+/* ============================== PANEL ============================== */
+
+.panel__head {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--fondo);
+  border-bottom: 1px solid var(--borde);
+}
+
+.panel__head-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 12px;
+  flex-wrap: wrap;
+}
+
+.panel__marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Chip que deja claro que esto NO es la tienda sino el panel */
+.panel__chip {
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--acento);
+  border: 1px solid var(--borde-acento);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+.panel__acciones {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel__usuario {
+  font-size: 0.82rem;
+  color: var(--texto-suave);
+  max-width: 40vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel__cuerpo { padding-block: 22px 60px; }
+.panel__intro { margin-bottom: 18px; }
+
+.admin-buscador { display: block; }
+.admin-buscador__campo { min-width: 240px; }
+
+.admin-vacio {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--texto-suave);
+}
+
+/* El botón "Editar" ocupa el lugar del "Agregar al carrito" de la
+   tienda. En la vista previa del editor ese lugar lo llena un botón
+   apagado, para que la tarjeta mida exactamente lo mismo. */
+.admin-card__fantasma {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+
+/* ============================== EDITOR ============================= */
+
+.editor {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.editor__velo {
+  position: absolute;
+  inset: 0;
+  background: var(--velo);
+}
+
+.editor__panel {
+  position: relative;
+  width: min(920px, 100%);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--superficie);
+  border-left: 1px solid var(--borde-superficie);
+  box-shadow: 0 0 40px rgba(var(--sombra-rgb), 0.3);
+}
+
+.editor__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.editor__titulo {
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor__cerrar {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--texto-suave);
+  font-size: 1rem;
+  transition: color var(--transicion), background var(--transicion);
+}
+.editor__cerrar:hover { color: var(--texto); background: var(--superficie2); }
+
+/* Dos columnas: la vista previa queda fija a la izquierda mientras los
+   campos scrollean. En celular pasa a una sola columna, con la previa
+   arriba (que es lo que se quiere mirar mientras se escribe). */
+.editor__cuerpo {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+}
+
+.editor__previa {
+  padding: 18px;
+  border-right: 1px solid var(--borde);
+  background: var(--fondo);
+  overflow-y: auto;
+}
+
+.editor__subtitulo {
+  font-family: var(--display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+  margin-bottom: 12px;
+}
+
+/* La grilla de una sola columna reproduce el ancho de una tarjeta real */
+.editor__previa-caja .grilla { grid-template-columns: 1fr; }
+
+.editor__nota {
+  margin-top: 12px;
+  font-size: 0.78rem;
+  color: var(--texto-tenue);
+  line-height: 1.4;
+}
+
+.editor__form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#editorCampos {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 20px;
+}
+
+.editor__grupo {
+  border: 0;
+  padding: 0;
+  margin: 0 0 22px;
+}
+
+.editor__grupo legend {
+  font-family: var(--display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--texto);
+  padding: 0 0 10px;
+}
+
+.editor__ayuda-grupo {
+  margin: -4px 0 12px;
+  font-size: 0.82rem;
+  color: var(--texto-suave);
+}
+
+.editor__id {
+  margin-bottom: 14px;
+  font-size: 0.82rem;
+  color: var(--texto-suave);
+}
+.editor__id code {
+  background: var(--superficie2);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.editor__fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Clave + valor de la ficha técnica, en dos columnas */
+.editor__par {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.editor__par-clave { font-weight: 600; }
+
+/* --texto-suave y no --texto-tenue: son instrucciones que hay que poder
+   leer ("Vacío = hay stock"), no una leyenda decorativa. Con --texto-tenue
+   quedaban en 3.1 de contraste sobre el fondo claro. */
+.campo__ayuda {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+}
+
+.admin-textarea {
+  min-height: 92px;
+  resize: vertical;
+  font-family: var(--cuerpo);
+  line-height: 1.5;
+}
+
+.admin-select { width: 100%; }
+
+.admin-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-bottom: 10px;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+.admin-check input { margin-top: 3px; flex: 0 0 auto; }
+.admin-check small { color: var(--texto-tenue); }
+
+/* Aviso del editor: rojo si es error, ámbar si es una advertencia que
+   igual deja guardar (el caso del precio anterior menor al actual). */
+.editor__aviso {
+  margin: 0 20px;
+  padding: 10px 12px;
+  border-radius: var(--radio-sm);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+.editor__aviso--error {
+  background: var(--error-suave);
+  border: 1px solid var(--rojo-suave);
+  color: var(--rojo-suave);
+}
+.editor__aviso--atencion {
+  background: var(--usado-fondo);
+  border: 1px solid var(--usado-borde);
+  color: var(--usado-texto);
+}
+
+.editor__pie {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--borde);
+  background: var(--superficie);
+}
+
+.editor__pie .btn:disabled { opacity: 0.6; }
+
+
+/* ============================== MOBILE ============================= */
+/* El cliente lo va a usar del teléfono, así que el editor pasa a ocupar
+   toda la pantalla y a una sola columna. */
+
+@media (max-width: 780px) {
+  .editor__panel { width: 100%; border-left: 0; }
+
+  .editor__cuerpo {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    overflow-y: auto;
+  }
+
+  .editor__previa {
+    border-right: 0;
+    border-bottom: 1px solid var(--borde);
+    overflow: visible;
+  }
+
+  /* En celular la tarjeta de la previa no necesita el ancho completo */
+  .editor__previa-caja { max-width: 320px; margin-inline: auto; }
+
+  #editorCampos { overflow: visible; }
+
+  .editor__fila { grid-template-columns: 1fr; }
+  .editor__par { grid-template-columns: 1fr; gap: 6px; }
+  .editor__par-clave { font-size: 0.85rem; }
+
+  .editor__pie {
+    position: sticky;
+    bottom: 0;
+  }
+  /* Los dos botones se reparten el ancho. Sin el nowrap el texto envolvía
+     a dos y tres líneas y quedaban de alto distinto (44 vs 71px); por eso
+     además se acorta "Guardar cambios" a "Guardar" sólo acá. */
+  .editor__pie .btn { flex: 1 1 0; min-width: 0; }
+  .editor__pie .btn .btn__txt {
+    flex: 1;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .editor__pie-extra { display: none; }
+
+  .panel__usuario { display: none; }
+  .admin-buscador__campo { min-width: 0; width: 100%; }
+  .herramientas { width: 100%; }
+}
