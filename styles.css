@@ -24,7 +24,11 @@
   --comparador-gana: #E2E5E9;
   --texto:        #1A1F24;
   --texto-suave:  #5A646E;
-  --texto-tenue:  #8A939C;
+  /* Subido de #8A939C: sobre blanco daba 3.12:1 y no llegaba al mínimo
+     de 4.5:1. Ahora 4.55:1, y sigue claramente por debajo de
+     --texto-suave (6.03), así que la jerarquía de los tres grises no
+     se pierde. Lo usan los placeholders y los textos de apoyo. */
+  --texto-tenue:  #6E7780;
   --rojo-suave:   #C0392B;
   --error-suave:  #FDEDEA;
 
@@ -117,7 +121,9 @@
 
   --texto:        #F0F0F2;
   --texto-suave:  #9AA3AC;
-  --texto-tenue:  #79838E;
+  /* Igual que en el tema claro: daba 4.49:1 sobre --superficie, a un
+     pelo del mínimo. Ahora 4.82:1. */
+  --texto-tenue:  #838D98;
 
   --rojo-suave:   #E28275;
   --error-suave:  #2A1B18;
@@ -1032,6 +1038,9 @@ button {
 .barra {
   width: 42px;
   height: 4px;
+  /* La barra se ve de 4px pero se toca mucho más: el ::after de abajo le
+     agranda el área sin mover ni un pixel de lo que se ve. */
+  position: relative;
   border-radius: 999px;
   background: var(--borde-fuerte);
   border: 0;
@@ -1039,6 +1048,16 @@ button {
   transition: background 300ms ease, width 300ms ease;
 }
 .barra:hover { background: var(--texto-suave); }
+
+/* Área de toque invisible: 4px de alto es imposible de acertar con el
+   dedo. Se extiende 10px para arriba y para abajo (24px en total, el
+   mínimo de WCAG 2.5.8) en vez de 44, para no comerse los clics del
+   carrusel que está justo encima. */
+.barra::before {
+  content: "";
+  position: absolute;
+  inset: -10px 0;
+}
 .barra[aria-selected="true"] {
   background: var(--acento-fuerte);
   width: 62px;
@@ -2522,6 +2541,10 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 .rango__campo {
   width: 74px;
   min-width: 0;
+  /* Llena la cápsula a lo alto. No se ve ninguna diferencia (el campo no
+     tiene ni fondo ni borde) pero el área que responde al toque pasa de
+     22px a los 38 de la cápsula, que es lo que el dedo apunta. */
+  height: 100%;
   border: 0;
   background: none;
   color: var(--texto);
@@ -2613,19 +2636,9 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   outline-offset: 2px;
 }
 
-.orden__select {
-  height: 38px;
-  border: 1px solid var(--borde);
-  border-radius: 999px;
-  background: var(--superficie);
-  color: var(--texto-suave);
-  font: inherit;
-  font-size: 0.85rem;
-  padding: 0 10px;
-  cursor: pointer;
-  transition: color var(--transicion), border-color var(--transicion);
-}
-.orden__select:hover { color: var(--texto); border-color: var(--texto-suave); }
+/* El orden usa el selector propio (.csel) en su variante pastilla, para
+   entrar en la barra junto al rango y al filtro de condición. Los estilos
+   de la variante están con el resto de .csel, más abajo. */
 
 .buscador {
   position: relative;   /* ancla del desplegable de sugerencias */
@@ -3107,6 +3120,33 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   opacity: 0.55;
 }
 .csel__op[aria-disabled="true"].is-resaltada { background: transparent; }
+
+/* ------------------ VARIANTE PASTILLA (barra del catálogo) ---------
+   Mismo componente, pinta de pastilla: es el selector de orden, que
+   convive con .rango y .condicion y tiene que medir lo mismo que ellos.
+   ------------------------------------------------------------------ */
+.csel--pastilla .csel__btn {
+  width: auto;
+  min-height: 38px;
+  height: 38px;
+  padding: 0 10px 0 14px;
+  gap: 6px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+.csel--pastilla .csel__btn:hover { color: var(--texto); }
+.csel--pastilla .csel__chevron { width: 14px; height: 14px; }
+
+/* El botón es angosto (se adapta al texto) pero el panel no puede serlo:
+   se ancla a la izquierda y crece hasta donde necesite, sin pasarse del
+   ancho de la ventana. */
+.csel--pastilla .csel__panel {
+  right: auto;
+  min-width: 100%;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 2 * var(--gutter)));
+}
 
 @media (max-width: 559px) {
   /* en celular las opciones se agrandan para el dedo */
@@ -3925,7 +3965,40 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
     padding-inline: 4px;
   }
 
-  .orden__select { flex: 1 1 auto; min-width: 0; }
+  /* La pastilla del orden se estira para llenar la fila que comparte con
+     la lupa, igual que hacía el <select> que reemplazó. */
+  .csel--pastilla { flex: 1 1 auto; min-width: 0; }
+  .csel--pastilla .csel__btn { width: 100%; }
+
+  /* ------------------- ÁREAS DE TOQUE EN CELULAR -------------------
+     Los cinco controles de la barra medían 38px de alto (43 las
+     pastillas de categoría), por debajo de los 44 que se recomiendan
+     para el dedo. En escritorio se quedan como estaban: ahí el mouse
+     acierta un blanco de 38px sin problema, y subirlos engordaría una
+     barra que está bien así.
+     ----------------------------------------------------------------- */
+  .rango,
+  .condicion,
+  .csel--pastilla .csel__btn,
+  .buscador__lupa {
+    height: 44px;
+  }
+  .buscador__lupa { width: 44px; }
+
+  .filtro {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  /* Le faltaba 1px para los 44. Es un botón de ancho completo al pie del
+     carrito, así que crecer no le cuesta nada.
+     Los demás controles de los overlays (+/− de cantidad, "Quitar",
+     cerrar del carrito y del modal, limpiar del rango) siguen por debajo
+     de 44px a propósito: agrandarlos cambia cómo se ven, y estirarles el
+     área con un pseudo-elemento invisible NO funciona acá — .linea__precio
+     se pinta por encima y se come el clic. Queda reportado. */
+  #vaciarCarrito { min-height: 44px; }
   .buscador { flex: 0 0 auto; margin-left: auto; }
 }
 

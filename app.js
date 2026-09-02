@@ -178,6 +178,15 @@
     { valor: 'usados', texto: 'Usados' }
   ];
 
+  // Opciones del selector de orden. Acá arriba por lo mismo que
+  // CONDICIONES: declarada al lado de htmlOrden() valdría undefined
+  // cuando se pinta la barra, y el selector quedaría sin opciones.
+  var ORDENES = [
+    { valor: 'defecto', etiqueta: 'Orden: por defecto' },
+    { valor: 'asc',     etiqueta: 'Menor precio' },
+    { valor: 'desc',    etiqueta: 'Mayor precio' }
+  ];
+
   // Title propio de la página, para anteponerle el contador del carrito
   // (ver actualizarTituloPestana). Se lee antes de tocarlo nunca.
   var TITULO_BASE = document.title;
@@ -224,6 +233,7 @@
   var precioHasta = null;
   var rangoInvalido = false;         // "Desde" > "Hasta": se avisa y no se aplica
   var orden = 'defecto';             // 'defecto' | 'asc' | 'desc'
+  var selectorOrden = null;          // instancia de crearSelector()
   var condicion = 'todos';           // 'todos' | 'nuevos' | 'usados'
   var slideActivo = 0;
   var destacados = [];
@@ -1799,15 +1809,255 @@
     return true;
   }
 
+  /* ================= COMPONENTES COMPARTIDOS ======================
+     Piezas que usan la barra del catálogo y el comparador por igual.
+     ================================================================ */
+
+  /* ==================== SELECTOR PERSONALIZADO =======================
+     Reemplaza a un <select> nativo, que en celular abre la rueda del
+     sistema y no se puede estilar. Sigue el patrón combobox + listbox de
+     ARIA, con el foco SIEMPRE en el botón: mientras el panel está
+     abierto, la opción resaltada se comunica con aria-activedescendant en
+     vez de moviendo el foco. Eso es lo que hace que un selector propio
+     sea usable con lector de pantalla y con teclado solo.
+
+     Lo usan DOS controles, con la misma pinta y el mismo teclado:
+       · el comparador (index.html): lista agrupada por categoría, con
+         opción vacía para despejar la columna y opciones deshabilitadas
+         (no se compara un producto consigo mismo).
+       · el orden de la grilla: lista plana de tres opciones, sin vacía
+         (siempre hay un orden aplicado) y sin deshabilitadas.
+     Las diferencias salen todas de cfg, no hay dos implementaciones.
+
+     Devuelve una API chica para manejarlo igual que a un <select>:
+     setOpciones / setValor / deshabilitar / valor.
+     ------------------------------------------------------------------ */
+  function crearSelector(cfg) {
+    // cfg: { id, idLabel, placeholder, alElegir(valor) }
+    var raiz = $('#' + cfg.id);
+    if (!raiz) return null;
+
+    // Variante visual (cfg.clase): el comparador usa la caja grande y el
+    // orden la pastilla chica de la barra. Sólo cambia el CSS.
+    if (cfg.clase) raiz.classList.add(cfg.clase);
+
+    var idBtn = cfg.id + '-btn';
+    var idPanel = cfg.id + '-panel';
+
+    raiz.innerHTML =
+      '<button class="csel__btn" type="button" id="' + idBtn + '" ' +
+              'role="combobox" aria-expanded="false" aria-haspopup="listbox" ' +
+              'aria-controls="' + idPanel + '" ' +
+              'aria-labelledby="' + cfg.idLabel + ' ' + idBtn + '">' +
+        '<span class="csel__valor"></span>' +
+        icono('chevron', 'csel__chevron') +
+      '</button>' +
+      '<div class="csel__panel" id="' + idPanel + '" role="listbox" ' +
+           'aria-labelledby="' + cfg.idLabel + '" hidden></div>';
+
+    var btn = $('#' + idBtn);
+    var panel = $('#' + idPanel);
+    var etiquetaEl = raiz.querySelector('.csel__valor');
+
+    var grupos = [];      // [{ titulo, items: [{ valor, etiqueta }] }]
+    var planas = [];      // todas las opciones en orden, para las flechas
+    var valorActual = '';
+    var idDeshabilitado = null;
+    var abierto = false;
+    var resaltado = -1;
+
+    function esElegible(op) {
+      return !!op && !(op.valor !== '' && op.valor === idDeshabilitado);
+    }
+
+    function opcionHTML(op, i) {
+      var inhabilitada = op.valor !== '' && op.valor === idDeshabilitado;
+      return '<div class="csel__op" role="option" id="' + cfg.id + '-op-' + i + '" ' +
+                  'data-valor="' + esc(op.valor) + '" data-i="' + i + '" ' +
+                  'aria-selected="' + (op.valor === valorActual ? 'true' : 'false') + '"' +
+                  (inhabilitada ? ' aria-disabled="true"' : '') + '>' +
+               esc(op.etiqueta) +
+             '</div>';
+    }
+
+    function pintarPanel() {
+      var html = '';
+      planas = [];
+
+      // La opción vacía va primera y nunca se deshabilita: es la forma de
+      // vaciar la columna. Existe SÓLO si hay placeholder: el selector de
+      // orden no tiene "sin elegir", siempre hay un orden aplicado.
+      if (cfg.placeholder) {
+        var vacia = { valor: '', etiqueta: cfg.placeholder };
+        planas.push(vacia);
+        html += opcionHTML(vacia, 0);
+      }
+
+      grupos.forEach(function (g) {
+        // Sin "items" es una opción suelta: la lista es plana y no lleva
+        // ni título ni role=group (el caso del orden).
+        if (!g.items) {
+          var suelta = planas.length;
+          planas.push(g);
+          html += opcionHTML(g, suelta);
+          return;
+        }
+        html += '<div role="group" aria-label="' + esc(g.titulo) + '">' +
+                  '<div class="csel__grupo" aria-hidden="true">' + esc(g.titulo) + '</div>';
+        g.items.forEach(function (it) {
+          var i = planas.length;
+          planas.push(it);
+          html += opcionHTML(it, i);
+        });
+        html += '</div>';
+      });
+
+      panel.innerHTML = html;
+    }
+
+    function refrescarEstados() {
+      Array.prototype.forEach.call(panel.querySelectorAll('.csel__op'), function (el) {
+        var v = el.dataset.valor;
+        el.setAttribute('aria-selected', v === valorActual ? 'true' : 'false');
+        if (v !== '' && v === idDeshabilitado) el.setAttribute('aria-disabled', 'true');
+        else el.removeAttribute('aria-disabled');
+      });
+
+      var elegida = null;
+      planas.forEach(function (o) { if (o.valor === valorActual) elegida = o; });
+      // Sin placeholder (orden) el botón nunca queda vacío: si el valor
+      // no matchea, cae en la primera opción, que es la que está aplicada.
+      etiquetaEl.textContent = elegida ? elegida.etiqueta
+                             : (cfg.placeholder || (planas[0] ? planas[0].etiqueta : ''));
+      raiz.dataset.vacio = valorActual ? 'false' : 'true';
+    }
+
+    function marcar(i) {
+      resaltado = i;
+      Array.prototype.forEach.call(panel.querySelectorAll('.csel__op'), function (el) {
+        var esta = Number(el.dataset.i) === i;
+        el.classList.toggle('is-resaltada', esta);
+        if (esta) {
+          btn.setAttribute('aria-activedescendant', el.id);
+          el.scrollIntoView({ block: 'nearest' });
+        }
+      });
+      if (i < 0) btn.removeAttribute('aria-activedescendant');
+    }
+
+    // Salta las deshabilitadas: no se alcanzan ni con las flechas.
+    function siguienteElegible(desde, paso) {
+      var i = desde;
+      for (var n = 0; n < planas.length; n++) {
+        i += paso;
+        if (i < 0) i = planas.length - 1;
+        if (i >= planas.length) i = 0;
+        if (esElegible(planas[i])) return i;
+      }
+      return desde;
+    }
+
+    function indiceDelValor() {
+      var idx = -1;
+      planas.forEach(function (o, k) { if (o.valor === valorActual) idx = k; });
+      return idx;
+    }
+
+    function abrir() {
+      if (abierto) return;
+      abierto = true;
+      panel.hidden = false;
+      btn.setAttribute('aria-expanded', 'true');
+      var i = indiceDelValor();
+      if (i < 0 || !esElegible(planas[i])) i = siguienteElegible(-1, 1);
+      marcar(i);
+    }
+
+    function cerrar(devolverFoco) {
+      if (!abierto) return;
+      abierto = false;
+      panel.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+      btn.removeAttribute('aria-activedescendant');
+      marcar(-1);
+      if (devolverFoco) btn.focus();
+    }
+
+    function elegir(i) {
+      var op = planas[i];
+      if (!esElegible(op)) return;      // una deshabilitada no se elige
+      valorActual = op.valor;
+      refrescarEstados();
+      cerrar(true);
+      if (cfg.alElegir) cfg.alElegir(valorActual);
+    }
+
+    btn.addEventListener('click', function () {
+      if (abierto) cerrar(false);
+      else abrir();
+    });
+
+    btn.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!abierto) { abrir(); return; }
+        marcar(siguienteElegible(resaltado, e.key === 'ArrowDown' ? 1 : -1));
+        return;
+      }
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        if (!abierto) abrir();
+        else elegir(resaltado);
+        return;
+      }
+      if (e.key === 'Escape') {
+        if (abierto) { e.preventDefault(); cerrar(true); }
+        return;
+      }
+      if (e.key === 'Tab') { cerrar(false); return; }
+      if (e.key === 'Home' && abierto) { e.preventDefault(); marcar(siguienteElegible(-1, 1)); }
+      if (e.key === 'End' && abierto) { e.preventDefault(); marcar(siguienteElegible(planas.length, -1)); }
+    });
+
+    // mousedown y no click: así el botón no recibe el foco de vuelta y
+    // vuelve a abrir el panel en el mismo gesto.
+    panel.addEventListener('mousedown', function (e) {
+      var op = e.target.closest('.csel__op');
+      if (!op) return;
+      e.preventDefault();
+      elegir(Number(op.dataset.i));
+    });
+
+    panel.addEventListener('mousemove', function (e) {
+      var op = e.target.closest('.csel__op');
+      if (!op) return;
+      var i = Number(op.dataset.i);
+      if (esElegible(planas[i])) marcar(i);
+    });
+
+    document.addEventListener('click', function (e) {
+      if (abierto && !raiz.contains(e.target)) cerrar(false);
+    });
+
+    return {
+      setOpciones: function (nuevos) { grupos = nuevos || []; pintarPanel(); refrescarEstados(); },
+      setValor: function (v) { valorActual = v || ''; pintarPanel(); refrescarEstados(); },
+      deshabilitar: function (id) { idDeshabilitado = id || null; refrescarEstados(); },
+      valor: function () { return valorActual; }
+    };
+  }
+
+  /* ------------------------ ORDEN DE LA GRILLA -----------------------
+     Era un <select> nativo: en celular abría la rueda del sistema, que
+     no combina con nada del sitio. Ahora usa el MISMO crearSelector() que
+     el comparador (ver COMPONENTES COMPARTIDOS), en su variante pastilla
+     para entrar en la barra junto al rango y al filtro de condición.
+     ------------------------------------------------------------------ */
   function htmlOrden() {
-    return '<label class="orden">' +
-             '<span class="sr-only">Ordenar por</span>' +
-             '<select class="orden__select" id="ordenPrecio">' +
-               '<option value="defecto">Orden: por defecto</option>' +
-               '<option value="asc">Menor precio</option>' +
-               '<option value="desc">Mayor precio</option>' +
-             '</select>' +
-           '</label>';
+    // El sr-only es el nombre accesible del combobox: sin él, el lector
+    // sólo leería el valor ("Menor precio") sin decir de qué control es.
+    return '<span class="sr-only" id="ordenLabel">Ordenar por</span>' +
+           '<div class="csel csel--pastilla" id="ordenSel"></div>';
   }
 
   function soloDigitos(v) { return String(v).replace(/\D+/g, ''); }
@@ -1865,10 +2115,19 @@
   }
 
   function iniciarOrden() {
-    $('#ordenPrecio').addEventListener('change', function () {
-      orden = this.value;
-      pintarCatalogo();
+    // Lista plana: sin placeholder (siempre hay un orden puesto) y sin
+    // opciones deshabilitadas. Las dos cosas las contempla crearSelector.
+    selectorOrden = crearSelector({
+      id: 'ordenSel',
+      idLabel: 'ordenLabel',
+      clase: 'csel--pastilla',
+      alElegir: function (valor) {
+        orden = valor;
+        pintarCatalogo();
+      }
     });
+    selectorOrden.setOpciones(ORDENES);
+    selectorOrden.setValor(orden);
   }
 
   // Reordena una lista por precio. 'defecto' devuelve el orden del JSON.
@@ -2723,213 +2982,6 @@
   // El comparador vive sólo en index.html. Desde una página de categoría
   // el botón "Comparar" es un enlace a index.html?comparar=<id>, que se
   // resuelve acá al terminar de montar la tabla.
-  /* ==================== SELECTOR PERSONALIZADO =======================
-     Reemplaza a un <select> nativo, que en celular abre la rueda del
-     sistema y no se puede estilar. Sigue el patrón combobox + listbox de
-     ARIA, con el foco SIEMPRE en el botón: mientras el panel está
-     abierto, la opción resaltada se comunica con aria-activedescendant en
-     vez de moviendo el foco. Eso es lo que hace que un selector propio
-     sea usable con lector de pantalla y con teclado solo.
-
-     Devuelve una API chica para que el comparador lo maneje igual que
-     manejaba al <select>: setOpciones / setValor / deshabilitar / valor.
-     ------------------------------------------------------------------ */
-  function crearSelector(cfg) {
-    // cfg: { id, idLabel, placeholder, alElegir(valor) }
-    var raiz = $('#' + cfg.id);
-    if (!raiz) return null;
-
-    var idBtn = cfg.id + '-btn';
-    var idPanel = cfg.id + '-panel';
-
-    raiz.innerHTML =
-      '<button class="csel__btn" type="button" id="' + idBtn + '" ' +
-              'role="combobox" aria-expanded="false" aria-haspopup="listbox" ' +
-              'aria-controls="' + idPanel + '" ' +
-              'aria-labelledby="' + cfg.idLabel + ' ' + idBtn + '">' +
-        '<span class="csel__valor"></span>' +
-        icono('chevron', 'csel__chevron') +
-      '</button>' +
-      '<div class="csel__panel" id="' + idPanel + '" role="listbox" ' +
-           'aria-labelledby="' + cfg.idLabel + '" hidden></div>';
-
-    var btn = $('#' + idBtn);
-    var panel = $('#' + idPanel);
-    var etiquetaEl = raiz.querySelector('.csel__valor');
-
-    var grupos = [];      // [{ titulo, items: [{ valor, etiqueta }] }]
-    var planas = [];      // todas las opciones en orden, para las flechas
-    var valorActual = '';
-    var idDeshabilitado = null;
-    var abierto = false;
-    var resaltado = -1;
-
-    function esElegible(op) {
-      return !!op && !(op.valor !== '' && op.valor === idDeshabilitado);
-    }
-
-    function opcionHTML(op, i) {
-      var inhabilitada = op.valor !== '' && op.valor === idDeshabilitado;
-      return '<div class="csel__op" role="option" id="' + cfg.id + '-op-' + i + '" ' +
-                  'data-valor="' + esc(op.valor) + '" data-i="' + i + '" ' +
-                  'aria-selected="' + (op.valor === valorActual ? 'true' : 'false') + '"' +
-                  (inhabilitada ? ' aria-disabled="true"' : '') + '>' +
-               esc(op.etiqueta) +
-             '</div>';
-    }
-
-    function pintarPanel() {
-      var html = '';
-      planas = [];
-
-      // La opción vacía va primera y nunca se deshabilita: es la forma de
-      // vaciar la columna.
-      var vacia = { valor: '', etiqueta: cfg.placeholder };
-      planas.push(vacia);
-      html += opcionHTML(vacia, 0);
-
-      grupos.forEach(function (g) {
-        html += '<div role="group" aria-label="' + esc(g.titulo) + '">' +
-                  '<div class="csel__grupo" aria-hidden="true">' + esc(g.titulo) + '</div>';
-        g.items.forEach(function (it) {
-          var i = planas.length;
-          planas.push(it);
-          html += opcionHTML(it, i);
-        });
-        html += '</div>';
-      });
-
-      panel.innerHTML = html;
-    }
-
-    function refrescarEstados() {
-      Array.prototype.forEach.call(panel.querySelectorAll('.csel__op'), function (el) {
-        var v = el.dataset.valor;
-        el.setAttribute('aria-selected', v === valorActual ? 'true' : 'false');
-        if (v !== '' && v === idDeshabilitado) el.setAttribute('aria-disabled', 'true');
-        else el.removeAttribute('aria-disabled');
-      });
-
-      var elegida = null;
-      planas.forEach(function (o) { if (o.valor === valorActual) elegida = o; });
-      etiquetaEl.textContent = elegida ? elegida.etiqueta : cfg.placeholder;
-      raiz.dataset.vacio = valorActual ? 'false' : 'true';
-    }
-
-    function marcar(i) {
-      resaltado = i;
-      Array.prototype.forEach.call(panel.querySelectorAll('.csel__op'), function (el) {
-        var esta = Number(el.dataset.i) === i;
-        el.classList.toggle('is-resaltada', esta);
-        if (esta) {
-          btn.setAttribute('aria-activedescendant', el.id);
-          el.scrollIntoView({ block: 'nearest' });
-        }
-      });
-      if (i < 0) btn.removeAttribute('aria-activedescendant');
-    }
-
-    // Salta las deshabilitadas: no se alcanzan ni con las flechas.
-    function siguienteElegible(desde, paso) {
-      var i = desde;
-      for (var n = 0; n < planas.length; n++) {
-        i += paso;
-        if (i < 0) i = planas.length - 1;
-        if (i >= planas.length) i = 0;
-        if (esElegible(planas[i])) return i;
-      }
-      return desde;
-    }
-
-    function indiceDelValor() {
-      var idx = -1;
-      planas.forEach(function (o, k) { if (o.valor === valorActual) idx = k; });
-      return idx;
-    }
-
-    function abrir() {
-      if (abierto) return;
-      abierto = true;
-      panel.hidden = false;
-      btn.setAttribute('aria-expanded', 'true');
-      var i = indiceDelValor();
-      if (i < 0 || !esElegible(planas[i])) i = siguienteElegible(-1, 1);
-      marcar(i);
-    }
-
-    function cerrar(devolverFoco) {
-      if (!abierto) return;
-      abierto = false;
-      panel.hidden = true;
-      btn.setAttribute('aria-expanded', 'false');
-      btn.removeAttribute('aria-activedescendant');
-      marcar(-1);
-      if (devolverFoco) btn.focus();
-    }
-
-    function elegir(i) {
-      var op = planas[i];
-      if (!esElegible(op)) return;      // una deshabilitada no se elige
-      valorActual = op.valor;
-      refrescarEstados();
-      cerrar(true);
-      if (cfg.alElegir) cfg.alElegir(valorActual);
-    }
-
-    btn.addEventListener('click', function () {
-      if (abierto) cerrar(false);
-      else abrir();
-    });
-
-    btn.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        if (!abierto) { abrir(); return; }
-        marcar(siguienteElegible(resaltado, e.key === 'ArrowDown' ? 1 : -1));
-        return;
-      }
-      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
-        e.preventDefault();
-        if (!abierto) abrir();
-        else elegir(resaltado);
-        return;
-      }
-      if (e.key === 'Escape') {
-        if (abierto) { e.preventDefault(); cerrar(true); }
-        return;
-      }
-      if (e.key === 'Tab') { cerrar(false); return; }
-      if (e.key === 'Home' && abierto) { e.preventDefault(); marcar(siguienteElegible(-1, 1)); }
-      if (e.key === 'End' && abierto) { e.preventDefault(); marcar(siguienteElegible(planas.length, -1)); }
-    });
-
-    // mousedown y no click: así el botón no recibe el foco de vuelta y
-    // vuelve a abrir el panel en el mismo gesto.
-    panel.addEventListener('mousedown', function (e) {
-      var op = e.target.closest('.csel__op');
-      if (!op) return;
-      e.preventDefault();
-      elegir(Number(op.dataset.i));
-    });
-
-    panel.addEventListener('mousemove', function (e) {
-      var op = e.target.closest('.csel__op');
-      if (!op) return;
-      var i = Number(op.dataset.i);
-      if (esElegible(planas[i])) marcar(i);
-    });
-
-    document.addEventListener('click', function (e) {
-      if (abierto && !raiz.contains(e.target)) cerrar(false);
-    });
-
-    return {
-      setOpciones: function (nuevos) { grupos = nuevos || []; pintarPanel(); refrescarEstados(); },
-      setValor: function (v) { valorActual = v || ''; pintarPanel(); refrescarEstados(); },
-      deshabilitar: function (id) { idDeshabilitado = id || null; refrescarEstados(); },
-      valor: function () { return valorActual; }
-    };
-  }
 
   function iniciarComparador() {
     if (!$('#compararA')) return;
