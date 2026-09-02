@@ -87,6 +87,35 @@
   var STORAGE_KEY = 'nombre-carrito-v1';
   var ENTREGA_STORAGE_KEY = 'nombre-entrega-v1';
 
+  /* =====================================================================
+     SUPABASE — de dónde sale el catálogo
+     ---------------------------------------------------------------------
+     El catálogo vive en Supabase (tablas "productos" y "combos"). El sitio
+     lo pide por la API REST con un fetch común: NO hace falta instalar el
+     SDK ni compilar nada, y así el proyecto sigue siendo vanilla.
+
+     SI SUPABASE NO CONTESTA (proyecto pausado, sin internet, error del
+     servidor, o simplemente todavía no se cargaron las tablas), el sitio
+     cae solo a productos.json y funciona igual. El visitante no ve ningún
+     error. En la consola queda anotado cuál de las dos fuentes se usó.
+
+     SOBRE LA CLAVE DE ABAJO: es la "publishable" (anon) y ES PÚBLICA POR
+     DISEÑO — viaja en el código del sitio y cualquiera puede verla en el
+     navegador. Eso NO es una filtración: lo que protege los datos son las
+     políticas RLS de la base (ver supabase/schema.sql), que con esta clave
+     sólo permiten LEER. Para escribir hay que estar autenticado.
+
+     LO QUE NUNCA VA ACÁ: la clave "service_role". Esa saltea RLS y da
+     control total sobre la base. Es de servidor, jamás del frontend.
+     ================================================================== */
+  var SUPABASE_URL = 'https://jdnvzwkwfvcxxtledwxu.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_9nnRLVYwrdMoLPrB4ukY4A_3WrEZFXt';
+
+  // Si Supabase tarda más que esto, se corta y se usa el JSON. Sin este
+  // corte, una respuesta que nunca llega dejaría el catálogo cargando
+  // para siempre en vez de mostrar el respaldo.
+  var SUPABASE_TIMEOUT_MS = 6000;
+
   // Orden fijo de las secciones del catálogo. Una categoría que aparezca
   // en productos.json y no esté acá se agrega al final.
   var ORDEN_CATEGORIAS = ['iPhone', 'Mac', 'iPad', 'Accesorios'];
@@ -1226,7 +1255,149 @@
   iniciarTema();
   iniciarVolverArriba();
 
-  /* ---------------------------- CARGA DE DATOS ---------------------- */
+  /* ---------------------------- CARGA DE DATOS ----------------------
+     El catálogo sale de Supabase; si falla, del productos.json de
+     siempre. Todo lo que sigue —tarjetas, filtros, combos, comparador,
+     carrito— recibe los datos con la MISMA forma sin importar de dónde
+     salieron: de eso se encargan normalizarProducto/normalizarCombo.
+     ------------------------------------------------------------------ */
+
+  // De dónde salió el catálogo en esta carga: 'supabase' | 'json'.
+  // Sólo informativo (se anota en consola para poder diagnosticar).
+  var fuenteCatalogo = null;
+
+  // Los nombres de columna de Postgres van en snake_case y el resto del
+  // código usa camelCase. La traducción se hace ACÁ Y EN UN SOLO LUGAR:
+  // así ninguna otra función tiene que enterarse de dónde vinieron los
+  // datos. Sólo dos campos cambian de nombre; el resto ya coincide.
+  var CAMPOS_RENOMBRADOS = {
+    precio_anterior: 'precioAnterior',
+    equivale_nuevo:  'equivaleNuevo'
+  };
+
+  // Number() defensivo: PostgREST devuelve las columnas "numeric" como
+  // número, pero si alguna llegara como texto ("1749000") las cuentas de
+  // precios y el orden se romperían en silencio. Con esto, la fila queda
+  // igual venga como venga.
+  function aNumero(v) {
+    if (v === null || v === undefined || v === '') return undefined;
+    var n = Number(v);
+    return isFinite(n) ? n : undefined;
+  }
+
+  function normalizarProducto(fila) {
+    var p = {};
+    Object.keys(fila).forEach(function (k) {
+      // creado_en / actualizado_en / orden son de la base, no los usa el
+      // sitio: se descartan para que el objeto quede igual al del JSON.
+      if (k === 'creado_en' || k === 'actualizado_en' || k === 'orden') return;
+      var destino = CAMPOS_RENOMBRADOS[k] || k;
+      var v = fila[k];
+      if (v === null) return;             // null => el campo no existe, como en el JSON
+      p[destino] = v;
+    });
+    // los cuatro numéricos, por las dudas (ver aNumero)
+    ['precio', 'precioAnterior', 'stock', 'anio'].forEach(function (k) {
+      if (k in p) {
+        var n = aNumero(p[k]);
+        if (n === undefined) delete p[k]; else p[k] = n;
+      }
+    });
+    if (!Array.isArray(p.specs)) p.specs = p.specs ? [].concat(p.specs) : [];
+    return p;
+  }
+
+  function normalizarCombo(fila) {
+    return {
+      id: fila.id,
+      categoria: fila.categoria,
+      productos: fila.productos || [],
+      descuento: aNumero(fila.descuento) || 0,
+      etiqueta: fila.etiqueta || 'combo'
+    };
+  }
+
+  // Un GET a la API REST de Supabase. La clave va en los dos headers que
+  // pide PostgREST: "apikey" identifica el proyecto y "Authorization"
+  // define con qué rol se entra (acá, anónimo => sólo lectura por RLS).
+  function pedirTablaSupabase(tabla, query) {
+    var control = ('AbortController' in window) ? new AbortController() : null;
+    var corte = control && setTimeout(function () { control.abort(); }, SUPABASE_TIMEOUT_MS);
+
+    return fetch(SUPABASE_URL + '/rest/v1/' + tabla + query, {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: 'Bearer ' + SUPABASE_KEY,
+        Accept: 'application/json'
+      },
+      signal: control ? control.signal : undefined
+    }).then(function (r) {
+      if (corte) clearTimeout(corte);
+      if (!r.ok) throw new Error('Supabase respondió HTTP ' + r.status + ' en "' + tabla + '"');
+      return r.json();
+    }, function (err) {
+      if (corte) clearTimeout(corte);
+      throw err;
+    });
+  }
+
+  function cargarDeSupabase() {
+    return Promise.all([
+      pedirTablaSupabase('productos', '?select=*&order=orden.asc'),
+      pedirTablaSupabase('combos', '?select=*')
+    ]).then(function (res) {
+      var filas = res[0];
+      // Tablas vacías = el schema está aplicado pero los datos todavía
+      // no. Se trata como fallo para que entre el respaldo: un catálogo
+      // en blanco es peor que uno viejo.
+      if (!Array.isArray(filas) || !filas.length) {
+        throw new Error('Supabase devolvió el catálogo vacío');
+      }
+      return {
+        productos: filas.map(normalizarProducto),
+        combos: (res[1] || []).map(normalizarCombo)
+      };
+    });
+  }
+
+  function cargarDeJSON() {
+    return fetch('productos.json')
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        // productos.json puede venir en dos formas: la vieja (un array de
+        // productos, sin combos) y la actual ({ productos, combos }). Se
+        // aceptan las dos para que un JSON viejo siga funcionando.
+        return {
+          productos: Array.isArray(data) ? data : (data.productos || []),
+          combos: Array.isArray(data) ? [] : (data.combos || [])
+        };
+      });
+  }
+
+  // Supabase primero; si algo sale mal, el JSON. El visitante no ve la
+  // diferencia: sólo queda anotado en consola cuál se usó.
+  function cargarCatalogo() {
+    return cargarDeSupabase()
+      .then(function (datos) {
+        fuenteCatalogo = 'supabase';
+        console.info('[tienda] catálogo leído de Supabase: ' +
+                     datos.productos.length + ' productos, ' + datos.combos.length + ' combos.');
+        return datos;
+      })
+      .catch(function (err) {
+        console.warn('[tienda] Supabase no disponible (' + err.message +
+                     '). Se usa productos.json como respaldo.');
+        return cargarDeJSON().then(function (datos) {
+          fuenteCatalogo = 'json';
+          console.info('[tienda] catálogo leído de productos.json (respaldo): ' +
+                       datos.productos.length + ' productos, ' + datos.combos.length + ' combos.');
+          return datos;
+        });
+      });
+  }
 
   // La grilla sólo existe en las páginas de catálogo; en la portada no
   // hay catálogo, así que tampoco hay esqueletos que mostrar.
@@ -1242,18 +1413,10 @@
     pintarTarjetasPromo();
   }
 
-  fetch('productos.json')
-    .then(function (r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    })
+  cargarCatalogo()
     .then(function (data) {
-      // productos.json puede venir en dos formas: la vieja (un array de
-      // productos, sin combos) y la actual ({ productos: [...],
-      // combos: [...] }). Se aceptan las dos para que un JSON viejo siga
-      // funcionando sin tocar nada.
-      productos = Array.isArray(data) ? data : (data.productos || []);
-      combos = construirCombos(Array.isArray(data) ? [] : (data.combos || []));
+      productos = data.productos;
+      combos = construirCombos(data.combos);
 
       destacados = productos.filter(function (p) { return p.destacado; });
       if (!destacados.length) destacados = productos.slice(0, 3);
@@ -1277,8 +1440,9 @@
       revelarSecciones();
     })
     .catch(function (err) {
-      // Ocurre al abrir el HTML con doble clic (file://): el navegador
-      // bloquea fetch. Hay que servirlo por HTTP.
+      // Acá se llega sólo si fallaron LAS DOS fuentes: Supabase y el
+      // productos.json de respaldo. El caso típico es abrir el HTML con
+      // doble clic (file://), donde el navegador bloquea los dos fetch.
       var aviso =
         '<div class="aviso"><strong>No se pudieron cargar los productos.</strong><br>' +
         'Si abriste el archivo con doble clic, el navegador bloquea la lectura de ' +

@@ -7,7 +7,13 @@ Los cuatro archivos que la forman son:
 - `index.html` — toda la estructura de la página.
 - `styles.css` — todos los estilos (colores, tipografía, layout).
 - `app.js` — toda la lógica: carrito, filtros, carrusel, comparador, formulario de entrega, etc.
-- `productos.json` — el catálogo de productos. Es el único archivo pensado para editarse seguido.
+- `productos.json` — **respaldo** del catálogo. Ver la sección de Supabase más abajo.
+
+Y la carpeta `supabase/`, con el SQL para crear la base y cargarla.
+
+> **El catálogo ahora vive en Supabase.** `productos.json` quedó como red de
+> seguridad: si Supabase no responde, el sitio lo usa y sigue andando. Los
+> detalles están en la sección **[El catálogo en Supabase](#el-catálogo-en-supabase)**.
 
 ---
 
@@ -27,6 +33,85 @@ Lo que hay que hacer es levantar un "servidor local" — un programita que le si
 3. Abrí el navegador en `http://localhost:8123`.
 
 Listo: ahí la página funciona exactamente igual que una vez publicada. Para cortar el servidor, volvé a la terminal y apretá Ctrl+C.
+
+---
+
+## El catálogo en Supabase
+
+El catálogo (productos y combos) vive en una base de datos de **Supabase**. El
+sitio la lee con un `fetch` común a su API REST: **no** hace falta instalar
+ningún SDK ni compilar nada, así que el proyecto sigue siendo HTML/CSS/JS a secas.
+
+### De dónde salen los datos, en orden
+
+1. **Supabase primero.** Si contesta bien, el catálogo sale de ahí.
+2. **`productos.json` como respaldo.** Si Supabase falla por lo que sea —proyecto
+   pausado, sin internet, error del servidor, tablas todavía sin crear— el sitio
+   cae al JSON **solo**, sin que el visitante vea ningún error.
+
+En la consola del navegador queda anotado cuál de las dos se usó:
+
+```
+[tienda] catálogo leído de Supabase: 15 productos, 3 combos.
+[tienda] catálogo leído de productos.json (respaldo): 15 productos, 3 combos.
+```
+
+Si ves el segundo mensaje cuando esperabas el primero, ahí tenés el diagnóstico.
+
+### Cómo aplicar la base (una sola vez)
+
+En el panel de Supabase, **SQL Editor → New query**:
+
+1. Pegar **todo** `supabase/schema.sql` y darle **Run**. Crea las dos tablas, los
+   índices, el trigger de `actualizado_en` y —lo más importante— **las políticas
+   de seguridad (RLS)**.
+2. Pegar **todo** `supabase/datos-iniciales.sql` y darle **Run**. Carga los 15
+   productos y los 3 combos que hoy están en `productos.json`.
+
+Los dos archivos se pueden volver a correr sin romper nada: el schema usa
+`if not exists` y los datos usan `on conflict (id) do update`, así que
+re-ejecutarlos actualiza en vez de duplicar.
+
+Para comprobar que quedó bien, al final de cada archivo hay un par de consultas
+comentadas (`select ...`) que se pueden descomentar y correr.
+
+### La seguridad: por qué la clave está a la vista
+
+En `app.js` vas a encontrar la URL del proyecto y una clave (`SUPABASE_KEY`)
+escritas en el código. **Eso está bien y es cómo funciona Supabase.** Esa clave
+es la *publishable* (anon) y es pública por diseño.
+
+Lo que protege los datos **no** es esconder la clave, son las **políticas RLS**
+que están en `schema.sql`:
+
+| Quién | Puede |
+|---|---|
+| Cualquiera (con la clave pública) | **Leer** productos y combos |
+| Sólo usuarios autenticados | Crear, modificar y borrar |
+
+Sin esas políticas, cualquiera que abriera el sitio podría borrar el catálogo
+entero. Con ellas, con esa clave lo único que se puede hacer es leer.
+
+> **Lo que NUNCA va en el código del sitio** es la clave `service_role`: esa
+> saltea RLS y da control total. Es de servidor, no de frontend.
+
+### Qué pasa con `productos.json`
+
+Queda como **respaldo**, y por ahora hay que mantenerlo a mano.
+
+**Ojo con esto:** si cargás un producto en Supabase y no lo agregás también al
+JSON, los dos quedan distintos. Mientras Supabase ande, no se nota —el sitio usa
+Supabase—, pero el día que falle, el visitante va a ver un catálogo viejo.
+
+Dos formas de manejarlo, según cuánto trabajo quieras:
+
+- **Mantenerlo actualizado** (recomendado mientras el catálogo sea chico):
+  cada vez que cambies algo en Supabase, reflejalo en `productos.json`.
+- **Asumir que se desactualiza**: dejarlo como una foto del catálogo al día de
+  hoy. El sitio nunca se cae, pero el respaldo muestra precios viejos.
+
+Cuando esté el panel de administración (próxima etapa), lo natural es que exporte
+el JSON de respaldo solo, y este problema desaparece.
 
 ---
 
