@@ -2382,17 +2382,19 @@ html[data-anim-entrada="no"] .card {
 }
 
 /* ---------------------- BOTÓN VOLVER ARRIBA -----------------------
-   Único flotante del sitio (el de WhatsApp se quitó: el contacto vive
-   en el hero, en Contacto y en las preguntas). z-index 30, por debajo
-   del header (40), del velo (50), del carrito (60) y del modal (65), y
-   app.js lo oculta del todo mientras haya una capa abierta.
-   Va en superficie y no en acento a propósito: es una ayuda de
+   Los DOS flotantes del sitio (el de WhatsApp se quitó: el contacto vive
+   en el hero y en Contacto): bajar a la izquierda y subir a la derecha.
+   Comparten TODO el estilo —tamaño, colores, sombra y los 220ms de la
+   transición— para que se lean como un par; lo único que cambia es de qué
+   borde se cuelgan y hacia dónde apunta la flecha.
+   z-index 30, por debajo del header (40), del velo (50), del carrito (60)
+   y del modal (65), y app.js los oculta del todo mientras haya una capa
+   abierta. Van en superficie y no en acento a propósito: son una ayuda de
    navegación, no una llamada a la acción.
    ------------------------------------------------------------------ */
-.arriba-btn {
+.flota-btn {
   position: fixed;
   z-index: 30;
-  right: 20px;
   bottom: 20px;
   width: 44px;
   height: 44px;
@@ -2403,7 +2405,7 @@ html[data-anim-entrada="no"] .card {
   color: var(--texto-suave);
   border: 1px solid var(--borde-superficie);
   box-shadow: 0 2px 6px rgba(var(--sombra-rgb), .14), 0 8px 22px rgba(var(--sombra-rgb), .18);
-  /* oculto hasta que se scrollea: visibility (no display) para que la
+  /* oculto hasta que corresponde: visibility (no display) para que la
      opacidad pueda animar; pointer-events evita que capture toques
      mientras está invisible */
   opacity: 0;
@@ -2412,13 +2414,22 @@ html[data-anim-entrada="no"] .card {
   transition: opacity 220ms ease, visibility 220ms ease,
               color var(--transicion), border-color var(--transicion);
 }
-.arriba-btn.is-visible {
+.flota-btn.is-visible {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
 }
-.arriba-btn .ico { width: 20px; height: 20px; }
-.arriba-btn:hover { color: var(--texto); border-color: var(--texto-suave); }
+.flota-btn .ico { width: 20px; height: 20px; }
+.flota-btn:hover { color: var(--texto); border-color: var(--texto-suave); }
+
+.arriba-btn { right: 20px; }
+.abajo-btn  { left: 20px; }
+
+/* Con prefers-reduced-motion no hay nada que animar: el botón aparece y
+   desaparece de golpe. El scroll ya lo resuelve sinMovimiento() en JS. */
+@media (prefers-reduced-motion: reduce) {
+  .flota-btn { transition: none; }
+}
 
 /* --------------------- [25] CONFIRMACIÓN (TOAST) ------------------ */
 .toast {
@@ -3402,13 +3413,6 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
 
 .faq__respuesta { padding: 0 4px 18px; color: var(--texto-suave); font-size: 0.93rem; }
 
-.faq__mas {
-  margin-top: 26px;
-  max-width: 760px;   /* misma medida que el acordeón, mismo eje izquierdo */
-  color: var(--texto-suave);
-  font-size: 0.92rem;
-}
-
 /* =====================================================================
    MODAL DE PRODUCTO
    ===================================================================== */
@@ -3923,19 +3927,22 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   }
 
   /* SOLAPE CERO con el "Agregar al carrito" de las tarjetas, que ocupa
-     todo el ancho. El borde derecho de ese botón cae siempre a 35px del
-     borde de la pantalla (20 de gutter + 14 de padding + 1 de borde), así
-     que mientras `right + width` no pase de 35 los dos rectángulos no se
-     tocan a NINGÚN ancho de pantalla ni a ninguna altura de scroll:
-     5 + 30 = 35. Es el botón más grande que entra sin pisar nada; 30px
-     sigue estando por encima del mínimo de 24px de WCAG 2.5.8. */
-  .arriba-btn {
-    right: 5px;
+     todo el ancho. Ese botón cae siempre a 35px de CADA borde de la
+     pantalla (20 de gutter + 14 de padding + 1 de borde), así que mientras
+     `distancia al borde + ancho` no pase de 35 los rectángulos no se tocan
+     a NINGÚN ancho de pantalla ni a ninguna altura de scroll: 5 + 30 = 35.
+     Es el botón más grande que entra sin pisar nada; 30px sigue estando
+     por encima del mínimo de 24px de WCAG 2.5.8.
+     El cálculo es simétrico, así que vale igual para el de bajar del lado
+     izquierdo. */
+  .flota-btn {
     bottom: 16px;
     width: 30px;
     height: 30px;
   }
-  .arriba-btn .ico { width: 16px; height: 16px; }
+  .flota-btn .ico { width: 16px; height: 16px; }
+  .arriba-btn { right: 5px; }
+  .abajo-btn  { left: 5px; }
 
   /* Tres controles no entran al lado de las pastillas: las herramientas
      bajan y ocupan todo el ancho. El rango se lleva una fila entera (son

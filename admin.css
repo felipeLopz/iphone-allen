@@ -131,6 +131,15 @@ body.sin-scroll { overflow: hidden; }
   color: var(--texto-suave);
 }
 
+/* Un poco más de aire entre la foto y el texto que en la tienda. La
+   tarjeta del panel es idéntica a la del catálogo (misma .card, mismo
+   gap de 10px), pero acá se leen los TÍTULOS uno tras otro para
+   encontrar un producto, y pegados a la foto cuestan de barrer. Suma 8px
+   a los 10 del gap: 18 en total. Vale para la grilla y para la vista
+   previa del editor, porque cuelga de .admin (el body del panel) y no
+   toca ni una tarjeta del sitio público. */
+.admin .card > .media { margin-bottom: 8px; }
+
 /* El botón "Editar" ocupa el lugar del "Agregar al carrito" de la
    tienda. En la vista previa del editor ese lugar lo llena un botón
    apagado, para que la tarjeta mida exactamente lo mismo. */

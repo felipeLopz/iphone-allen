@@ -358,6 +358,7 @@
          '<path d="M3 12h1M20 12h1M12 3v1M12 20v1M5.6 5.6l.7 .7M17.7 17.7l.7 .7M18.4 5.6l-.7 .7M6.3 17.7l-.7 .7"></path>',
     luna: '<path d="M12 3c.13 0 .26 0 .39 .04a6.5 6.5 0 1 0 8.57 8.57 .5 .5 0 0 1 .87 .38 9 9 0 1 1 -9.83 -9.83Z"></path>',
     flechaArriba: '<path d="M12 19V5"></path><path d="M5 12l7 -7l7 7"></path>',
+    flechaAbajo:  '<path d="M12 5v14"></path><path d="M19 12l-7 7l-7 -7"></path>',
     reloj: '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>',
     // tarjeta genérica de la franja de promo: a propósito NO es el logo de
     // ninguna marca (Visa/Mastercard/Cabal son marcas registradas), es una
@@ -951,22 +952,38 @@
     window.setTimeout(function () { raiz.classList.remove('cambiando-tema'); }, 260);
   }
 
-  /* ------------------------ VOLVER ARRIBA ---------------------------
-     Aparece recién pasados los 400px de scroll. El listener no hace nada
-     por evento: sólo marca que hay trabajo pendiente y deja que el
-     requestAnimationFrame siguiente lea el scroll una única vez por
-     cuadro (leer scrollY en cada evento fuerza reflow y en mobile se
-     disparan decenas por segundo).
+  /* --------------------- SUBIR Y BAJAR (flotantes) ------------------
+     Dos botones simétricos: subir aparece pasados los 400px de scroll,
+     bajar aparece mientras falten más de 400px para el fondo. Es la misma
+     regla leída al revés, así que los dos usan la misma constante y se
+     resuelven en el MISMO tick.
+
+     Un solo listener de scroll para los dos (y para revelar tarjetas): no
+     hace nada por evento, sólo marca que hay trabajo pendiente y deja que
+     el requestAnimationFrame siguiente lea el scroll una única vez por
+     cuadro. Leer scrollY en cada evento fuerza reflow y en mobile se
+     disparan decenas por segundo.
      ------------------------------------------------------------------ */
   var MOSTRAR_ARRIBA_DESDE = 400;
 
-  function iniciarVolverArriba() {
-    var btn = $('#arribaBtn');
+  function iniciarFlotantes() {
+    var btnArriba = $('#arribaBtn');
+    var btnAbajo = $('#abajoBtn');
     var pendiente = false;
 
     function evaluar() {
       pendiente = false;
-      btn.classList.toggle('is-visible', window.scrollY > MOSTRAR_ARRIBA_DESDE);
+
+      // Cuánto queda por debajo. Se calcula acá y no en el click porque
+      // el alto del documento cambia al filtrar el catálogo o al abrir
+      // una pregunta del acordeón.
+      var alto = document.documentElement.scrollHeight;
+      var visible = window.innerHeight;
+      var falta = alto - visible - window.scrollY;
+
+      btnArriba.classList.toggle('is-visible', window.scrollY > MOSTRAR_ARRIBA_DESDE);
+      btnAbajo.classList.toggle('is-visible', falta > MOSTRAR_ARRIBA_DESDE);
+
       // Se aprovecha este tick (uno por cuadro, ya throttleado) para
       // revelar lo que haya entrado en pantalla: cubre los saltos de
       // scroll y el caso de que el observer no dispare.
@@ -974,17 +991,42 @@
       if ($('#catalogoSecciones')) mostrarTarjetasVisibles();
     }
 
-    window.addEventListener('scroll', function () {
+    window.addEventListener('scroll', function () { agendar(); }, { passive: true });
+
+    // El alto del documento cambia SIN que nadie scrollee, y "bajar"
+    // depende de ese alto: cuando corre este evaluar() inicial el catálogo
+    // todavía no llegó de Supabase, así que la página mide poco, "falta"
+    // es chico y el botón arranca oculto aunque después haya metros de
+    // contenido. Sin esto no reaparecería hasta el primer scroll.
+    // Cubre además filtrar el catálogo, abrir una pregunta del acordeón y
+    // las imágenes que terminan de cargar.
+    // No es otro listener de scroll: es el mismo evaluar() con la misma
+    // compuerta de "pendiente", disparado por cambio de tamaño.
+    function agendar() {
       if (pendiente) return;
       pendiente = true;
       window.requestAnimationFrame(evaluar);
-    }, { passive: true });
+    }
 
-    // estado inicial: al recargar a media página el botón ya tiene que estar
+    window.addEventListener('resize', agendar, { passive: true });
+
+    if (window.ResizeObserver) {
+      new window.ResizeObserver(agendar).observe(document.body);
+    }
+
+    // estado inicial: al recargar a media página los botones ya tienen
+    // que estar como corresponde
     evaluar();
 
-    btn.addEventListener('click', function () {
+    btnArriba.addEventListener('click', function () {
       window.scrollTo({ top: 0, behavior: sinMovimiento() ? 'auto' : 'smooth' });
+    });
+
+    btnAbajo.addEventListener('click', function () {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: sinMovimiento() ? 'auto' : 'smooth'
+      });
     });
   }
 
@@ -1233,14 +1275,17 @@
       '</div>';
   }
 
-  // Único botón flotante del sitio: vuelve al tope. Fijo abajo a la
-  // derecha en las seis páginas, con z-index 30 (por debajo del header,
-  // del velo, del carrito y del modal), y app.js lo oculta del todo
-  // mientras haya una capa abierta (ver ocultarFlotantes). Aparece recién
-  // después de scrollear: arranca sin la clase .is-visible.
-  function htmlBotonArriba() {
-    return '<button class="arriba-btn" id="arribaBtn" type="button" ' +
-           'aria-label="Volver arriba">' + icono('flechaArriba') + '</button>';
+  /* Los DOS botones flotantes del sitio, que se leen como un par: subir
+     abajo a la derecha y bajar abajo a la izquierda. Van en las seis
+     páginas, con z-index 30 (por debajo del header, del velo, del carrito
+     y del modal), y app.js los oculta del todo mientras haya una capa
+     abierta (ver ocultarFlotantes). Arrancan sin .is-visible: quién se ve
+     y cuándo lo decide iniciarFlotantes(). */
+  function htmlBotonesFlotantes() {
+    return '<button class="flota-btn arriba-btn" id="arribaBtn" type="button" ' +
+             'aria-label="Volver arriba">' + icono('flechaArriba') + '</button>' +
+           '<button class="flota-btn abajo-btn" id="abajoBtn" type="button" ' +
+             'aria-label="Ir al final de la página">' + icono('flechaAbajo') + '</button>';
   }
 
   function htmlModal() {
@@ -1260,10 +1305,10 @@
   document.getElementById('app-header').innerHTML = htmlHeader();
   document.getElementById('app-footer').innerHTML = htmlFooter();
   document.body.insertAdjacentHTML('beforeend',
-    htmlDrawer() + htmlCheckout() + htmlModal() + htmlBotonArriba());
+    htmlDrawer() + htmlCheckout() + htmlModal() + htmlBotonesFlotantes());
 
   iniciarTema();
-  iniciarVolverArriba();
+  iniciarFlotantes();
 
   /* ---------------------------- CARGA DE DATOS ----------------------
      El catálogo sale de Supabase; si falla, del productos.json de
@@ -1628,14 +1673,23 @@
 
   var arrastre = null;
 
+  // Cuánto se le perdona a un toque antes de tratarlo como arrastre.
+  var TOLERANCIA_TOQUE = 14;
+
   function terminarArrastre() {
     if (!arrastre) return;
     var dx = arrastre.horizontal ? arrastre.dx : 0;
     arrastre = null;
     track.style.transition = '';
 
-    // si hubo swipe, el click que viene después no debe abrir el modal
-    if (Math.abs(dx) > 8) {
+    // Si hubo swipe, el click que viene después no debe abrir el modal.
+    // El umbral es 14px y no los 8 que deciden la dirección del gesto: un
+    // toque en el celular casi nunca sale limpio (el dedo se corre unos
+    // pocos px entre que apoya y levanta), y con 8 esos toques quedaban
+    // bloqueados y el modal no abría. 14px sigue estando muy por debajo
+    // de un swipe de verdad, que para cambiar de slide necesita
+    // min(80, ancho*0.18) — unos 68px en un celular de 375.
+    if (Math.abs(dx) > TOLERANCIA_TOQUE) {
       bloquearClick = true;
       setTimeout(function () { bloquearClick = false; }, 350);
     }
@@ -3861,12 +3915,13 @@
     return !drawer.hidden || !checkout.hidden;
   }
 
-  // El botón flotante se esconde mientras hay una capa abierta: aunque su
-  // z-index ya lo deja por debajo, con el velo puesto seguiría siendo
-  // clickeable y compite con las acciones del carrito.
+  // Los botones flotantes se esconden mientras hay una capa abierta:
+  // aunque su z-index ya los deje por debajo, con el velo puesto seguirían
+  // siendo clickeables y compiten con las acciones del carrito.
   function ocultarFlotantes(ocultar) {
-    var el = $('#arribaBtn');
-    if (el) el.hidden = ocultar;
+    [$('#arribaBtn'), $('#abajoBtn')].forEach(function (el) {
+      if (el) el.hidden = ocultar;
+    });
   }
 
   function bloquearScroll() {
