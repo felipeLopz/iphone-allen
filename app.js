@@ -2517,7 +2517,14 @@
              lineaAhorro(p) +
              htmlStock(p) +
              '<div class="card__acciones">' +
-               botonAccion(p, 'btn--compacto') +
+               // Etiquetas CORTAS, igual que en la tarjeta normal. Acá
+               // usaba las largas ("Agregar al carrito", "Avisame cuando
+               // llegue") y con eso la fila no entraba: los dos botones se
+               // apilaban en cuanto la tarjeta quedaba angosta —con cuatro
+               // columnas (>=1180px) y también entre 760 y 900—, que es
+               // exactamente lo que advierte el comentario de botonAccion().
+               // Con las cortas entra en una fila en todo el rango.
+               botonAccion(p, 'btn--compacto', 'Agregar', 'Avisame') +
                botonComparar(p) +
              '</div>' +
            '</article>';

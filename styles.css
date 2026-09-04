@@ -48,6 +48,10 @@
      --borde-acento: borde de chips tintados en color de acento.
      --pulso-rgb: color (en tripleta RGB) del latido al agregar al carrito. */
   --sobre-acento:  #FFFFFF;
+  /* Fondo del botón al pasar el mouse. Es el único valor del botón nuevo
+     que no tenía token: el fondo en reposo es --superficie2 y el hover
+     necesita un escalón más marcado, que no existía. */
+  --btn-hover:     #E2E6EA;
   --marco-foto:    #FFFFFF;
   --velo:          rgba(26, 31, 36, 0.4);
   --foco-glow:     rgba(17, 20, 24, 0.16);
@@ -138,6 +142,8 @@
      blanco y, si el marco fuese oscuro, se vería un halo blanco de la
      foto contra el marco. (--sobre-acento también sigue blanco.) */
   --marco-foto:   #FFFFFF;
+
+  --btn-hover:    #29313A;
 
   --velo:         rgba(0, 0, 0, 0.6);
   --foco-glow:    rgba(93, 202, 165, 0.30);
@@ -298,66 +304,92 @@ button {
 }
 
 /* ----------------------------- BOTONES ----------------------------
-   Tratamiento único para todos los botones de acción: bloque de color
-   con el ícono a la izquierda y el texto sobre fondo oscuro a la
-   derecha, unidos por un solo contorno.
+   Tratamiento único para todos los botones de acción: UNA sola caja de
+   fondo suave y borde marcado, con el ícono metido en un círculo lleno a
+   la izquierda y el texto al lado, en el color de texto normal.
 
-   El markup lo arma btnPartes() en app.js:
+   El markup lo arma btnPartes() en app.js y NO cambió:
      <button class="btn"><span class="btn__ico">svg</span>
                          <span class="btn__txt">Texto</span></button>
    Sigue siendo un <button>/<a> real; el ícono va con aria-hidden y el
-   texto queda accesible.
+   texto queda accesible. Todo el rediseño es CSS: no se tocó una línea
+   del armado de botones, así que alcanza de una sola vez a los de las
+   tarjetas, el carrusel, el modal, el carrito, el hero y el comparador.
+
+   El padding es asimétrico —6px a la izquierda, 15 a la derecha— porque
+   el círculo ya aporta su propio aire de ese lado; con el mismo padding
+   en los dos, el botón se lee descentrado.
 
    OJO: no poner transform en :hover de .btn. Los botones de las
    tarjetas son descendientes de .card y un transform ahí puede
-   reabrir el bug del scroll trabado sobre .media.
+   reabrir el bug del scroll trabado sobre .media. Por eso el estado
+   :active se marca con una sombra interior y no con un scale.
    ------------------------------------------------------------------ */
 .btn {
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--borde);
-  border-radius: 6px;
-  overflow: hidden;
-  background: none;
-  padding: 0;
+  gap: 9px;
+  background: var(--superficie2);
+  border: 1.5px solid var(--acento-fuerte);
+  border-radius: 10px;
+  padding: 5px 15px 5px 6px;
   font-family: var(--cuerpo);
   font-weight: 600;
   font-size: 12px;
   letter-spacing: 0.01em;
   text-align: left;
-  transition: border-color var(--transicion);
+  color: var(--texto);
+  cursor: pointer;
+  transition: background var(--transicion), border-color var(--transicion);
 }
-.btn:hover { border-color: var(--acento-fuerte); }
+.btn:hover { background: var(--btn-hover); }
 
 .btn__ico {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  flex: 0 0 auto;
-  padding: 9px 11px;
+  justify-content: center;
   background: var(--acento-fuerte);
-  color: var(--sobre-acento);   /* trazo blanco sobre el bloque jade */
-  transition: background var(--transicion);
+  color: var(--sobre-acento);   /* trazo blanco dentro del círculo */
+  transition: background var(--transicion), color var(--transicion);
 }
-.btn__ico .ico { width: 16px; height: 16px; }
+.btn__ico .ico { width: 15px; height: 15px; }
 
+/* El texto va en el color de texto normal, NO en blanco: el único blanco
+   del botón es el trazo del ícono dentro del círculo. */
 .btn__txt {
-  padding: 9px 14px;
   color: var(--texto);
-  background: var(--superficie);
-  transition: background var(--transicion);
+  min-width: 0;
 }
-.btn:hover .btn__txt { background: var(--superficie2); }
 
-/* Variante secundaria: el bloque del ícono va en superficie2 con el
-   trazo en jade, en vez del bloque jade lleno. */
+/* Variante secundaria (Comparar, Consultar, Avisame…): mismo fondo suave,
+   pero el borde en el gris fuerte en vez del acento, y el círculo VACÍO
+   —en color de superficie— con el trazo en acento. Al pasar el mouse el
+   borde sube a acento: es la misma señal que daba el botón anterior. */
+.btn--sec { border-color: var(--borde-fuerte); }
 .btn--sec .btn__ico {
-  background: var(--superficie2);
+  background: var(--superficie);
   color: var(--acento);
 }
+.btn--sec:hover { border-color: var(--acento-fuerte); }
 
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn:disabled:hover { border-color: var(--borde); }
-.btn:disabled:hover .btn__txt { background: var(--superficie); }
+/* Pulsado: se hunde con una sombra interior. Sin transform (ver arriba). */
+.btn:active:not(:disabled) {
+  box-shadow: inset 0 2px 4px rgba(var(--sombra-rgb), 0.20);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn:disabled:hover {
+  background: var(--superficie2);
+  border-color: var(--acento-fuerte);
+}
+.btn--sec:disabled:hover { border-color: var(--borde-fuerte); }
 
 /* Área de toque cómoda en todos los botones de acción (WCAG 2.5.8 pide
    24px como mínimo; 44px es el objetivo recomendado para el pulgar). */
@@ -392,10 +424,11 @@ button {
 .btn--principal {
   font-size: 14px;
   margin-top: 4px;
+  padding: 6px 20px 6px 7px;
+  gap: 11px;
 }
-.btn--principal .btn__ico { padding: 12px 14px; }
-.btn--principal .btn__txt { padding: 12px 18px; }
-.btn--principal .btn__ico .ico { width: 18px; height: 18px; }
+.btn--principal .btn__ico { width: 32px; height: 32px; }
+.btn--principal .btn__ico .ico { width: 17px; height: 17px; }
 
 /* Botón sin tratamiento de bloque: acción menor, sólo texto.
    Hoy lo usa "Vaciar carrito". */
@@ -3760,21 +3793,20 @@ body[data-confirmando="true"] .btn--pulso { animation-play-state: paused; }
   .card__precios .precio { font-size: 1.2rem; }
   .card__acciones { gap: 6px; }
 
-  /* Botón de acción más contenido: el bloque del ícono y el del texto
-     pierden 2px arriba y abajo, el ícono baja de 16 a 14 y se libera el
-     min-height de 44px, que es una medida pensada para el dedo. Con
-     mouse, 32px es cómodo y deja respirar la tarjeta. */
+  /* Botón de acción más contenido: el círculo baja de 28 a 24, el padding
+     de 5 a 4 y se libera el min-height de 44px, que es una medida pensada
+     para el dedo. Con mouse, 35px es cómodo y deja respirar la tarjeta. */
   .card .btn,
   .modal__acciones .btn {
     min-height: 0;
     font-size: 11.5px;
+    padding: 4px 12px 4px 5px;
+    gap: 8px;
   }
   .card .btn__ico,
-  .modal__acciones .btn__ico { padding: 7px 9px; }
-  .card .btn__txt,
-  .modal__acciones .btn__txt { padding: 7px 10px; }
+  .modal__acciones .btn__ico { width: 24px; height: 24px; }
   .card .btn__ico .ico,
-  .modal__acciones .btn__ico .ico { width: 14px; height: 14px; }
+  .modal__acciones .btn__ico .ico { width: 13px; height: 13px; }
 }
 
 /* Cuatro por fila cuando el ancho da: con la tarjeta ya compacta, tres
