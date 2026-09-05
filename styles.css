@@ -119,7 +119,14 @@
   --borde-superficie: #2A313A;
 
   --acento:       #5DCAA5;   /* texto/bordes de acento */
-  --acento-fuerte:#1D9E75;   /* fondos de botón */
+  /* Bajado de #1D9E75: ese jade con texto/glifo blanco encima daba 3,39
+     de contraste, por debajo del 4,5 que pide el texto. #17805E lo lleva
+     a 4,9 sin salirse de la identidad jade del sitio (es el mismo tono,
+     un escalón más oscuro). Lo usan todos los fondos plenos del tema
+     oscuro: botones primarios, contador del carrito, pastilla de
+     categoría activa, filtro nuevo/usado, etiquetas Combo y el círculo
+     del ícono primario. */
+  --acento-fuerte:#17805E;   /* fondos de botón */
   --acento-suave: #1A2A26;
   --comparador-gana: #1F2E2A;
 
@@ -369,10 +376,17 @@ button {
    pero el borde en el gris fuerte en vez del acento, y el círculo VACÍO
    —en color de superficie— con el trazo en acento. Al pasar el mouse el
    borde sube a acento: es la misma señal que daba el botón anterior. */
-.btn--sec { border-color: var(--borde-fuerte); }
+/* --texto-tenue y no --borde-fuerte: con el gris de borde el botón
+   secundario apenas se delimitaba sobre la tarjeta blanca (1,6 de
+   contraste). Con --texto-tenue el borde se lee como tal sin competir con
+   el primario, que va en negro/jade pleno. */
+.btn--sec { border-color: var(--texto-tenue); }
 .btn--sec .btn__ico {
   background: var(--superficie);
   color: var(--acento);
+  /* Sin borde el disco blanco desaparecía sobre el fondo suave del botón
+     (1,1 de contraste). El borde fino lo dibuja sin volverlo pesado. */
+  border: 1px solid var(--borde);
 }
 .btn--sec:hover { border-color: var(--acento-fuerte); }
 
