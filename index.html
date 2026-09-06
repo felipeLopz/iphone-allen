@@ -129,8 +129,9 @@
           <li class="dato"><span class="dato__ico" data-ico="check"></span>Buenas condiciones</li>
         </ul>
 
-        <!-- DIRECCIÓN PROVISORIA - confirmar con el cliente antes de publicar -->
-        <p class="hero__direccion">Río Cuarto 2341, Allen, Río Negro</p>
+        <!-- DIRECCIÓN DE TRABAJO - confirmar con el cliente antes de publicar
+             (misma constante DIRECCION en app.js y el mapa de Contacto) -->
+        <p class="hero__direccion">Sáenz Peña 536, Allen, Río Negro</p>
       </div>
 
       <!-- Producto destacado del hero: lo inyecta app.js -->
@@ -267,6 +268,35 @@
              el contenedor queda vacío (mismo criterio que en el resto del
              sitio: un botón a una cuenta que no existe es peor que nada). -->
         <span id="ctaInstagramWrap"></span>
+      </div>
+
+      <!-- MAPA DE UBICACIÓN
+           DIRECCIÓN DE TRABAJO - confirmar con el cliente (misma que la
+           constante DIRECCION en app.js y el hero).
+           El iframe es el "embed" público de Google Maps armado con la
+           dirección: no necesita API key ni cuenta. La dirección va en
+           texto ARRIBA del mapa para que se lea aunque el iframe no cargue,
+           y el enlace "Cómo llegar" abre la ubicación en Google Maps en
+           pestaña nueva, sin depender del iframe. loading="lazy" porque
+           está al fondo de la página. -->
+      <div class="mapa">
+        <div class="mapa__cabecera">
+          <p class="mapa__direccion">
+            <span class="mapa__ico" data-ico="pin" aria-hidden="true"></span>
+            Sáenz Peña 536, Allen, Río Negro
+          </p>
+          <a class="mapa__link link-sub"
+             href="https://www.google.com/maps/search/?api=1&query=S%C3%A1enz+Pe%C3%B1a+536%2C+Allen%2C+R%C3%ADo+Negro"
+             target="_blank" rel="noopener">Cómo llegar</a>
+        </div>
+        <div class="mapa__marco">
+          <iframe
+            class="mapa__iframe"
+            title="Mapa de la ubicación del local en Sáenz Peña 536, Allen, Río Negro"
+            src="https://www.google.com/maps?q=S%C3%A1enz+Pe%C3%B1a+536%2C+Allen%2C+R%C3%ADo+Negro&output=embed"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
       </div>
     </div>
   </section>

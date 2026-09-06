@@ -74,9 +74,10 @@
   // botón flotante de WhatsApp y los enlaces de redes.
   var MENSAJE_CONSULTA = '¡Hola ' + NEGOCIO + '! Quería hacerles una consulta sobre los equipos.';
 
-  // DIRECCIÓN PROVISORIA - confirmar con el cliente antes de publicar
-  // (aparece también en index.html, con el mismo comentario)
-  var DIRECCION = 'Río Cuarto 2341, Allen, Río Negro';
+  // DIRECCIÓN DE TRABAJO - confirmar con el cliente antes de publicar
+  // (aparece también en index.html y en el mapa de Contacto, con el
+  // mismo comentario)
+  var DIRECCION = 'Sáenz Peña 536, Allen, Río Negro';
 
   // URL pública del sitio. Se usa para armar el link que se comparte desde
   // el modal de producto.
@@ -360,6 +361,8 @@
     flechaArriba: '<path d="M12 19V5"></path><path d="M5 12l7 -7l7 7"></path>',
     flechaAbajo:  '<path d="M12 5v14"></path><path d="M19 12l-7 7l-7 -7"></path>',
     reloj: '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>',
+    pin: '<path d="M12 21s-6 -5.5 -6 -10a6 6 0 0 1 12 0c0 4.5 -6 10 -6 10z"></path>' +
+         '<circle cx="12" cy="11" r="2.2"></circle>',
     // tarjeta genérica de la franja de promo: a propósito NO es el logo de
     // ninguna marca (Visa/Mastercard/Cabal son marcas registradas), es una
     // tarjeta dibujada con el mismo trazo que el resto de los íconos
@@ -1181,7 +1184,7 @@
 
             '<div class="campo" id="campoDireccion">' +
               '<label class="campo__label" for="entregaDireccion">Dirección completa <span class="req" aria-hidden="true">*</span></label>' +
-              '<input class="input" type="text" id="entregaDireccion" name="direccion" placeholder="Ej: Río Cuarto 2341" autocomplete="street-address">' +
+              '<input class="input" type="text" id="entregaDireccion" name="direccion" placeholder="Ej: Sáenz Peña 536" autocomplete="street-address">' +
               '<p class="campo__error" id="errorDireccion" hidden></p>' +
             '</div>' +
 
@@ -1545,7 +1548,15 @@
         '<span class="destacado-card__cinta">Destacado</span>' +
         media(p, '', marcasSobreFoto(p), true) +
         '<div>' +
-          '<h2 class="destacado-card__nombre">' + esc(p.nombre) + '</h2>' +
+          // Mismo mecanismo que el catálogo y el carrusel: el nombre es un
+          // .card__abrir cuyo ::after cubre la tarjeta entera, así todo el
+          // bloque abre el modal. Requiere .destacado-card position:relative
+          // y que "Agregar" quede en z-index 2 (ver styles.css).
+          '<h2 class="destacado-card__nombre">' +
+            '<button class="card__abrir" type="button" data-modal="' + esc(p.id) + '">' +
+              esc(p.nombre) +
+            '</button>' +
+          '</h2>' +
           '<p class="destacado-card__specs">' + esc((p.specs || []).join(' · ')) + '</p>' +
         '</div>' +
         '<div class="destacado-card__fila">' +
@@ -2731,20 +2742,31 @@
   // cuando llega el hash, la sección todavía no existe (la pinta este
   // archivo después del fetch). Por eso el salto se hace a mano acá.
   //
-  // El salto va en 'instant' a propósito, aunque el resto del sitio use
-  // scroll suave: con 'smooth' la animación dura mientras las fotos de
-  // arriba todavía se están cargando, cada una empuja el contenido hacia
-  // abajo y el scroll termina lejos del destino. Un salto de ancla al
-  // entrar tampoco es animado en el navegador.
-  function irAlAncla() {
+  // Dos casos, dos comportamientos:
+  //  · AL PINTAR (suave=false): salto instantáneo. Con 'smooth' la
+  //    animación dura mientras las fotos de arriba todavía se están
+  //    cargando, cada una empuja el contenido hacia abajo y el scroll
+  //    termina lejos del destino. Un salto de ancla al entrar tampoco es
+  //    animado en el navegador.
+  //  · POR CLIC (suave=true, vía hashchange): scroll suave, igual que
+  //    cualquier otro ancla del sitio. Antes esto iba también en 'instant'
+  //    y por eso "Contacto" del menú se teletransportaba en vez de bajar
+  //    animado. La página ya está asentada, así que el motivo de arriba
+  //    no aplica. Con prefers-reduced-motion vuelve a instant.
+  // En los dos casos scrollIntoView respeta el scroll-padding-top del
+  // <html>, así que la sección no queda tapada por el header fijo.
+  function irAlAncla(suave) {
     if (!location.hash) return;
     var destino = document.getElementById(location.hash.slice(1));
-    if (destino) destino.scrollIntoView({ block: 'start', behavior: 'instant' });
+    if (!destino) return;
+    var comportamiento = (suave && !sinMovimiento()) ? 'smooth' : 'instant';
+    destino.scrollIntoView({ block: 'start', behavior: comportamiento });
   }
 
-  // Elegir otra subcategoría del menú estando ya en accesorios.html sólo
-  // cambia el hash: no hay recarga, así que hay que mover el scroll.
-  window.addEventListener('hashchange', irAlAncla);
+  // Elegir otra subcategoría del menú, o tocar "Contacto", estando ya en
+  // la página sólo cambia el hash: no hay recarga, así que hay que mover
+  // el scroll a mano — y acá sí, animado.
+  window.addEventListener('hashchange', function () { irAlAncla(true); });
 
   // [13] sin resultados. En una página de categoría el caso habitual ya
   // no es "categoría vacía" sino "la búsqueda no encontró nada": el texto

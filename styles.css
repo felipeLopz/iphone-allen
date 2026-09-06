@@ -1266,8 +1266,9 @@ html[data-anim-entrada="no"] .card {
 /* el nombre es el único foco de la tarjeta y su ::after la cubre entera,
    así todo el bloque abre el modal con un solo elemento en el tab order.
 
-   OJO: estas tres reglas van juntas y valen para los DOS contenedores que
-   usan .card__abrir (tarjeta de grilla y slide del carrusel):
+   OJO: estas tres reglas van juntas y valen para los TRES contenedores
+   que usan .card__abrir (tarjeta de grilla, slide del carrusel y la
+   tarjeta destacada del hero):
      1. el contenedor debe ser position:relative, si no el ::after se
         ancla al ancestro posicionado más cercano y se desborda;
      2. el botón de acción necesita position + z-index para quedar
@@ -1290,7 +1291,8 @@ html[data-anim-entrada="no"] .card {
 }
 
 .card,
-.carrusel__slide { position: relative; }
+.carrusel__slide,
+.destacado-card { position: relative; }
 
 /* Qué va en esta lista: TODO control clickeable que viva dentro de .card o
    de .carrusel__slide. No un atributo puntual — un control. Es la regla
@@ -1319,10 +1321,13 @@ html[data-anim-entrada="no"] .card {
 .card .btn--comparar,
 .card .btn[data-modal],
 .carrusel__slide [data-agregar],
-.carrusel__slide [data-avisar] { position: relative; z-index: 2; }
+.carrusel__slide [data-avisar],
+.destacado-card [data-agregar],
+.destacado-card [data-avisar] { position: relative; z-index: 2; }
 
 .card:has(.card__abrir:focus-visible),
-.carrusel__slide:has(.card__abrir:focus-visible) {
+.carrusel__slide:has(.card__abrir:focus-visible),
+.destacado-card:has(.card__abrir:focus-visible) {
   outline: 2px solid var(--acento);
   outline-offset: 3px;
 }
@@ -1959,6 +1964,61 @@ html[data-anim-entrada="no"] .card {
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 18px;
+}
+
+/* -------------------------- MAPA (contacto) -----------------------
+   El mapa de Google no cambia con el tema; lo que se adapta es el marco
+   y el texto de alrededor. El marco reusa el mismo tratamiento de las
+   tarjetas (borde + sombra de superficie + radio) para que no desentone.
+   Alto fijo cómodo, ancho responsivo con tope, para que no ocupe toda la
+   pantalla. */
+.mapa {
+  width: 100%;
+  max-width: 560px;
+  margin-top: 24px;
+  display: grid;
+  gap: 10px;
+}
+
+.mapa__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mapa__direccion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.mapa__ico {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: var(--acento);
+}
+.mapa__ico svg { width: 100%; height: 100%; }
+
+.mapa__link { font-size: 0.9rem; }
+
+.mapa__marco {
+  border: 1px solid var(--borde-superficie);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-superficie);
+  overflow: hidden;   /* recorta las esquinas del iframe al radio */
+  line-height: 0;     /* sin hueco fantasma debajo del iframe inline */
+}
+
+.mapa__iframe {
+  display: block;
+  width: 100%;
+  height: 300px;
+  border: 0;
 }
 
 /* ----------------------------- FOOTER ----------------------------- */
