@@ -131,6 +131,85 @@ body.sin-scroll { overflow: hidden; }
   color: var(--texto-suave);
 }
 
+/* ---------------------------- PESTAÑAS ---------------------------- */
+.panel__tabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--borde);
+  margin-bottom: 22px;
+}
+.panel__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-family: var(--cuerpo);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--texto-suave);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  cursor: pointer;
+  transition: color var(--transicion), border-color var(--transicion);
+}
+.panel__tab:hover { color: var(--texto); }
+.panel__tab[aria-selected="true"] {
+  color: var(--texto);
+  border-bottom-color: var(--acento-fuerte);
+}
+/* burbuja con la cantidad de pendientes */
+.panel__badge {
+  min-width: 20px;
+  height: 20px;
+  padding-inline: 6px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--acento-fuerte);
+  color: var(--sobre-acento);
+  font-size: 0.74rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------- TARJETAS DE RESEÑA (panel) ----------------- */
+.admin-resenas-grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.admin-resena {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: var(--superficie);
+  border: 1px solid var(--borde-superficie);
+  border-left: 3px solid var(--borde-fuerte);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-superficie);
+}
+/* el borde izquierdo colorea el estado de un vistazo */
+.admin-resena--pendiente { border-left-color: var(--usado-texto); }
+.admin-resena--aprobada  { border-left-color: var(--acento-fuerte); }
+.admin-resena--rechazada { border-left-color: var(--rojo-suave); opacity: 0.72; }
+
+.admin-resena__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.admin-resena__fecha { font-size: 0.78rem; color: var(--texto-tenue); text-transform: capitalize; }
+.admin-resena__texto { font-size: 0.92rem; line-height: 1.5; color: var(--texto); flex: 1; }
+.admin-resena__meta { font-size: 0.85rem; }
+.admin-resena__nombre { font-weight: 600; }
+.admin-resena__producto { color: var(--texto-suave); margin-top: 1px; }
+.admin-resena__producto--generica { font-style: italic; color: var(--texto-tenue); }
+.admin-resena__acciones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+
 /* Un poco más de aire entre la foto y el texto que en la tienda. La
    tarjeta del panel es idéntica a la del catálogo (misma .card, mismo
    gap de 10px), pero acá se leen los TÍTULOS uno tras otro para

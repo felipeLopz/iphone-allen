@@ -52,6 +52,11 @@
      que no tenía token: el fondo en reposo es --superficie2 y el hover
      necesita un escalón más marcado, que no existía. */
   --btn-hover:     #E2E6EA;
+  /* Estrellas de las reseñas. Ámbar oscuro para que la estrella rellena
+     (una forma, no texto) pase ~4:1 sobre el blanco de la tarjeta; la
+     vacía en gris de borde fuerte, que se distingue del fondo sin gritar. */
+  --estrella:      #B5760A;
+  --estrella-vacia:#C5CCD3;
   --marco-foto:    #FFFFFF;
   --velo:          rgba(26, 31, 36, 0.4);
   --foco-glow:     rgba(17, 20, 24, 0.16);
@@ -151,6 +156,10 @@
   --marco-foto:   #FFFFFF;
 
   --btn-hover:    #29313A;
+  /* Ámbar claro sobre el fondo oscuro: la estrella rellena queda muy por
+     encima de 3:1, y la vacía se lee como un gris apagado. */
+  --estrella:     #F0B44A;
+  --estrella-vacia:#3A424C;
 
   --velo:         rgba(0, 0, 0, 0.6);
   --foco-glow:    rgba(93, 202, 165, 0.30);
@@ -2019,6 +2028,196 @@ html[data-anim-entrada="no"] .card {
   width: 100%;
   height: 300px;
   border: 0;
+}
+
+/* ============================= RESEÑAS ===========================
+   Sección pública de reseñas + estrellas + formulario en modal.
+   Las tarjetas reusan .card (mismo borde, radio y sombra). Las
+   estrellas usan --estrella / --estrella-vacia, definidos por tema.
+   ================================================================ */
+
+/* encabezado con el botón "Dejar una reseña" a la derecha */
+.seccion__head--resenas {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* fila de estrellas para MOSTRAR (no editar) */
+.estrellas {
+  display: inline-flex;
+  gap: 2px;
+  vertical-align: middle;
+  line-height: 0;
+}
+.estrellas .ico { width: 16px; height: 16px; }
+.estrella { color: var(--estrella-vacia); }
+/* rellena: el mismo trazo pero con relleno, para que se lea maciza */
+.estrella--llena { color: var(--estrella); }
+.estrella--llena .ico { fill: var(--estrella); }
+.estrellas--grande .ico { width: 26px; height: 26px; }
+
+/* el resumen (promedio + cantidad) alinea estrellas y número */
+#resenasResumen .estrellas { margin-right: 6px; }
+#resenasResumen strong { color: var(--texto); }
+
+.resenas-grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+}
+
+/* .card ya trae borde/sombra/radio; acá sólo el layout interno */
+.resena-card {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.resena-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.resena-card__fecha {
+  font-size: 0.78rem;
+  color: var(--texto-tenue);
+  text-transform: capitalize;
+}
+.resena-card__texto {
+  color: var(--texto);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  /* el comentario manda el alto de la tarjeta; el pie queda abajo */
+  flex: 1;
+}
+.resena-card__pie { margin-top: 2px; }
+.resena-card__nombre { font-weight: 600; font-size: 0.9rem; }
+.resena-card__producto {
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+  margin-top: 2px;
+}
+
+.resenas-mas {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+/* estado vacío: invita a dejar la primera */
+.resenas-vacio {
+  margin-top: 22px;
+  padding: 32px 20px;
+  border: 1px dashed var(--borde-fuerte);
+  border-radius: var(--radio);
+  text-align: center;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+.resenas-vacio__texto {
+  color: var(--texto-suave);
+  max-width: 34ch;
+}
+
+/* ------------------------ FORMULARIO (modal) --------------------- */
+/* Reusa .modal / .overlay; sólo acota el ancho para un formulario. */
+.modal--form { max-width: 480px; }
+
+.resena-form { display: grid; gap: 16px; }
+.resena-form__bajada {
+  color: var(--texto-suave);
+  font-size: 0.9rem;
+  margin-top: -6px;
+}
+.campo__opcional { color: var(--texto-tenue); font-weight: 400; }
+
+.resena-form__texto { resize: vertical; min-height: 92px; font-family: var(--cuerpo); }
+
+.resena-form__pie {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.resena-form__contador {
+  font-size: 0.78rem;
+  color: var(--texto-tenue);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.resena-form__aviso {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radio-sm);
+  font-size: 0.86rem;
+  background: var(--error-suave);
+  border: 1px solid var(--rojo-suave);
+  color: var(--rojo-suave);
+}
+/* ámbar cuando es el freno anti-spam, no un error */
+.resena-form__aviso--atencion {
+  background: var(--usado-fondo);
+  border-color: var(--usado-borde);
+  color: var(--usado-texto);
+}
+
+/* -------------------- ESTRELLAS PARA ELEGIR --------------------- */
+/* Radios reales (recorribles con las flechas) pintados como estrellas.
+   Orden 5→1 en el DOM + row-reverse: al pasar el mouse o elegir una, se
+   rellenan ella y las de su izquierda con el combinador ~. */
+.estrellas-input { border: 0; padding: 0; margin: 0; }
+.estrellas-input__fila {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 6px;
+}
+.estrellas-input__label {
+  color: var(--estrella-vacia);
+  cursor: pointer;
+  line-height: 0;
+  /* 30px de ícono + 7px arriba y abajo = 44px de área de toque, el
+     estándar del sitio en celular. */
+  padding: 7px 5px;
+  border-radius: 6px;
+  transition: color var(--transicion);
+}
+.estrellas-input__label .ico { width: 30px; height: 30px; }
+
+/* El ORDEN de estas reglas importa: todas terminan con la misma
+   especificidad, así que la última que matchea gana. Por eso "elegida"
+   va primero y "al pasar el mouse" después: mientras el mouse está sobre
+   la fila, el hover pisa a la selección y muestra la vista previa; al
+   sacar el mouse, vuelve a mandar la selección.
+
+   1. elegida: se rellenan ella y las de su izquierda (DOM 5→1 + row-reverse) */
+.estrellas-input__radio:checked ~ .estrellas-input__label { color: var(--estrella); }
+.estrellas-input__radio:checked ~ .estrellas-input__label .ico { fill: var(--estrella); }
+
+/* 2. con el mouse sobre la fila se apaga la selección, para previsualizar */
+.estrellas-input__fila:hover .estrellas-input__label { color: var(--estrella-vacia); }
+.estrellas-input__fila:hover .estrellas-input__label .ico { fill: none; }
+
+/* 3. y se rellenan la estrella apuntada y las de su izquierda */
+.estrellas-input__fila .estrellas-input__label:hover,
+.estrellas-input__fila .estrellas-input__label:hover ~ .estrellas-input__label { color: var(--estrella); }
+.estrellas-input__fila .estrellas-input__label:hover .ico,
+.estrellas-input__fila .estrellas-input__label:hover ~ .estrellas-input__label .ico { fill: var(--estrella); }
+
+/* foco de teclado sobre la estrella del radio enfocado */
+.estrellas-input__radio:focus-visible + .estrellas-input__label {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+  color: var(--estrella);
 }
 
 /* ----------------------------- FOOTER ----------------------------- */

@@ -102,6 +102,16 @@
   var busqueda = '';
   var temporizadorRenovacion = null;
 
+  var resenas = [];             // todas las reseñas (el panel ve todo)
+  var filtroResena = 'pendiente';
+  // Orden y etiquetas de los estados. Pendientes primero, que es lo que
+  // el cliente tiene que atender.
+  var ESTADOS_RESENA = [
+    { valor: 'pendiente', texto: 'Pendientes' },
+    { valor: 'aprobada',  texto: 'Aprobadas' },
+    { valor: 'rechazada', texto: 'Rechazadas' }
+  ];
+
   /* ==================================================================
      1. SESIÓN
      ------------------------------------------------------------------
@@ -215,6 +225,15 @@
     filtroCategoria = 'todas';
     busqueda = '';
     $('#buscador').value = '';
+    // Reseñas: misma limpieza, para no dejar datos de un usuario en el DOM
+    resenas = [];
+    filtroResena = 'pendiente';
+    $('#resenasPanel').innerHTML = '';
+    $('#filtrosResena').innerHTML = '';
+    $('#resenasConteo').textContent = '';
+    var badge = $('#badgePendientes');
+    if (badge) { badge.textContent = '0'; badge.hidden = true; }
+    mostrarVista('productos');
     mostrarLogin(porVencimiento
       ? 'Tu sesión venció. Entrá de nuevo.'
       : '');
@@ -881,7 +900,9 @@
     flecha: '<path d="M5 12h14"></path><path d="M13 6l6 6l-6 6"></path>',
     volver: '<path d="M19 12H5"></path><path d="M11 18l-6 -6l6 -6"></path>',
     sol: '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>',
-    luna: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>'
+    luna: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>',
+    cruz: '<path d="M18 6L6 18"></path><path d="M6 6l12 12"></path>',
+    estrella: '<path d="M12 3.5l2.6 5.3l5.9 .9l-4.3 4.1l1 5.8l-5.2 -2.7l-5.2 2.7l1 -5.8l-4.3 -4.1l5.9 -.9z"></path>'
   };
 
   function icono(nombre, clase) {
@@ -958,6 +979,9 @@
         console.info('[admin] ' + productos.length + ' productos leídos de Supabase.');
         pintarFiltros();
         pintarGrilla();
+        // El contador de pendientes tiene que verse aunque no se abra la
+        // pestaña de reseñas: se cargan en segundo plano al entrar.
+        cargarResenasAdmin();
       })
       .catch(function (err) {
         if (err.message === 'sesión-vencida') { cerrarSesion(true); return; }
@@ -967,6 +991,194 @@
           ' Revisá que las tablas estén creadas en Supabase (ver supabase/schema.sql).';
         console.error('[admin]', err);
       });
+  }
+
+  /* ==================================================================
+     9b. RESEÑAS — moderación
+     ------------------------------------------------------------------
+     El panel ve TODAS (las políticas RLS dejan leer todo a un usuario
+     autenticado). Aprobar/rechazar es un PATCH del estado con el token
+     de la sesión. Todo el texto de la reseña lo escribió un desconocido:
+     pasa por esc() antes de entrar a un innerHTML, igual que en el sitio.
+     ================================================================== */
+
+  function pedirResenas() {
+    return tokenVigente().then(function (token) {
+      return fetch(SUPABASE_URL + '/rest/v1/resenas?select=*&order=creado_en.desc', {
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: 'Bearer ' + token,
+          Accept: 'application/json'
+        }
+      });
+    }).then(function (r) {
+      if (r.status === 401) throw new Error('sesión-vencida');
+      if (!r.ok) throw new Error('No se pudieron leer las reseñas (HTTP ' + r.status + ').');
+      return r.json();
+    });
+  }
+
+  function cambiarEstadoResena(id, estado) {
+    return tokenVigente().then(function (token) {
+      return fetch(SUPABASE_URL + '/rest/v1/resenas?id=eq.' + encodeURIComponent(id), {
+        method: 'PATCH',
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: 'Bearer ' + token,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation'
+        },
+        body: JSON.stringify({ estado: estado })
+      });
+    }).then(function (r) {
+      return r.text().then(function (texto) {
+        if (r.status === 401) throw new Error('sesión-vencida');
+        if (r.status === 403) throw new Error('La base rechazó el cambio (RLS): revisá que tu usuario tenga permiso.');
+        if (!r.ok) throw new Error('No se pudo actualizar (HTTP ' + r.status + ').');
+        var filas = texto ? JSON.parse(texto) : [];
+        return filas[0];
+      });
+    });
+  }
+
+  function estrellasHTML(n) {
+    var s = '<span class="estrellas" aria-label="' + n + ' de 5 estrellas">';
+    for (var i = 1; i <= 5; i++) {
+      s += '<span class="estrella' + (i <= n ? ' estrella--llena' : '') + '">' + icono('estrella') + '</span>';
+    }
+    return s + '</span>';
+  }
+
+  function fechaResena(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return '';
+    return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  function contarPendientes() {
+    return resenas.filter(function (r) { return r.estado === 'pendiente'; }).length;
+  }
+
+  function actualizarBadge() {
+    var n = contarPendientes();
+    var badge = $('#badgePendientes');
+    if (!badge) return;
+    badge.textContent = n;
+    badge.hidden = n === 0;
+  }
+
+  function pintarFiltrosResena() {
+    $('#filtrosResena').innerHTML = ESTADOS_RESENA.map(function (e) {
+      var cuenta = resenas.filter(function (r) { return r.estado === e.valor; }).length;
+      var activo = e.valor === filtroResena;
+      return '<button class="filtro' + (activo ? ' filtro--activo' : '') + '" type="button" ' +
+             'data-estado="' + e.valor + '"' + (activo ? ' aria-current="true"' : '') + '>' +
+             esc(e.texto) + ' (' + cuenta + ')</button>';
+    }).join('');
+  }
+
+  function tarjetaResenaAdmin(r) {
+    var producto = r.producto_nombre
+      ? '<p class="admin-resena__producto">' + esc(r.producto_nombre) + '</p>'
+      : '<p class="admin-resena__producto admin-resena__producto--generica">Reseña general</p>';
+
+    // Los botones dependen del estado: no tiene sentido "Aprobar" algo ya
+    // aprobado. Se ofrece siempre la acción opuesta.
+    var acciones = '';
+    if (r.estado !== 'aprobada') {
+      acciones += '<button class="btn btn--compacto" type="button" data-aprobar="' + esc(r.id) + '">' +
+        '<span class="btn__ico" data-ico="check"></span><span class="btn__txt">Aprobar</span></button>';
+    }
+    if (r.estado !== 'rechazada') {
+      acciones += '<button class="btn btn--sec btn--compacto" type="button" data-rechazar="' + esc(r.id) + '">' +
+        '<span class="btn__ico" data-ico="cruz"></span><span class="btn__txt">Rechazar</span></button>';
+    }
+
+    return '<article class="admin-resena admin-resena--' + esc(r.estado) + '">' +
+        '<div class="admin-resena__top">' +
+          estrellasHTML(r.estrellas) +
+          '<span class="admin-resena__fecha">' + esc(fechaResena(r.creado_en)) + '</span>' +
+        '</div>' +
+        '<p class="admin-resena__texto">' + esc(r.comentario) + '</p>' +
+        '<div class="admin-resena__meta">' +
+          '<span class="admin-resena__nombre">' + esc(r.nombre) + '</span>' +
+          producto +
+        '</div>' +
+        '<div class="admin-resena__acciones">' + acciones + '</div>' +
+      '</article>';
+  }
+
+  function pintarResenasAdmin() {
+    pintarFiltrosResena();
+    actualizarBadge();
+
+    var pend = contarPendientes();
+    $('#resenasConteo').textContent = pend === 0
+      ? 'No hay reseñas pendientes.'
+      : pend + (pend === 1 ? ' reseña pendiente de moderar.' : ' reseñas pendientes de moderar.');
+
+    var lista = resenas.filter(function (r) { return r.estado === filtroResena; });
+    var cont = $('#resenasPanel');
+    var vacio = $('#resenasVacio');
+
+    if (!lista.length) {
+      cont.innerHTML = '';
+      vacio.hidden = false;
+      vacio.textContent = filtroResena === 'pendiente'
+        ? 'No hay reseñas pendientes. ¡Al día!'
+        : 'No hay reseñas ' + (filtroResena === 'aprobada' ? 'aprobadas' : 'rechazadas') + '.';
+      return;
+    }
+    vacio.hidden = true;
+    cont.innerHTML = '<div class="admin-resenas-grilla">' + lista.map(tarjetaResenaAdmin).join('') + '</div>';
+    hidratarIconos(cont);
+  }
+
+  function cargarResenasAdmin() {
+    $('#resenasConteo').textContent = 'Cargando reseñas…';
+    return pedirResenas()
+      .then(function (filas) {
+        resenas = Array.isArray(filas) ? filas : [];
+        console.info('[admin] ' + resenas.length + ' reseñas leídas de Supabase.');
+        pintarResenasAdmin();
+      })
+      .catch(function (err) {
+        if (err.message === 'sesión-vencida') { cerrarSesion(true); return; }
+        $('#resenasConteo').textContent = '';
+        $('#resenasVacio').hidden = false;
+        $('#resenasVacio').textContent = err.message +
+          ' Revisá que la tabla exista en Supabase (ver supabase/resenas.sql).';
+        console.error('[admin]', err);
+      });
+  }
+
+  function moderar(id, estado) {
+    var previa = resenas.slice();
+    cambiarEstadoResena(id, estado)
+      .then(function (fila) {
+        // refresca la fila local con lo que quedó en la base
+        resenas = resenas.map(function (r) {
+          return (fila && r.id === fila.id) ? fila : r;
+        });
+        pintarResenasAdmin();
+        toast(estado === 'aprobada' ? 'Reseña aprobada' : 'Reseña rechazada');
+      })
+      .catch(function (err) {
+        if (err.message === 'sesión-vencida') { cerrarSesion(true); return; }
+        resenas = previa;
+        toast(err.message);
+        console.error('[admin]', err);
+      });
+  }
+
+  // Cambia entre la vista de catálogo y la de reseñas.
+  function mostrarVista(cual) {
+    var esResenas = cual === 'resenas';
+    $('#vistaProductos').hidden = esResenas;
+    $('#vistaResenas').hidden = !esResenas;
+    $('#tabProductos').setAttribute('aria-selected', esResenas ? 'false' : 'true');
+    $('#tabResenas').setAttribute('aria-selected', esResenas ? 'true' : 'false');
+    if (esResenas && !resenas.length) cargarResenasAdmin();
   }
 
   /* ==================================================================
@@ -1022,6 +1234,26 @@
 
   $('#temaBtn').addEventListener('click', function () {
     aplicarTema(temaActual() === 'oscuro' ? 'claro' : 'oscuro');
+  });
+
+  // --- pestañas Catálogo / Reseñas
+  $('#tabProductos').addEventListener('click', function () { mostrarVista('productos'); });
+  $('#tabResenas').addEventListener('click', function () { mostrarVista('resenas'); });
+
+  // --- filtro por estado de reseña
+  $('#filtrosResena').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-estado]');
+    if (!b) return;
+    filtroResena = b.dataset.estado;
+    pintarResenasAdmin();
+  });
+
+  // --- aprobar / rechazar
+  $('#resenasPanel').addEventListener('click', function (e) {
+    var ap = e.target.closest('[data-aprobar]');
+    var re = e.target.closest('[data-rechazar]');
+    if (ap) moderar(ap.dataset.aprobar, 'aprobada');
+    else if (re) moderar(re.dataset.rechazar, 'rechazada');
   });
 
   // --- filtros y buscador

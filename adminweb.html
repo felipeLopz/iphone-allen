@@ -109,25 +109,53 @@
   <main class="panel__cuerpo">
     <div class="wrap">
 
-      <div class="panel__intro">
-        <h1 class="seccion__titulo">Catálogo</h1>
-        <p class="seccion__sub" id="panelConteo">Cargando…</p>
+      <!-- Dos vistas: Catálogo y Reseñas. El tab-list cambia cuál se ve.
+           El contador de pendientes vive en la pestaña de Reseñas. -->
+      <div class="panel__tabs" role="tablist" aria-label="Secciones del panel">
+        <button class="panel__tab" type="button" id="tabProductos" role="tab"
+                aria-selected="true" aria-controls="vistaProductos">Catálogo</button>
+        <button class="panel__tab" type="button" id="tabResenas" role="tab"
+                aria-selected="false" aria-controls="vistaResenas">
+          Reseñas <span class="panel__badge" id="badgePendientes" hidden>0</span>
+        </button>
       </div>
 
-      <!-- Mismas pastillas y buscador que el catálogo real -->
-      <div class="barra-catalogo">
-        <nav class="filtros" id="filtrosCat" aria-label="Filtrar por categoría"></nav>
-        <div class="herramientas">
-          <label class="admin-buscador">
-            <span class="sr-only">Buscar producto</span>
-            <input class="input admin-buscador__campo" type="search" id="buscador"
-                   placeholder="Buscar por nombre o id…" autocomplete="off">
-          </label>
+      <!-- ===================== VISTA CATÁLOGO ===================== -->
+      <section id="vistaProductos" role="tabpanel" aria-labelledby="tabProductos">
+        <div class="panel__intro">
+          <h1 class="seccion__titulo">Catálogo</h1>
+          <p class="seccion__sub" id="panelConteo">Cargando…</p>
         </div>
-      </div>
 
-      <div id="panelSecciones" aria-live="polite"></div>
-      <p class="admin-vacio" id="panelVacio" hidden></p>
+        <!-- Mismas pastillas y buscador que el catálogo real -->
+        <div class="barra-catalogo">
+          <nav class="filtros" id="filtrosCat" aria-label="Filtrar por categoría"></nav>
+          <div class="herramientas">
+            <label class="admin-buscador">
+              <span class="sr-only">Buscar producto</span>
+              <input class="input admin-buscador__campo" type="search" id="buscador"
+                     placeholder="Buscar por nombre o id…" autocomplete="off">
+            </label>
+          </div>
+        </div>
+
+        <div id="panelSecciones" aria-live="polite"></div>
+        <p class="admin-vacio" id="panelVacio" hidden></p>
+      </section>
+
+      <!-- ====================== VISTA RESEÑAS ===================== -->
+      <section id="vistaResenas" role="tabpanel" aria-labelledby="tabResenas" hidden>
+        <div class="panel__intro">
+          <h1 class="seccion__titulo">Reseñas</h1>
+          <p class="seccion__sub" id="resenasConteo">Cargando…</p>
+        </div>
+
+        <!-- Filtro por estado: pendientes primero -->
+        <nav class="filtros" id="filtrosResena" aria-label="Filtrar reseñas por estado"></nav>
+
+        <div id="resenasPanel" aria-live="polite"></div>
+        <p class="admin-vacio" id="resenasVacio" hidden></p>
+      </section>
 
     </div>
   </main>

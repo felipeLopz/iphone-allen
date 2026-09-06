@@ -241,6 +241,27 @@
     </div>
   </section>
 
+  <!-- ============================ RESEÑAS =========================
+       Reseñas de clientes ya aprobadas. El contenido lo pinta app.js
+       leyendo de Supabase (estado = 'aprobada'); si falla, se muestra el
+       estado vacío sin romper la página. El formulario para dejar una
+       reseña vive en un modal aparte (htmlResenaModal en app.js). -->
+  <section class="seccion" id="resenas" aria-labelledby="tit-resenas">
+    <div class="wrap">
+      <header class="seccion__head seccion__head--resenas">
+        <div>
+          <h2 class="seccion__titulo" id="tit-resenas">Lo que dicen los clientes</h2>
+          <p class="seccion__sub" id="resenasResumen">Cargando reseñas…</p>
+        </div>
+        <button class="btn" type="button" id="abrirResena">
+          <span class="btn__ico" data-ico="estrella"></span><span class="btn__txt">Dejar una reseña</span>
+        </button>
+      </header>
+
+      <div id="resenasLista" aria-live="polite"></div>
+    </div>
+  </section>
+
   <!-- ======================== PREGUNTAS FRECUENTES ================== -->
   <section class="seccion" id="preguntas" aria-labelledby="tit-preguntas">
     <div class="wrap">

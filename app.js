@@ -88,6 +88,13 @@
   var STORAGE_KEY = 'nombre-carrito-v1';
   var ENTREGA_STORAGE_KEY = 'nombre-entrega-v1';
 
+  // Reseñas. RESENA_ULTIMO_KEY guarda la marca de tiempo del último envío
+  // para el freno anti-spam del lado del cliente (ver enviarResena).
+  var RESENA_ULTIMO_KEY = 'resena-ultimo-envio-v1';
+  var RESENA_ESPERA_MS = 10 * 60 * 1000;   // una reseña cada 10 min por navegador
+  var RESENA_MAX_COMENTARIO = 500;
+  var RESENAS_VISIBLES = 6;                 // cuántas se ven antes del "Ver más"
+
   /* =====================================================================
      SUPABASE — de dónde sale el catálogo
      ---------------------------------------------------------------------
@@ -328,6 +335,9 @@
      ------------------------------------------------------------------ */
   var ICONOS = {
     check: '<path d="M5 12l5 5l10 -10"></path>',
+    // Estrella. Se dibuja con el trazo (como el resto de los íconos) y se
+    // rellena con fill sólo donde hace falta (ver .estrella--llena).
+    estrella: '<path d="M12 3.5l2.6 5.3l5.9 .9l-4.3 4.1l1 5.8l-5.2 -2.7l-5.2 2.7l1 -5.8l-4.3 -4.1l5.9 -.9z"></path>',
     carrito: '<circle cx="6" cy="19" r="2"></circle><circle cx="17" cy="19" r="2"></circle>' +
              '<path d="M17 17h-11v-14h-2"></path><path d="M6 5l14 1l-1 7h-13"></path>',
     sinResultados: '<path d="M5.039 5.062a7 7 0 0 0 9.91 9.89m1.584 -2.434a7 7 0 0 0 -9.038 -9.057"></path>' +
@@ -884,6 +894,7 @@
     // "Inicio" y el logotipo siempre van a la portada. "Contacto" vive en
     // index.html: desde una categoría hay que saltar de página.
     var hrefContacto = esInicio ? '#contacto' : 'index.html#contacto';
+    var hrefResenas = esInicio ? '#resenas' : 'index.html#resenas';
     var anclaSalto = esInicio ? '#destacados' : '#catalogo';
 
     return '<a class="skip-link" href="' + anclaSalto + '">Saltar al contenido</a>' +
@@ -903,6 +914,7 @@
                 '</button>' +
                 '<div class="nav-drop__panel" id="menuProductos" role="menu" aria-label="Categorías de productos"></div>' +
               '</div>' +
+              '<a class="link-sub nav__link" href="' + hrefResenas + '">Reseñas</a>' +
               '<a class="link-sub nav__link" href="' + hrefContacto + '">Contacto</a>' +
             '</nav>' +
             '<button class="tema-btn" type="button" id="temaBtn" aria-label="Cambiar tema">' +
@@ -1308,10 +1320,13 @@
   document.getElementById('app-header').innerHTML = htmlHeader();
   document.getElementById('app-footer').innerHTML = htmlFooter();
   document.body.insertAdjacentHTML('beforeend',
-    htmlDrawer() + htmlCheckout() + htmlModal() + htmlBotonesFlotantes());
+    htmlDrawer() + htmlCheckout() + htmlModal() + htmlResenaModal() + htmlBotonesFlotantes());
 
   iniciarTema();
   iniciarFlotantes();
+  // iniciarResenas() NO va acá: usa las vars resenaModal/resenaOverlay,
+  // que se asignan más abajo (junto al modal de producto). Se llama al
+  // final de su propio módulo, cuando esas vars ya existen.
 
   /* ---------------------------- CARGA DE DATOS ----------------------
      El catálogo sale de Supabase; si falla, del productos.json de
@@ -1486,6 +1501,7 @@
         pintarHero();
         iniciarCarrusel();
         iniciarComparador();
+        poblarSelectResena();   // el catálogo ya está: llena el select del form
       } else {
         pintarCatalogo();
         // sólo al cargar: pintarCatalogo() vuelve a correr con cada tecla
@@ -3587,6 +3603,359 @@
   $('#modalCerrar').addEventListener('click', cerrarModal);
   overlayModal.addEventListener('click', cerrarModal);
 
+  /* ============================== RESEÑAS ==========================
+     Reseñas de clientes con moderación. El sitio muestra sólo las
+     'aprobada' (leídas de Supabase); el formulario inserta con estado
+     'pendiente' y las políticas RLS impiden que se vean hasta que el
+     panel las apruebe. Todo el texto de una reseña lo escribió un
+     desconocido, así que pasa por esc() en TODOS lados antes de entrar a
+     un innerHTML.
+     ------------------------------------------------------------------ */
+
+  var resenaModal = $('#resenaModal');
+  var resenaOverlay = $('#resenaOverlay');
+  var ultimoFocoResena = null;
+  var resenasCargadas = [];
+
+  // El markup del modal se arma una vez y se inyecta con el resto del
+  // armazón. Las 5 estrellas van como radios en orden 5→1 para que el
+  // truco CSS (rellenar al pasar el mouse y al elegir) funcione sin JS;
+  // siguen siendo radios de verdad, recorribles con las flechas.
+  function htmlResenaModal() {
+    var estrellas = '';
+    for (var v = 5; v >= 1; v--) {
+      estrellas +=
+        '<input class="estrellas-input__radio sr-only" type="radio" name="resenaEstrellas" ' +
+               'id="estrella-' + v + '" value="' + v + '">' +
+        '<label class="estrellas-input__label" for="estrella-' + v + '" title="' + v + ' de 5">' +
+          icono('estrella') +
+          '<span class="sr-only">' + v + (v === 1 ? ' estrella' : ' estrellas') + '</span>' +
+        '</label>';
+    }
+    return '<div class="overlay" id="resenaOverlay" hidden></div>' +
+      '<div class="modal modal--form" id="resenaModal" role="dialog" aria-modal="true" ' +
+           'aria-labelledby="resenaTitulo" hidden>' +
+        '<button class="modal__cerrar" type="button" id="resenaCerrar" aria-label="Cerrar formulario de reseña">' +
+          '<span aria-hidden="true">✕</span>' +
+        '</button>' +
+        '<div class="modal__scroll">' +
+          '<form class="resena-form" id="resenaForm" novalidate>' +
+            '<h2 class="modal__nombre" id="resenaTitulo">Dejá tu reseña</h2>' +
+            '<p class="resena-form__bajada">La revisamos y la publicamos apenas la aprobemos: no aparece al instante.</p>' +
+
+            '<fieldset class="campo estrellas-input">' +
+              '<legend class="campo__label">Tu puntaje</legend>' +
+              '<div class="estrellas-input__fila" role="radiogroup" aria-label="Puntaje en estrellas">' +
+                estrellas +
+              '</div>' +
+              '<p class="campo__error" id="errEstrellas" role="alert" hidden></p>' +
+            '</fieldset>' +
+
+            '<div class="campo">' +
+              '<label class="campo__label" for="resenaNombre">Tu nombre</label>' +
+              '<input class="input" type="text" id="resenaNombre" maxlength="60" autocomplete="name" placeholder="Ej: Sofía G.">' +
+              '<p class="campo__error" id="errNombre" role="alert" hidden></p>' +
+            '</div>' +
+
+            '<div class="campo">' +
+              '<label class="campo__label" for="resenaProducto">¿Qué compraste? ' +
+                '<span class="campo__opcional">(opcional)</span></label>' +
+              '<select class="input" id="resenaProducto">' +
+                '<option value="">Algo general del negocio</option>' +
+              '</select>' +
+            '</div>' +
+
+            '<div class="campo">' +
+              '<label class="campo__label" for="resenaComentario">Tu comentario</label>' +
+              '<textarea class="input resena-form__texto" id="resenaComentario" rows="4" ' +
+                        'maxlength="' + RESENA_MAX_COMENTARIO + '" ' +
+                        'placeholder="Contanos cómo fue tu experiencia."></textarea>' +
+              '<div class="resena-form__pie">' +
+                '<span class="campo__error" id="errComentario" role="alert" hidden></span>' +
+                '<span class="resena-form__contador" id="resenaContador" aria-live="polite">0/' + RESENA_MAX_COMENTARIO + '</span>' +
+              '</div>' +
+            '</div>' +
+
+            // rojo si es error, ámbar si es el freno anti-spam
+            '<p class="resena-form__aviso" id="resenaAviso" role="alert" hidden></p>' +
+
+            '<button class="btn btn--principal btn--bloque" type="submit" id="resenaEnviar">' +
+              '<span class="btn__ico" data-ico="check"></span>' +
+              '<span class="btn__txt">Enviar reseña</span>' +
+            '</button>' +
+          '</form>' +
+        '</div>' +
+      '</div>';
+  }
+
+  // Estrellas para MOSTRAR (no editar): 5 spans, las primeras n rellenas.
+  // role=img + aria-label para que el lector de pantalla anuncie el
+  // puntaje (las estrellas vacías no dicen nada por sí solas).
+  function estrellasHTML(n, clase) {
+    var s = '<span class="estrellas ' + (clase || '') + '" role="img" ' +
+            'aria-label="' + n + ' de 5 estrellas">';
+    for (var i = 1; i <= 5; i++) {
+      s += '<span class="estrella' + (i <= n ? ' estrella--llena' : '') + '" aria-hidden="true">' +
+           icono('estrella') + '</span>';
+    }
+    return s + '</span>';
+  }
+
+  function fechaResena(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return '';
+    return d.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+  }
+
+  function cargarResenas() {
+    if (!esInicio || !$('#resenasLista')) return;
+    // Pedido independiente del catálogo: si Supabase falla acá, se cae
+    // sólo esta sección (estado vacío), no la página. Y al revés: si el
+    // catálogo falla, las reseñas igual se intentan.
+    pedirTablaSupabase('resenas', '?select=*&estado=eq.aprobada&order=creado_en.desc')
+      .then(function (filas) {
+        resenasCargadas = Array.isArray(filas) ? filas : [];
+        pintarResenas();
+      })
+      .catch(function (err) {
+        console.warn('[tienda] no se pudieron cargar las reseñas:', err);
+        resenasCargadas = [];
+        pintarResenas();
+      });
+  }
+
+  function tarjetaResena(r, i) {
+    // Las que pasan del tope arrancan con [hidden]: no se ven ni entran al
+    // tab order (bug 4), y el botón "Ver más" se las quita.
+    var oculta = i >= RESENAS_VISIBLES ? ' hidden' : '';
+    var producto = r.producto_nombre
+      ? '<p class="resena-card__producto">' + esc(r.producto_nombre) + '</p>'
+      : '';
+    return '<article class="card resena-card"' + oculta + '>' +
+        '<div class="resena-card__top">' +
+          estrellasHTML(r.estrellas) +
+          '<span class="resena-card__fecha">' + esc(fechaResena(r.creado_en)) + '</span>' +
+        '</div>' +
+        '<p class="resena-card__texto">' + esc(r.comentario) + '</p>' +
+        '<footer class="resena-card__pie">' +
+          '<p class="resena-card__nombre">' + esc(r.nombre) + '</p>' +
+          producto +
+        '</footer>' +
+      '</article>';
+  }
+
+  function pintarResenas() {
+    var lista = $('#resenasLista');
+    var resumen = $('#resenasResumen');
+    if (!lista) return;
+
+    if (!resenasCargadas.length) {
+      resumen.textContent = 'Todavía no hay reseñas publicadas.';
+      lista.innerHTML =
+        '<div class="resenas-vacio">' +
+          estrellasHTML(0, 'estrellas--grande') +
+          '<p class="resenas-vacio__texto">Sé el primero en contar tu experiencia. ' +
+          'Tu reseña ayuda a otros a decidir.</p>' +
+        '</div>';
+      return;
+    }
+
+    var n = resenasCargadas.length;
+    var suma = resenasCargadas.reduce(function (a, r) { return a + Number(r.estrellas || 0); }, 0);
+    var prom = suma / n;
+    resumen.innerHTML =
+      estrellasHTML(Math.round(prom)) +
+      ' <strong>' + prom.toFixed(1).replace('.', ',') + '</strong>' +
+      ' · ' + n + (n === 1 ? ' reseña' : ' reseñas');
+
+    var cards = resenasCargadas.map(tarjetaResena).join('');
+    var verMas = n > RESENAS_VISIBLES
+      ? '<div class="resenas-mas">' +
+          '<button class="btn btn--sec" type="button" id="resenasVerMas">' +
+            '<span class="btn__ico" data-ico="chevron"></span>' +
+            '<span class="btn__txt">Ver las ' + (n - RESENAS_VISIBLES) + ' restantes</span>' +
+          '</button>' +
+        '</div>'
+      : '';
+    lista.innerHTML = '<div class="resenas-grilla">' + cards + '</div>' + verMas;
+    hidratarIconos(lista);
+  }
+
+  // Llena el <select> del formulario con los productos del catálogo,
+  // agrupados por categoría. Se llama cuando el catálogo ya cargó; si no
+  // llegó (Supabase y JSON caídos), el select queda con "Algo general".
+  function poblarSelectResena() {
+    var sel = $('#resenaProducto');
+    if (!sel || !productos.length) return;
+    var porCat = {};
+    productos.forEach(function (p) {
+      (porCat[p.categoria] = porCat[p.categoria] || []).push(p);
+    });
+    var html = '<option value="">Algo general del negocio</option>';
+    categoriasConProductos().forEach(function (cat) {
+      var lista = porCat[cat];
+      if (!lista || !lista.length) return;
+      html += '<optgroup label="' + esc(cat) + '">';
+      lista.forEach(function (p) {
+        html += '<option value="' + esc(p.id) + '">' + esc(p.nombre) + '</option>';
+      });
+      html += '</optgroup>';
+    });
+    sel.innerHTML = html;
+  }
+
+  function abrirResenaForm() {
+    ultimoFocoResena = document.activeElement;
+    resenaModal.hidden = false;
+    resenaOverlay.hidden = false;
+    void resenaModal.offsetWidth;
+    resenaModal.dataset.visible = 'true';
+    resenaOverlay.dataset.visible = 'true';
+    bloquearScroll();
+    $('#resenaCerrar').focus();
+  }
+
+  function cerrarResenaForm() {
+    if (resenaModal.hidden) return;
+    resenaModal.dataset.visible = 'false';
+    resenaOverlay.dataset.visible = 'false';
+    var ocultar = function () {
+      resenaModal.hidden = true;
+      resenaOverlay.hidden = true;
+      liberarScroll();
+    };
+    if (sinMovimiento()) ocultar();
+    else setTimeout(ocultar, 220);
+    if (ultimoFocoResena && document.contains(ultimoFocoResena)) ultimoFocoResena.focus();
+    ultimoFocoResena = null;
+  }
+
+  function limpiarErroresResena() {
+    ['errEstrellas', 'errNombre', 'errComentario'].forEach(function (id) {
+      var el = $('#' + id); if (el) { el.hidden = true; el.textContent = ''; }
+    });
+    $('#resenaAviso').hidden = true;
+    $('#resenaAviso').textContent = '';
+    $('#resenaAviso').classList.remove('resena-form__aviso--atencion');
+  }
+
+  function errorCampo(id, mensaje) {
+    var el = $('#' + id);
+    if (el) { el.textContent = mensaje; el.hidden = false; }
+  }
+
+  function minutosRestantes(ms) {
+    return Math.max(1, Math.ceil(ms / 60000));
+  }
+
+  function enviarResena() {
+    limpiarErroresResena();
+
+    var nombre = $('#resenaNombre').value.trim();
+    var comentario = $('#resenaComentario').value.trim();
+    var marcada = document.querySelector('input[name="resenaEstrellas"]:checked');
+    var estrellas = marcada ? Number(marcada.value) : 0;
+
+    var falla = false;
+    if (!estrellas) { errorCampo('errEstrellas', 'Elegí cuántas estrellas.'); falla = true; }
+    if (!nombre) { errorCampo('errNombre', 'Poné tu nombre.'); falla = true; }
+    if (!comentario) { errorCampo('errComentario', 'Escribí un comentario.'); falla = true; }
+    if (falla) {
+      // foco al primer campo con error
+      if (!estrellas) $('#estrella-5').focus();
+      else if (!nombre) $('#resenaNombre').focus();
+      else $('#resenaComentario').focus();
+      return;
+    }
+
+    // Freno anti-spam del lado del cliente (ver README): una cada 10 min
+    // por navegador. No es infalible —se saltea borrando localStorage o
+    // cambiando de navegador—, pero corta el spam casual sin backend.
+    var ahora = Date.now();
+    var ultimo = 0;
+    try { ultimo = Number(localStorage.getItem(RESENA_ULTIMO_KEY)) || 0; } catch (e) {}
+    if (ahora - ultimo < RESENA_ESPERA_MS) {
+      var faltan = minutosRestantes(RESENA_ESPERA_MS - (ahora - ultimo));
+      var aviso = $('#resenaAviso');
+      aviso.textContent = 'Ya enviaste una reseña hace poco. Probá de nuevo en ' + faltan +
+                          (faltan === 1 ? ' minuto.' : ' minutos.');
+      aviso.classList.add('resena-form__aviso--atencion');
+      aviso.hidden = false;
+      return;
+    }
+
+    var sel = $('#resenaProducto');
+    var productoId = sel.value || null;
+    var productoNombre = sel.value ? sel.options[sel.selectedIndex].text : null;
+
+    var cuerpo = {
+      nombre: nombre,
+      estrellas: estrellas,
+      comentario: comentario,
+      producto_id: productoId,
+      producto_nombre: productoNombre,
+      estado: 'pendiente'   // la política RLS igual lo exige
+    };
+
+    var btn = $('#resenaEnviar');
+    btn.disabled = true;
+    btn.querySelector('.btn__txt').textContent = 'Enviando…';
+
+    fetch(SUPABASE_URL + '/rest/v1/resenas', {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal'
+      },
+      body: JSON.stringify(cuerpo)
+    }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      try { localStorage.setItem(RESENA_ULTIMO_KEY, String(ahora)); } catch (e) {}
+      cerrarResenaForm();
+      $('#resenaForm').reset();
+      $('#resenaContador').textContent = '0/' + RESENA_MAX_COMENTARIO;
+      avisar('¡Gracias! Tu reseña será publicada cuando la aprobemos.');
+    }).catch(function (err) {
+      console.error('[tienda] no se pudo enviar la reseña:', err);
+      var aviso = $('#resenaAviso');
+      aviso.textContent = 'No se pudo enviar la reseña. Revisá tu conexión y probá de nuevo.';
+      aviso.hidden = false;
+    }).then(function () {
+      btn.disabled = false;
+      btn.querySelector('.btn__txt').textContent = 'Enviar reseña';
+    });
+  }
+
+  function iniciarResenas() {
+    if (!esInicio || !$('#abrirResena')) return;
+
+    $('#abrirResena').addEventListener('click', abrirResenaForm);
+    $('#resenaCerrar').addEventListener('click', cerrarResenaForm);
+    resenaOverlay.addEventListener('click', cerrarResenaForm);
+    $('#resenaForm').addEventListener('submit', function (e) { e.preventDefault(); enviarResena(); });
+
+    // contador de caracteres del comentario
+    $('#resenaComentario').addEventListener('input', function () {
+      $('#resenaContador').textContent = this.value.length + '/' + RESENA_MAX_COMENTARIO;
+    });
+
+    // "Ver más": delegado, porque el botón se repinta con la lista
+    $('#resenasLista').addEventListener('click', function (e) {
+      if (!e.target.closest('#resenasVerMas')) return;
+      Array.prototype.forEach.call(document.querySelectorAll('.resena-card[hidden]'),
+        function (c) { c.hidden = false; });
+      var caja = e.target.closest('.resenas-mas');
+      if (caja) caja.remove();
+    });
+
+    cargarResenas();
+  }
+
+  // Acá sí: resenaModal y resenaOverlay ya están asignados.
+  iniciarResenas();
+
   /* ------------------------------ CARRITO --------------------------- */
 
   function leerCarrito() {
@@ -3959,8 +4328,9 @@
   }
 
   function liberarScroll() {
-    // sólo se libera si no queda ninguna capa abierta
-    if (!capaCarritoAbierta() && modal.hidden) {
+    // sólo se libera si no queda ninguna capa abierta (carrito, modal de
+    // producto o modal de reseña)
+    if (!capaCarritoAbierta() && modal.hidden && resenaModal.hidden) {
       document.body.style.overflow = '';
       ocultarFlotantes(false);
     }
@@ -4036,15 +4406,18 @@
   }
 
   document.addEventListener('keydown', function (e) {
-    // Orden de arriba hacia abajo: el modal tapa al checkout y el checkout
-    // tapa al drawer, así que se atiende al de más arriba.
+    // Orden de arriba hacia abajo: el modal de producto y el de reseña
+    // (mismo nivel: nunca están los dos abiertos) tapan al checkout, que
+    // tapa al drawer. Se atiende al de más arriba.
     var capa = !modal.hidden ? modal
+             : (!resenaModal.hidden ? resenaModal
              : (!checkout.hidden ? checkout
-             : (!drawer.hidden ? drawer : null));
+             : (!drawer.hidden ? drawer : null)));
     if (!capa) return;
 
     if (e.key === 'Escape') {
       if (capa === modal) cerrarModal();
+      else if (capa === resenaModal) cerrarResenaForm();
       // desde el checkout, Escape hace lo mismo que el botón "Volver":
       // retrocede al carrito en vez de perder todo el paso
       else if (capa === checkout) mostrarVistaCarrito();

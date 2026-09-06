@@ -67,10 +67,15 @@ En el panel de Supabase, **SQL Editor → New query**:
    de seguridad (RLS)**.
 2. Pegar **todo** `supabase/datos-iniciales.sql` y darle **Run**. Carga los 15
    productos y los 3 combos que hoy están en `productos.json`.
+3. Pegar **todo** `supabase/resenas.sql` y darle **Run**. Crea la tabla de
+   **reseñas de clientes** con su moderación (ver la sección de reseñas más
+   abajo). Es independiente de las otras dos; se puede aplicar en cualquier
+   momento.
 
-Los dos archivos se pueden volver a correr sin romper nada: el schema usa
-`if not exists` y los datos usan `on conflict (id) do update`, así que
-re-ejecutarlos actualiza en vez de duplicar.
+Los tres archivos se pueden volver a correr sin romper nada: el schema usa
+`if not exists`, los datos usan `on conflict (id) do update` y las reseñas usan
+`if not exists` + `drop policy if exists`, así que re-ejecutarlos actualiza en
+vez de duplicar.
 
 Para comprobar que quedó bien, al final de cada archivo hay un par de consultas
 comentadas (`select ...`) que se pueden descomentar y correr.
@@ -213,6 +218,72 @@ datos son dos cosas del lado del servidor:
    que está en el código —que es pública por diseño— con ella sólo puede
    **leer**. Para escribir, Postgres exige el token de un usuario autenticado,
    que es el que manda este panel.
+
+---
+
+## Reseñas de clientes (con moderación)
+
+Los clientes pueden dejar una reseña desde el sitio, pero **no aparece sola**:
+vos la aprobás (o la rechazás) desde el panel. Sólo las aprobadas se ven.
+
+### La tabla en Supabase
+
+Vive en `supabase/resenas.sql` (aplicalo una vez, como los otros dos SQL —ver
+"Cómo aplicar la base"). La tabla `resenas` guarda: nombre, estrellas (1 a 5),
+comentario, el producto que compró (id **y** nombre, para que la reseña no
+pierda sentido si ese producto cambia o se borra), el **estado** y la fecha.
+
+El estado es lo que ordena todo:
+
+| estado | qué significa | ¿se ve en el sitio? |
+|---|---|---|
+| `pendiente` | recién enviada, sin moderar | no |
+| `aprobada` | la aprobaste vos | **sí** |
+| `rechazada` | la rechazaste; queda como historial, no se borra | no |
+
+**Las políticas RLS de reseñas son más finas que las de productos** y conviene
+entender por qué. Con la clave pública, un visitante puede:
+
+- **Insertar** una reseña, pero el `with check` de la política la obliga a entrar
+  como `pendiente`: nadie puede mandar una ya "aprobada" y saltarse la moderación.
+- **Leer** sólo las `aprobada`. Las pendientes y rechazadas **no existen** para el
+  público: no se pueden espiar ni con la clave a la vista.
+
+Aprobar y rechazar (cambiar el estado) exige estar logueado. Todo eso lo hacen
+las cinco políticas del archivo, cada una comentada.
+
+### Cómo moderar, desde el panel
+
+En `adminweb.html`, además de "Catálogo", hay una pestaña **"Reseñas"** con un
+**contador de pendientes** al lado (para que sepas de un vistazo si tenés algo
+esperando). Adentro:
+
+1. Arrancás viendo las **pendientes** (son las que hay que atender).
+2. Cada una muestra estrellas, comentario, nombre, producto y fecha, con dos
+   botones: **Aprobar** y **Rechazar**.
+3. **Aprobar** la publica en el sitio (al recargar la página de inicio).
+   **Rechazar** la oculta pero la deja registrada.
+4. Con el filtro de arriba podés ver también las **aprobadas** y las
+   **rechazadas**.
+
+El texto de las reseñas lo escribió gente anónima, así que **se sanitiza** (se
+escapa) antes de mostrarlo, tanto en el sitio como en el panel: si alguien
+escribe `<script>` en su nombre, se ve como texto, no se ejecuta.
+
+### El freno anti-spam y su límite real
+
+Como el sitio no tiene backend propio, el freno para que alguien no mande
+cincuenta reseñas seguidas es **del lado del cliente**: se guarda en el navegador
+(`localStorage`) la hora del último envío y no deja mandar otra hasta que pasan
+**10 minutos**.
+
+**Esto frena el spam casual, no a alguien decidido.** Se saltea borrando los
+datos del navegador, abriendo una ventana de incógnito o cambiando de navegador.
+La defensa de verdad es la **moderación**: nada se publica sin tu aprobación, así
+que lo peor que puede hacer un spammer es llenarte la lista de pendientes —
+molesto, pero nunca llega al sitio. Si eso pasara seguido, el paso siguiente
+sería un límite del lado del servidor (una función de Supabase), que queda fuera
+de esta etapa.
 
 ---
 
