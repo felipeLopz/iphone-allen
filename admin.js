@@ -1009,7 +1009,8 @@
           apikey: SUPABASE_KEY,
           Authorization: 'Bearer ' + token,
           Accept: 'application/json'
-        }
+        },
+        cache: 'no-store'   // el cliente tiene que ver el estado real, no una copia vieja
       });
     }).then(function (r) {
       if (r.status === 401) throw new Error('sesión-vencida');
@@ -1036,6 +1037,15 @@
         if (r.status === 403) throw new Error('La base rechazó el cambio (RLS): revisá que tu usuario tenga permiso.');
         if (!r.ok) throw new Error('No se pudo actualizar (HTTP ' + r.status + ').');
         var filas = texto ? JSON.parse(texto) : [];
+        // OJO: un PATCH que no matchea ninguna fila responde 200 OK con un
+        // array VACÍO, no con un error — probado contra la API real (un id
+        // inexistente, o la clave anónima sin permiso, devuelven 200 + []
+        // igual que un éxito). Sin este chequeo, el panel mostraba "Reseña
+        // aprobada" aunque el estado no hubiera cambiado en la base: la
+        // moderación "aparentaba funcionar" pero no dejaba rastro.
+        if (!filas.length) {
+          throw new Error('La base no confirmó el cambio: ninguna fila coincidió con ese id (o la política RLS lo bloqueó).');
+        }
         return filas[0];
       });
     });

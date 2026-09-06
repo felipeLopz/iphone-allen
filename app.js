@@ -1393,7 +1393,14 @@
   // Un GET a la API REST de Supabase. La clave va en los dos headers que
   // pide PostgREST: "apikey" identifica el proyecto y "Authorization"
   // define con qué rol se entra (acá, anónimo => sólo lectura por RLS).
-  function pedirTablaSupabase(tabla, query) {
+  // sinCache=true fuerza 'no-store': el fetch nunca se sirve ni se guarda
+  // en la caché HTTP del navegador. Lo usan las reseñas (ver cargarResenas):
+  // su contenido cambia por una acción humana (moderar en el panel) y hay
+  // que verlo reflejado apenas se recarga la página, sin depender de que
+  // el servidor que sirve el sitio mande los headers de caché correctos
+  // (el servidor de desarrollo de este proyecto, por ejemplo, no manda
+  // ninguno) ni de que el visitante haga un refresco "duro".
+  function pedirTablaSupabase(tabla, query, sinCache) {
     var control = ('AbortController' in window) ? new AbortController() : null;
     var corte = control && setTimeout(function () { control.abort(); }, SUPABASE_TIMEOUT_MS);
 
@@ -1403,6 +1410,7 @@
         Authorization: 'Bearer ' + SUPABASE_KEY,
         Accept: 'application/json'
       },
+      cache: sinCache ? 'no-store' : undefined,
       signal: control ? control.signal : undefined
     }).then(function (r) {
       if (corte) clearTimeout(corte);
@@ -3712,7 +3720,7 @@
     // Pedido independiente del catálogo: si Supabase falla acá, se cae
     // sólo esta sección (estado vacío), no la página. Y al revés: si el
     // catálogo falla, las reseñas igual se intentan.
-    pedirTablaSupabase('resenas', '?select=*&estado=eq.aprobada&order=creado_en.desc')
+    pedirTablaSupabase('resenas', '?select=*&estado=eq.aprobada&order=creado_en.desc', true)
       .then(function (filas) {
         resenasCargadas = Array.isArray(filas) ? filas : [];
         pintarResenas();
